@@ -3,6 +3,7 @@ import { record } from "@ling/contracts/records";
 import type { LingSessionEvent, RunOutcome, SessionMessage } from "@ling/contracts/session";
 import { TOOL_PROGRESS_MAX_CHARS } from "@ling/contracts/session-tool-progress";
 import { createLogger } from "../../logger";
+import { toError } from "../../ling-error";
 import { inspectPiSessionEntryIdentity } from "../../transcript/session-entry-identity";
 import { renderPiCustomMessage } from "../extensions/extension-message-renderer";
 import { createPiToolRendererProjection } from "../extensions/extension-tool-renderer";
@@ -15,6 +16,7 @@ import { createAssistantGeneration } from "./assistant-generation";
 interface PiSessionEventAdapterOptions {
 	session: PiAgentSession;
 	onDeferredEvent: (event: LingSessionEvent) => void;
+	onDeferredError: (error: Error) => void;
 	getMarkdownWidth: () => number;
 	queueMirror: () => PiQueueMirror;
 }
@@ -34,6 +36,8 @@ const log = createLogger("pi-session-event-adapter");
 /** Correlation state only bridges one live run; caps defend malformed extension roles/events. */
 const MAX_PERSISTED_MESSAGE_CORRELATIONS = 128;
 const MAX_ENDED_MESSAGE_ROLES = 16;
+/** Normalize at most once per display frame; token bursts otherwise repeatedly traverse and serialize the full message. */
+const MESSAGE_UPDATE_INTERVAL_MS = 16;
 
 function messageRole(value: unknown): string {
 	const source = record(value);
@@ -160,6 +164,12 @@ export function createPiSessionEventAdapter(options: PiSessionEventAdapterOption
 	const lastEndedIdByRole = new Map<string, string>();
 	const persistedEntryByMessageId = new Map<string, string>();
 	const toolRenderer = createPiToolRendererProjection(piBranchProjectionSource(session));
+	let pendingMessageUpdate: {
+		message: Extract<PiAgentSessionEvent, { type: "message_update" }>["message"];
+		messageId: string;
+		occurredAt: number;
+	} | null = null;
+	let messageUpdateTimer: ReturnType<typeof setTimeout> | null = null;
 	const owner: EventAdapterState = {
 		...options,
 		finalOutcome: { status: "success" },
@@ -180,6 +190,19 @@ export function createPiSessionEventAdapter(options: PiSessionEventAdapterOption
 	function allocateMessageId(): string {
 		// The renderer retains live IDs after persistence, reload and worker replacement.
 		return `message:${randomUUID()}`;
+	}
+
+	function flushMessageUpdate(): void {
+		if (messageUpdateTimer !== null) clearTimeout(messageUpdateTimer);
+		messageUpdateTimer = null;
+		const pending = pendingMessageUpdate;
+		pendingMessageUpdate = null;
+		if (!pending || owner.disposed) return;
+		onDeferredEvent({
+			type: "messageUpdate",
+			message: normalizeLiveMessage(pending.message, pending.messageId, pending.occurredAt, false, true),
+			...(hasPiMarkdownTransformers(session) ? { streamMode: "full" as const } : {}),
+		});
 	}
 
 	function rememberRawMessage(value: unknown, messageId: string): void {
@@ -284,6 +307,9 @@ export function createPiSessionEventAdapter(options: PiSessionEventAdapterOption
 
 	return {
 		adapt(event) {
+			if (owner.disposed) return null;
+			// Lifecycle, tool and persistence events must never overtake their final streaming projection.
+			if (event.type !== "message_update") flushMessageUpdate();
 			if (isAuxiliaryEvent(event)) {
 				// The discriminant selects the matching narrow handler; the table preserves that relation.
 				return AUXILIARY_EVENT_ADAPTERS[event.type](owner, event as never);
@@ -328,12 +354,18 @@ export function createPiSessionEventAdapter(options: PiSessionEventAdapterOption
 				case "message_update": {
 					const occurredAt = Date.now();
 					const messageId = continueMessage(event.message);
+					if (pendingMessageUpdate && pendingMessageUpdate.messageId !== messageId) flushMessageUpdate();
+					// Timing observes every token even when its intermediate display projection is coalesced.
 					generation.update(messageId, event.assistantMessageEvent);
-					return {
-						type: "messageUpdate",
-						message: normalizeLiveMessage(event.message, messageId, occurredAt, false, true),
-						...(hasPiMarkdownTransformers(session) ? { streamMode: "full" as const } : {}),
-					};
+					pendingMessageUpdate = { message: event.message, messageId, occurredAt };
+					messageUpdateTimer ??= setTimeout(() => {
+						try {
+							flushMessageUpdate();
+						} catch (error) {
+							options.onDeferredError(toError(error));
+						}
+					}, MESSAGE_UPDATE_INTERVAL_MS);
+					return null;
 				}
 
 				case "message_end": {
@@ -383,6 +415,9 @@ export function createPiSessionEventAdapter(options: PiSessionEventAdapterOption
 			throw new Error("Unsupported Pi session event");
 		},
 		dispose() {
+			if (messageUpdateTimer !== null) clearTimeout(messageUpdateTimer);
+			messageUpdateTimer = null;
+			pendingMessageUpdate = null;
 			owner.disposed = true;
 			owner.agentRunActive = false;
 			owner.idleCompactionRunActive = false;

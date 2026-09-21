@@ -56,6 +56,8 @@ Host questions and Pi approvals share InteractionCard and InteractionChoice. Kee
 
 Show only the earliest pending Host question above the Composer. Other requests remain reachable from the global pending entry; finishing the visible request advances to the next. Multiple requests must not stack until they displace the conversation.
 
+A new input card pulses its edge twice, then keeps a static highlight. While it is visible, pause the conversation's decorative progress animations so motion behind the translucent card does not keep repainting its backdrop. Elapsed time and execution state remain live; normal motion resumes when the card closes.
+
 Question body and question titles use Ling Markdown. Literal operation arguments remain code in approval cards. Selected descriptions inherit the selected foreground rather than the unselected muted token. Answers appear as user replies, using Pi steering while busy; show the queued answer immediately while a tool is still running. Its durable request identity survives history reload and retry.
 
 ## Built-in feature switches

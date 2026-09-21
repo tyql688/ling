@@ -5,6 +5,7 @@ import { FeedbackNotice } from "@renderer/components/ui/feedback";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@renderer/components/ui/tooltip";
 import { COPY_FEEDBACK_MS } from "@renderer/hooks/use-copy-feedback";
 import { activeSkinAppearanceAtom } from "@renderer/lib/appearance/skin-state";
+import { codeHighlightLanguage } from "@renderer/lib/code-highlighting/languages";
 import { formatRequestError } from "@renderer/lib/errors";
 import { canRenderMermaid } from "@renderer/lib/mermaid-guard";
 import { CODE_PREVIEW_DEFAULTS, CODE_THEME_PAIRS } from "@renderer/lib/preferences/code-preview";
@@ -84,12 +85,12 @@ function CodeAction({
 	);
 }
 
-function StreamingCode({ code, wrapLongLines }: { code: string; wrapLongLines: boolean }) {
+function PlainCode({ code, wrapLongLines, streaming }: { code: string; wrapLongLines: boolean; streaming: boolean }) {
 	// Concrete px/stack, consistent with the Pierre path, so code renders identically outside the CSS-variable scope.
 	const { fontFamily, fontSizePx } = CODE_PREVIEW_DEFAULTS;
 	return (
 		<pre
-			data-streaming-code="true"
+			data-streaming-code={streaming ? "true" : undefined}
 			className={cn(
 				"m-0 block max-w-full overflow-auto bg-transparent px-[1ch] font-normal text-text-primary",
 				wrapLongLines ? "whitespace-pre-wrap break-words" : "whitespace-pre",
@@ -189,11 +190,12 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 			</div>
 			<div className="min-w-0 p-2 pb-3">
 				{/*
-				 * The static path must mount Pierre synchronously: lazy+Suspense would paint StreamingCode first, then swap highlighting.
+				 * The highlighted path must mount Pierre synchronously so its first paint keeps the final geometry.
 				 * Font family/size go through CSS variables; only theme/line-number changes need a React update.
 				 */}
-				{streaming ? (
-					<StreamingCode code={code} wrapLongLines={wrapLongLines} />
+				{streaming || (!showLineNumbers && codeHighlightLanguage(language) === "text") ? (
+					// Plain text has no grammar to load. Keep it out of the shared highlighter and AST cache.
+					<PlainCode code={code} wrapLongLines={wrapLongLines} streaming={streaming} />
 				) : (
 					<HighlightedMarkdownCode
 						code={code}

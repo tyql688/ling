@@ -11,6 +11,7 @@ interface RuntimeEventSubscriptionOptions {
 	subscribeQueue(listener: (queue: SessionQueue) => void): () => void;
 	queueMirror(): PiQueueMirror;
 	getMarkdownWidth(): number;
+	onDeferredError(error: Error): void;
 }
 
 export function subscribePiRuntimeEvents(
@@ -24,6 +25,7 @@ export function subscribePiRuntimeEvents(
 		session: options.session,
 		getMarkdownWidth: options.getMarkdownWidth,
 		queueMirror: options.queueMirror,
+		onDeferredError: options.onDeferredError,
 		onDeferredEvent: (event) => {
 			if (active) listener(event);
 		},

@@ -26,6 +26,8 @@ Every Pi worker runs the same entry (`pi-worker-entry.js`) and the same server (
 
 **Why per session.** A wedged event loop, a leaking extension or a fatal V8 abort affects one session, and the affected session is resumable from its session file. Sessions of the same project do not share fate. The cost is memory: a bare worker holds about 220 MiB after loading the SDK, and an opened project adds about 50 MiB. Idle runtimes beyond the warm set of two are suspended by the existing session retention owner, which bounds live workers to running sessions plus two warm idle sessions.
 
+Streaming token updates are coalesced before message normalization and extension display projection in the SDK adapter. Generation timing still observes every token, and lifecycle/tool boundaries flush pending text before their own events. Subscription disposal cancels pending projections; deferred delivery failures reach the runtime's lifecycle failure owner. The worker transport separately owns ordered delivery and message deltas.
+
 **Generation identity.** Each worker spawn receives a unique generation across all workers for the Host lifetime. Replacement reservations and control frames are keyed by generation, so a late frame from an exited worker cannot reach a newer one.
 
 ## Supervision

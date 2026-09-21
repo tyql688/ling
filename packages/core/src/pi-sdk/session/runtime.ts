@@ -491,6 +491,7 @@ export function createPiSessionRuntimeHandle(
 			{
 				session: ownedRuntime.session,
 				getMarkdownWidth: () => markdownWidth(),
+				onDeferredError: (error) => ownedReplacement.emitLifecycleFailure(error),
 				subscribeChangeReview: (changeReviewListener) =>
 					ownedBoundResources.subscribeChangeReview(changeReviewListener),
 				subscribeQueue: (queueListener) =>

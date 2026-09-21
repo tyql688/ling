@@ -1,0 +1,40 @@
+node_modules/
+out/
+dist/
+output/
+.turbo/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Electron desktop build artifacts.
+apps/desktop/.stage/
+apps/desktop/out/
+apps/desktop/build/
+apps/desktop/artifacts/
+/packages/host/apps/
+
+# Legacy local package output; retained so existing generated installers stay untouched.
+/release/
+
+# local signing cert output (scripts/create-signing-cert.sh)
+.signing/
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# vite
+*.local
+
+# local browser automation output
+/.playwright-cli/
+
+# Claude Code local session state (not project config)
+.claude/
+
+# Local research clones
+tmpcode/

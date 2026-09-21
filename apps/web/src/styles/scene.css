@@ -1,0 +1,283 @@
+/* Glass belongs to bounded panes, never individual transcript rows. Keep filters static so
+   scrolling and streaming only move content over a single sampled backdrop. */
+:root[data-skin-backdrop] :is(.sidebar-glass, .chrome-glass) {
+	-webkit-backdrop-filter: var(--glass-chrome-filter, none);
+	backdrop-filter: var(--glass-chrome-filter, none);
+}
+
+.glass-surface {
+	-webkit-backdrop-filter: var(--glass-floating-filter, none);
+	backdrop-filter: var(--glass-floating-filter, none);
+}
+
+.composer-surface {
+	-webkit-backdrop-filter: var(--glass-composer-filter, none);
+	backdrop-filter: var(--glass-composer-filter, none);
+}
+
+:root[data-skin-backdrop][data-skin-material="system"] .sidebar-glass {
+	box-shadow:
+		inset -1px 0 var(--color-border-subtle),
+		var(--shadow-glass-edge);
+}
+
+:where(:root[data-skin-backdrop][data-skin-scope="window"]) :is(.sidebar-glass, .chrome-glass, .workspace-scene),
+:where(:root[data-skin-backdrop][data-skin-scope="conversation"]) .conversation-scene {
+	--color-text-primary: var(--color-scene-text);
+	--color-text-muted: var(--color-scene-text-muted);
+	--color-accent: var(--color-scene-accent);
+	--color-link: var(--color-scene-accent);
+	color: var(--color-text-primary);
+}
+
+/* Local reading surfaces restore foregrounds tuned for their stronger backing. */
+.skin-surface,
+.glass-surface,
+.reading-glass-frame,
+.bg-code-block:not(.md-code-block),
+[data-slot="tooltip-surface"] {
+	--color-text-primary: var(--color-surface-text);
+	--color-text-muted: var(--color-surface-text-muted);
+	--color-accent: var(--color-surface-accent);
+	--color-link: var(--color-surface-accent);
+	--color-surface-hover: var(--surface-hover);
+	--color-border-subtle: var(--surface-border-subtle);
+	--color-border-strong: var(--surface-border-strong);
+	--color-accent-foreground: var(--surface-accent-foreground);
+	--color-danger: var(--surface-danger);
+	--color-warning: var(--surface-warning);
+	--color-success: var(--surface-success);
+	--color-context-medium: var(--surface-context-medium);
+	--color-context-high: var(--surface-context-high);
+	--md-code-background: var(--color-code-block);
+	--md-code-foreground: var(--color-surface-text);
+	--md-code-color-scheme: var(--surface-color-scheme);
+	--md-table-background: transparent;
+	--md-inline-code-fg: var(--color-inline-code);
+	--md-inline-code-bg: var(--color-inline-code-bg);
+	--md-inline-code-link: var(--color-inline-code-link);
+	color: var(--color-text-primary);
+	color-scheme: var(--surface-color-scheme);
+	text-shadow: none;
+}
+
+/* Protected scene surfaces pair ink with their translucent backing.
+   Child popovers restore foregrounds tuned for their denser material. */
+.scene-surface {
+	--color-text-primary: var(--color-scene-text);
+	--color-text-muted: var(--color-scene-control-muted, var(--color-scene-text-muted));
+	--color-accent: var(--color-scene-control-accent, var(--color-scene-accent));
+	--color-accent-foreground: var(--color-scene-control-accent-foreground);
+	--color-link: var(--color-accent);
+	/* Local hover and rules use the same ink: 6% feedback, 14% hairline, 36% focus edge. */
+	--color-surface-hover: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+	--color-border-subtle: color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+	--color-border-strong: color-mix(in srgb, var(--color-text-primary) 36%, transparent);
+	--color-danger: var(--color-scene-danger);
+	--color-warning: var(--color-scene-warning);
+	--color-success: var(--color-scene-success);
+	--color-context-medium: var(--color-warning);
+	--color-context-high: var(--color-danger);
+	--md-inline-code-fg: var(--color-scene-inline-code, var(--color-inline-code));
+	--md-inline-code-bg: var(--color-scene-inline-code-bg, var(--color-inline-code-bg));
+	--md-inline-code-link: var(--color-scene-inline-code-link, var(--color-inline-code-link));
+	color: var(--color-text-primary);
+	color-scheme: var(--scene-color-scheme, var(--surface-color-scheme));
+	text-shadow: none;
+}
+
+.composer-surface {
+	/* A static hairline defines the input target; focus strengthens only its edge. */
+	box-shadow: 0 1px 3px color-mix(in srgb, var(--color-scene-surface, var(--color-surface)) 16%, transparent);
+}
+
+.composer-surface:has(textarea:focus-visible) {
+	border-color: var(--color-border-strong);
+	outline: 1px solid var(--color-border-strong);
+	outline-offset: 0;
+}
+
+/* Clip only the decorative edge so completion popovers can still escape the composer. */
+.composer-working-edge {
+	display: none;
+	position: absolute;
+	/* Cover the existing 1px border without changing the card's geometry. */
+	inset: -1px;
+	border-radius: inherit;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+[data-composer-working="true"] .composer-working-edge {
+	display: block;
+}
+
+.composer-working-edge::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	/* A 2px, quarter-width highlight reads as activity without covering the input. */
+	height: 2px;
+	width: 25%;
+	background: linear-gradient(90deg, transparent, var(--color-text-primary), transparent);
+	opacity: 0.7;
+	/* A full sweep takes 1.8s; transform keeps ongoing work off the layout path. */
+	animation: composer-working-sweep 1.8s linear infinite;
+}
+
+@keyframes composer-working-sweep {
+	from {
+		transform: translateX(-100%);
+	}
+	to {
+		/* Four highlight widths traverse the whole card. */
+		transform: translateX(400%);
+	}
+}
+
+:root[data-skin-motion="none"] .composer-working-edge::before {
+	width: 100%;
+	animation: none;
+	transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.composer-working-edge::before {
+		width: 100%;
+		animation: none;
+		transform: none;
+	}
+}
+
+.workspace-scene {
+	position: relative;
+	isolation: isolate;
+}
+
+/* One viewport layer crosses the titlebar boundary; separately clipped blurs leave a visible seam. */
+.workspace-scene::before {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background: var(--color-conversation, var(--color-panel));
+	-webkit-backdrop-filter: var(--glass-filter, none);
+	backdrop-filter: var(--glass-filter, none);
+	content: "";
+	pointer-events: none;
+}
+
+/* The workbench owns conversation artwork through its top row. Reading and tool panes
+   keep the authored surface palette; changing scope never changes transcript geometry. */
+:root[data-skin-scope="conversation"] .workspace-scene::before {
+	background: var(--color-surface);
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+}
+
+.conversation-scene {
+	isolation: isolate;
+}
+
+/* The reading pane is viewport-owned; a long document never allocates a document-height blur. */
+.reading-glass-frame {
+	position: relative;
+	isolation: isolate;
+}
+.reading-glass-frame::before {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background: var(--color-panel);
+	-webkit-backdrop-filter: var(--glass-filter, none);
+	backdrop-filter: var(--glass-filter, none);
+	content: "";
+	pointer-events: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+	:root {
+		/* The OS accessibility preference is authoritative over Ling's slider. */
+		--native-transparency: 0 !important;
+	}
+
+	.chrome-glass,
+	.sidebar-glass,
+	.glass-surface,
+	.composer-surface,
+	.workspace-scene::before,
+	.reading-glass-frame::before,
+	.attention-prompt-card-surface,
+	[class*="backdrop-blur"] {
+		-webkit-backdrop-filter: none !important;
+		backdrop-filter: none !important;
+	}
+}
+
+:root[data-skin-motion="none"] body {
+	transition: none;
+}
+
+:root[data-skin-motion="none"] *,
+:root[data-skin-motion="none"] *::before,
+:root[data-skin-motion="none"] *::after,
+:host([data-skin-motion="none"]) *,
+:host([data-skin-motion="none"]) *::before,
+:host([data-skin-motion="none"]) *::after {
+	animation: none !important;
+	transition: none !important;
+}
+
+/* Startup paint: theme-init sets the cached canvas before React mounts, so a skinned boot
+   goes straight to the artwork canvas instead of flashing the stock surface color. */
+:root[data-skin-backdrop] body {
+	background-color: var(--color-skin-canvas);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	body {
+		transition: none;
+	}
+
+	:is(.view-fade-in, [data-slot="dialog-overlay"], [data-slot="dialog-content"]) {
+		animation: none;
+	}
+}
+
+/* Glass material (macOS NSVisualEffectView / Win11 Acrylic, enabled by main/index.ts at window creation):
+   canvas-family chrome (title bar and sidebar) is painted in translucent tints so the
+   desktop shows through. The conversation shares that tint while native material supplies the frost.
+   These rules must be unlayered: the .dark variable block and the index.html bootstrap style are both
+   outside @layer, and unlayered declarations always beat @layer base — putting them in a layer would
+   completely break the dark-mode transparency slider.
+	   Hex bases here are the stock first-paint canvas colors. The active skin replaces them with an inline
+   resolved palette and applies the same material formula after mount. */
+.vibrancy body {
+	background-color: transparent;
+}
+/* Native material already owns its tint and frost; never animate an old artwork canvas over it. */
+:root.vibrancy:not([data-skin-backdrop]):not([data-skin-material="solid"]) body {
+	background-color: transparent;
+	transition: none;
+}
+/* --native-transparency (0–100) controls the shared chrome and conversation tint.
+   Native material owns the frost; Ling's tint opacity is 100 minus transparency. */
+.vibrancy {
+	--native-tint-opacity: calc((100 - var(--native-transparency, 70)) * 1%);
+	--color-shell-content: transparent;
+	--color-loading-veil: transparent;
+	--color-surface-under: color-mix(in srgb, #f2f2f3 var(--native-tint-opacity), transparent);
+	--color-header: color-mix(in srgb, #f2f2f3 var(--native-tint-opacity), transparent);
+	--color-sidebar: color-mix(in srgb, #f2f2f3 var(--native-tint-opacity), transparent);
+	--color-conversation: color-mix(in srgb, #ffffff var(--native-tint-opacity), transparent);
+	/* The preview overlays the transcript rather than the native window, so it stays nearly opaque. */
+	--color-sidebar-preview: color-mix(in srgb, #f2f2f3 92%, transparent);
+}
+/* Both classes live on <html> (use-theme toggles .dark there). */
+.vibrancy.dark {
+	--color-surface-under: color-mix(in srgb, #0d0d0f var(--native-tint-opacity), transparent);
+	--color-header: color-mix(in srgb, #0d0d0f var(--native-tint-opacity), transparent);
+	--color-sidebar: color-mix(in srgb, #0d0d0f var(--native-tint-opacity), transparent);
+	--color-conversation: color-mix(in srgb, #19191c var(--native-tint-opacity), transparent);
+	--color-sidebar-preview: color-mix(in srgb, #0d0d0f 92%, transparent);
+}

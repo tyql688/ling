@@ -1,0 +1,32 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		// Built-in extensions also load directly through Node's TypeScript stripping.
+		"allowImportingTsExtensions": true,
+		"lib": ["ES2024", "DOM"],
+		"types": ["node"],
+		"paths": {
+			"@ling/contracts/*": ["./packages/contracts/src/*"],
+			"@ling/node-runtime/*": ["./packages/node-runtime/src/*"],
+			"@ling/core/*": ["./packages/core/src/*"],
+			"@ling/host/*": ["./packages/host/src/*"],
+			// In-process integration suites combine renderer owners with real Host storage.
+			"@renderer/*": ["./apps/web/src/*"]
+		}
+	},
+	"include": [
+		"scripts/**/*.ts",
+		"test/**/*.ts",
+		"apps/web/src/**/*.integration.test.ts",
+		"apps/web/src/vite-env.d.ts",
+		"vitest.config.ts",
+		"packages/builtin-extensions/src/**/*",
+		"packages/contracts/src/**/*",
+		"packages/core/src/**/*",
+		"packages/node-runtime/src/**/*",
+		"packages/host/src/**/*",
+		"packages/host/vite.config.ts",
+		"apps/web/vite.config.ts",
+		"apps/web/vite-plugins.ts"
+	]
+}

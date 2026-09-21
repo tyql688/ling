@@ -1,0 +1,15 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"lib": ["ES2024", "DOM", "DOM.Iterable"],
+		"types": ["vite/client"],
+		"jsx": "react-jsx",
+		"paths": {
+			"@renderer/*": ["./apps/web/src/*"],
+			"@ling/contracts/*": ["./packages/contracts/src/*"]
+		}
+	},
+	"include": ["apps/web/src/**/*", "packages/contracts/src/**/*"],
+	// Real SQLite fixtures are checked by the existing Node project, without exposing Node in production Web.
+	"exclude": ["apps/web/src/**/*.integration.test.ts"]
+}

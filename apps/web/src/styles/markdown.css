@@ -1,0 +1,503 @@
+.ling-diffs-file {
+	color-scheme: light;
+	overscroll-behavior-inline: contain;
+	/* Pierre's shadow :host reads --diffs-font-*, not the outer font-family. */
+	--diffs-font-family: var(--md-code-font);
+	--diffs-font-size: var(--md-code-font-size);
+	--diffs-line-height: var(--md-code-line-height);
+	font-family: var(--diffs-font-family);
+	font-size: var(--diffs-font-size);
+	line-height: var(--diffs-line-height);
+}
+/* Pierre's shadow :host reads these variables; the outer rule must pin <diffs-container> to reach into the shadow. */
+.ling-diffs-file diffs-container {
+	color-scheme: light;
+	--diffs-font-family: var(--md-code-font);
+	--diffs-font-size: var(--md-code-font-size);
+	--diffs-line-height: var(--md-code-line-height);
+}
+.dark .ling-diffs-file,
+.dark .ling-diffs-file diffs-container {
+	color-scheme: dark;
+}
+.dark {
+	--surface-color-scheme: dark;
+}
+/* Transcript fences share the scene's luminance. Bounded reading surfaces above reset
+   this tuple together so previews and disclosure panels keep their own contrast. */
+.chat-timeline-scroll {
+	--md-inline-code-fg: var(--color-scene-inline-code, var(--color-inline-code));
+	--md-inline-code-bg: var(--color-scene-inline-code-bg, var(--color-inline-code-bg));
+	--md-inline-code-link: var(--color-scene-inline-code-link, var(--color-inline-code-link));
+	--md-code-background: var(--color-scene-code-block, var(--color-code-block));
+	--md-code-foreground: var(--color-scene-text, var(--color-text-primary));
+	--md-code-color-scheme: var(--scene-color-scheme, var(--surface-color-scheme));
+	--md-table-background: var(--color-scene-table, transparent);
+}
+.md-code-block {
+	--color-text-primary: var(--md-code-foreground, var(--color-surface-text));
+	/* Keep small controls readable while giving the code itself priority. */
+	--color-text-muted: color-mix(in srgb, var(--color-text-primary) 70%, transparent);
+	--color-surface-hover: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+	background: var(--md-code-background, var(--color-code-block));
+	color: var(--color-text-primary);
+	color-scheme: var(--md-code-color-scheme, inherit);
+}
+/* Pierre's light-dark() syntax colors must follow this fence, not an unrelated app-mode ancestor. */
+.md-code-block .ling-diffs-file,
+.md-code-block .ling-diffs-file diffs-container {
+	color-scheme: inherit;
+}
+/* Settings-page code preview cards: fixed light/dark islands decoupled from the app theme. The `dark:`
+   variant matches "any .dark ancestor", so nested wrappers can't pull a light card out of a dark theme —
+   instead pin this variable set and Pierre's color-scheme (shadow host included) inside the card scope.
+   Values stay in sync with the same-named variables on :root / .dark. */
+.code-preview-island-light,
+.code-preview-island-light .ling-diffs-file diffs-container {
+	color-scheme: light;
+}
+.code-preview-island-light {
+	--color-surface: #ffffff;
+	--color-surface-raised: #f9f9f9;
+	--color-card: #ffffff;
+	--color-code-block: #f9f9f9;
+	--color-code-block-header: #f4f4f4;
+	--color-code-block-border: #1a1a1d1c;
+	--color-surface-hover: #1a1a1d0d;
+	--color-border-subtle: #1a1a1d14;
+	--color-border-strong: #1a1a1d3d;
+	--color-text-primary: #1a1a1d;
+	--color-text-muted: #707074;
+}
+.code-preview-island-dark,
+.code-preview-island-dark .ling-diffs-file diffs-container {
+	color-scheme: dark;
+}
+.code-preview-island-dark {
+	--color-surface: #19191c;
+	--color-surface-raised: #222226;
+	--color-card: #202024;
+	--color-code-block: #151518;
+	--color-code-block-header: #1f1f23;
+	--color-code-block-border: #ffffff29;
+	--color-surface-hover: #ffffff0f;
+	--color-border-subtle: #ffffff14;
+	--color-border-strong: #ffffff40;
+	--color-text-primary: #f5f5f7;
+	--color-text-muted: #a2a2a8;
+}
+/* Native text and explicit CJK fallbacks keep prose stable when skin UI typography changes.
+   The 15px body and 1.75 line height leave room for mixed Chinese, Latin, and inline code. */
+.chat-markdown {
+	--md-font-size: 15px;
+	--md-line-height: 1.75;
+	--md-tracking: 0;
+	--md-block-gap: 0.85rem;
+	--md-list-indent: 1.5em;
+	--md-heading-tracking: 0;
+	--md-heading-scale: 1;
+	--md-heading-weight: 600;
+	/* Table rules use the surrounding ink, including scene ink on artwork. A 14% rule
+	   separates rows without enclosing the answer in another reading surface. */
+	--md-table-border: color-mix(in srgb, currentColor 14%, transparent);
+	--md-quote-border: color-mix(in srgb, var(--color-text-primary) 14%, var(--color-border-subtle));
+	--md-prose-font:
+		ui-sans-serif, system-ui, "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+	--md-heading-font: var(--md-prose-font);
+	font-family: var(--md-prose-font);
+	font-size: var(--md-font-size);
+	font-weight: 400;
+	line-height: var(--md-line-height);
+	letter-spacing: var(--md-tracking);
+	color: var(--color-text-primary);
+	text-shadow: none;
+	min-width: 0;
+	-webkit-font-smoothing: var(--app-font-smoothing);
+}
+/* ── Font smoothing (Settings → Appearance) ───
+   "automatic" (default, no data attribute override): antialiased only on HiDPI displays —
+   on 1x screens antialiased thins grayscale-smoothed glyphs and reads blurry, so they get
+   the system default. The media query re-evaluates when the window moves between displays. */
+:root {
+	--app-font-smoothing: auto;
+}
+@media (min-resolution: 2dppx) {
+	:root {
+		--app-font-smoothing: antialiased;
+	}
+}
+:root[data-font-smoothing="antialiased"] {
+	--app-font-smoothing: antialiased;
+}
+:root[data-font-smoothing="system"] {
+	--app-font-smoothing: auto;
+}
+/* Incomplete formulas settle once the visible source closes the expression. */
+.chat-markdown[data-md-streaming="true"] .katex-error {
+	visibility: hidden;
+}
+.chat-markdown .markstream-react {
+	/* Compact diagrams reserve 120px instead of the renderer's 360px minimum. */
+	--ms-size-diagram-min-height: 120px;
+	display: flex;
+	flex-direction: column;
+	gap: var(--md-block-gap);
+}
+.chat-markdown .paragraph-node {
+	margin: 0;
+	overflow-wrap: anywhere;
+	text-wrap: pretty;
+}
+.chat-markdown .strong-node {
+	font-weight: 600;
+	color: var(--color-text-primary);
+}
+.chat-markdown em {
+	font-style: italic;
+	color: color-mix(in srgb, var(--color-text-primary) 88%, var(--color-text-muted));
+}
+.chat-markdown .heading-node {
+	margin: 0;
+	font-family: var(--md-heading-font);
+	font-weight: var(--md-heading-weight);
+	letter-spacing: var(--md-heading-tracking);
+	color: var(--color-text-primary);
+	text-wrap: pretty;
+	scroll-margin-top: 0.75rem;
+}
+/* Give a new section space above while keeping its heading close to the following text. */
+.chat-markdown .markstream-react > .node-slot[data-node-type="heading"]:not(:first-child) {
+	margin-top: 0.65em;
+}
+.chat-markdown .markstream-react > .node-slot[data-node-type="heading"] + .node-slot {
+	margin-top: -0.3rem;
+}
+.chat-markdown .heading-1 {
+	font-size: calc(1.28em * var(--md-heading-scale));
+	line-height: 1.28;
+}
+.chat-markdown .heading-2 {
+	font-size: calc(1.14em * var(--md-heading-scale));
+	line-height: 1.32;
+}
+.chat-markdown .heading-3 {
+	font-size: calc(1.05em * var(--md-heading-scale));
+	line-height: 1.38;
+}
+.chat-markdown .heading-4,
+.chat-markdown .heading-5,
+.chat-markdown .heading-6 {
+	font-size: 1em;
+	line-height: 1.42;
+	font-weight: 600;
+	color: color-mix(in srgb, var(--color-text-primary) 86%, var(--color-text-muted));
+}
+.chat-markdown .heading-5,
+.chat-markdown .heading-6 {
+	font-weight: 500;
+	letter-spacing: 0.01em;
+	text-transform: none;
+}
+.chat-markdown .markstream-react > .node-slot:first-child {
+	margin-top: 0;
+}
+.chat-markdown .list-node {
+	margin: 0;
+	padding-left: var(--md-list-indent);
+	display: flex;
+	flex-direction: column;
+	gap: calc(var(--md-block-gap) * 0.42);
+}
+.chat-markdown .list-node:is(ul) {
+	list-style: disc;
+	list-style-position: outside;
+}
+.chat-markdown .list-node:is(ol) {
+	list-style: decimal;
+	list-style-position: outside;
+	font-variant-numeric: tabular-nums;
+}
+.chat-markdown .list-node .list-node {
+	margin-top: calc(var(--md-block-gap) * 0.35);
+	gap: calc(var(--md-block-gap) * 0.32);
+}
+.chat-markdown .list-item {
+	padding-left: 0.2em;
+	overflow-wrap: anywhere;
+}
+.chat-markdown .list-item::marker {
+	color: color-mix(in srgb, var(--color-text-muted) 55%, var(--color-text-primary));
+	font-size: 0.92em;
+}
+.chat-markdown .list-item > .paragraph-node {
+	display: block;
+}
+.chat-markdown .list-item > * + * {
+	margin-top: 0.5em;
+}
+.chat-markdown .blockquote-node {
+	margin: 0;
+	padding: 0.15em 0 0.15em 1em;
+	border-left: 2px solid var(--md-quote-border);
+	color: var(--color-text-muted);
+	font-size: 0.97em;
+	font-style: normal;
+	font-weight: 400;
+}
+
+@media (forced-colors: active) {
+	*:focus-visible {
+		background-image: none;
+		outline: 2px solid CanvasText;
+		outline-offset: 2px;
+	}
+	[data-composer-card] textarea:focus-visible {
+		outline: none;
+	}
+	[data-composer-card]:has(textarea:focus-visible) {
+		outline: 2px solid CanvasText;
+		outline-offset: 2px;
+	}
+}
+.chat-markdown .blockquote-node .paragraph-node + .paragraph-node {
+	margin-top: 0.55em;
+}
+.chat-markdown .hr-node {
+	margin: 0.35em 0;
+	border: 0;
+	height: 1px;
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		color-mix(in srgb, var(--color-border-subtle) 100%, var(--color-text-muted)) 18%,
+		color-mix(in srgb, var(--color-border-subtle) 100%, var(--color-text-muted)) 82%,
+		transparent 100%
+	);
+}
+/* Inline code keeps the designed ink and compact chip; fenced blocks own a separate surface. */
+.md-inline-code {
+	font-family: var(--md-code-font);
+	/* Restore the 88% label and 0.14/0.4em inset without increasing the prose line box. */
+	font-size: 0.88em;
+	font-weight: 400;
+	padding: 0.14em 0.4em;
+	border-radius: var(--radius-sm);
+	background: var(--md-inline-code-bg);
+	/* A 16% hairline picks up the skin's code ink without turning the chip into a button. */
+	border: 1px solid color-mix(in srgb, var(--md-inline-code-fg) 16%, transparent);
+	color: var(--md-inline-code-fg);
+	overflow-wrap: anywhere;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
+}
+/* link styles */
+.chat-markdown a,
+.chat-markdown .link-node,
+.chat-markdown .md-file-mention {
+	color: var(--color-link);
+	text-decoration: none;
+	text-underline-offset: 0.2em;
+	text-decoration-thickness: 1px;
+	font-weight: 500;
+	transition:
+		color 0.12s ease,
+		text-decoration-color 0.12s ease;
+}
+.chat-markdown a:hover,
+.chat-markdown .link-node:hover,
+.chat-markdown .md-file-mention:hover {
+	text-decoration: underline;
+	text-decoration-color: color-mix(in srgb, var(--color-link) 55%, transparent);
+}
+/* Linked chips retain accent ink and expose their interaction on hover and keyboard focus. */
+.chat-markdown :is(a, .link-node, .md-file-mention):has(> .md-inline-code) {
+	--md-inline-code-fg: var(--md-inline-code-link);
+	color: var(--md-inline-code-link);
+	text-decoration-color: currentColor;
+}
+.chat-markdown :is(a, .link-node, .md-file-mention):is(:hover, :focus-visible) > .md-inline-code {
+	/* Strengthen only the hairline to 40%; the protected fill and glyph contrast stay stable. */
+	border-color: color-mix(in srgb, var(--md-inline-code-fg) 40%, transparent);
+}
+.chat-markdown :is(a, .link-node, .md-file-mention):focus-visible > .md-inline-code {
+	/* Two pixels outside the chip distinguish keyboard focus from ordinary hover. */
+	outline: 2px solid var(--md-inline-code-link);
+	outline-offset: 2px;
+}
+/* Inline code naming a changed file keeps the surrounding prose's font metrics. */
+.chat-markdown .md-file-mention {
+	display: inline;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	/* Not the `font` shorthand: it would also reset the weight the link rules set above.
+	   Without these the chip would size against the button UA font instead of the prose. */
+	font-family: inherit;
+	font-size: inherit;
+	line-height: inherit;
+	letter-spacing: inherit;
+	cursor: pointer;
+}
+.chat-markdown img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 0.65rem;
+	border: 1px solid var(--md-table-border);
+}
+/* Images open a zoomable preview, so they carry a button wrapper that must not disturb flow. */
+.chat-markdown .md-image-button {
+	display: inline-block;
+	max-width: 100%;
+	cursor: zoom-in;
+	line-height: 0;
+}
+/* Pi's TUI bounds inline images to imageWidthCells; without a ceiling a full-resolution
+   screenshot takes over the transcript. Detail stays one click away in the preview. */
+.chat-markdown .md-image-button img {
+	max-height: 22rem;
+	width: auto;
+	object-fit: contain;
+}
+/* Sources Ling cannot serve (remote URLs, files outside the workspace, unreadable paths)
+   stay visible as their alt text rather than collapsing to a broken-image glyph. */
+.chat-markdown .md-image-missing {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35em;
+	padding: 0.14em 0.5em;
+	border-radius: 0.5rem;
+	border: 1px dashed var(--md-table-border);
+	color: var(--color-text-muted);
+	font-size: 0.9em;
+}
+/* GFM task items carry their own checkbox — a disc marker on top reads as a double bullet. */
+.chat-markdown li:has(> input[type="checkbox"]),
+.chat-markdown .list-item:has(> .paragraph-node input[type="checkbox"]) {
+	list-style: none;
+	padding-left: 0;
+}
+.chat-markdown li > input[type="checkbox"],
+.chat-markdown .list-item > .paragraph-node input[type="checkbox"] {
+	margin-right: 0.5em;
+	accent-color: var(--color-accent);
+	vertical-align: middle;
+	width: 0.95em;
+	height: 0.95em;
+}
+/* Tables stay on the prose plane with horizontal rules and a thin wash over artwork;
+   inheriting local ink keeps them consistent in scenes, previews, and settings. */
+.chat-markdown .table-node-wrapper {
+	width: 100%;
+	max-width: 100%;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	border-block: 1px solid var(--md-table-border);
+	background: var(--md-table-background, transparent);
+}
+.chat-markdown .table-node {
+	/* Preserve readable columns on narrow panes; excess width scrolls inside the table
+	   instead of squeezing paths and sentences into a stack of tiny fragments. */
+	margin: 0;
+	width: max-content;
+	min-width: 100%;
+	border-collapse: separate;
+	border-spacing: 0;
+	font-size: 0.93em;
+	line-height: 1.55;
+}
+.chat-markdown .table-node th,
+.chat-markdown .table-node td {
+	padding: 0.62rem 1rem;
+	text-align: left;
+	vertical-align: top;
+	/* Reserve eight content characters plus cell padding; short versions must not wrap digit by digit.
+	   Longer prose wraps within 48 content characters, while paths can break inside their code span. */
+	min-width: calc(8ch + 2rem);
+	max-width: calc(48ch + 2rem);
+	overflow-wrap: break-word;
+	border-bottom: 1px solid color-mix(in srgb, var(--md-table-border) 85%, transparent);
+}
+.chat-markdown .table-node th {
+	font-weight: 600;
+	font-size: 0.95em;
+	/* Avoid overly wide tracking making Chinese table headers look washed out */
+	letter-spacing: 0.01em;
+	text-transform: none;
+	color: var(--color-text-primary);
+	/* A 3% ink wash distinguishes the header without painting an opaque strip. */
+	background: color-mix(in srgb, currentColor 3%, transparent);
+	white-space: nowrap;
+}
+.chat-markdown .table-node td {
+	color: var(--color-text-primary);
+}
+.chat-markdown .table-node :is(th, td).text-right {
+	text-align: right;
+}
+.chat-markdown .table-node :is(th, td).text-center {
+	text-align: center;
+}
+.chat-markdown .table-node tbody tr:last-child td {
+	border-bottom: 0;
+}
+.chat-markdown .table-node tbody tr:hover td {
+	background: color-mix(in srgb, var(--color-text-primary) 2.2%, transparent);
+}
+.chat-markdown .table-node thead {
+	background-color: transparent;
+}
+.chat-markdown .mermaid-block {
+	/* Timeline virtualization owns visibility; a second placeholder changes row geometry on session restore. */
+	border-radius: 0.875rem;
+	border: 1px solid var(--md-table-border);
+	background: color-mix(in srgb, var(--color-surface-raised) 70%, var(--color-surface));
+	padding: 0.75rem;
+	box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+}
+
+/* Keep long diagrams readable and reachable inside the bounded preview; zoom and pan remain available. */
+.chat-markdown .mermaid-block div:has(> [data-mermaid-wrapper]) {
+	overflow: auto;
+	overscroll-behavior: contain;
+	/* Height easing repeatedly moves the transcript and sticky composer while a diagram settles. */
+	transition: none;
+}
+
+.chat-markdown .mermaid-block [data-mermaid-wrapper] {
+	position: relative;
+	min-height: 100%;
+}
+
+/* Markstream receives Ling's local surface tokens in chats, settings, and previews. */
+.chat-markdown .markstream-react {
+	--text-color: var(--color-text-primary);
+	--link-color: var(--color-text-primary);
+	--table-border: var(--md-table-border);
+	--table-header-bg: transparent;
+	--blockquote-border: var(--md-quote-border);
+	font-size: inherit;
+	line-height: inherit;
+	color: inherit;
+	min-width: 0;
+}
+.chat-markdown .link-node {
+	color: var(--color-text-primary);
+}
+.chat-markdown .list-item {
+	margin-block: 0;
+}
+
+/* Thinking remains secondary to the answer, including when its Markdown is expanded. */
+.reasoning-markdown {
+	--md-font-size: 12px;
+	--md-block-gap: 0.5rem;
+	color: var(--color-text-muted);
+}
+
+.chat-markdown .markdown-alert > .blockquote-node {
+	border: 0;
+	padding: 0;
+	color: inherit;
+	font-size: inherit;
+}

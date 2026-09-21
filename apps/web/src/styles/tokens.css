@@ -1,0 +1,315 @@
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+	/* Shared reading column keeps prose and the input aligned on wide workspaces. */
+	--reading-measure: 48rem;
+	/* Shared 12/20px code rhythm also reaches Pierre's shadow roots outside Markdown. */
+	--md-code-font: var(--font-mono);
+	--md-code-font-size: 12px;
+	--md-code-line-height: 20px;
+	--md-inline-code-fg: var(--color-inline-code);
+	--md-inline-code-bg: var(--color-inline-code-bg);
+	--md-inline-code-link: var(--color-inline-code-link);
+	--surface-color-scheme: light;
+	/* Root-resolved aliases let a nested menu restore its own palette after scene-local controls. */
+	--surface-hover: var(--color-surface-hover);
+	--surface-border-subtle: var(--color-border-subtle);
+	--surface-border-strong: var(--color-border-strong);
+	--surface-accent-foreground: var(--color-accent-foreground);
+	--surface-danger: var(--color-danger);
+	--surface-warning: var(--color-warning);
+	--surface-success: var(--color-success);
+	--surface-context-medium: var(--color-context-medium);
+	--surface-context-high: var(--color-context-high);
+	/* First-paint scene defaults are replaced together by the resolved skin and its boot cache. */
+	--color-scene-surface: var(--color-surface);
+	--color-scene-control-accent-foreground: var(--color-accent-foreground);
+	--color-scene-danger: var(--color-danger);
+	--color-scene-warning: var(--color-warning);
+	--color-scene-success: var(--color-success);
+	/* Choice presses compress by 4% before the skin's motion preference is resolved. */
+	--choice-press-scale: 0.96;
+	--window-controls-height: env(titlebar-area-height, 0px);
+	--window-controls-left-inset: env(titlebar-area-x, 0px);
+	--window-controls-right-inset: max(0px, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)));
+	--window-controls-left-padding: max(0.75rem, var(--window-controls-left-inset));
+	--window-controls-right-padding: max(0.75rem, var(--window-controls-right-inset));
+}
+
+/* Electron's macOS hiddenInset titlebar does not expose the Windows overlay variables.
+   The 96px inset clears all three traffic lights and leaves deliberate whitespace before
+   navigation controls; 44px matches Ling's title strip so controls cannot enter window chrome. */
+:root[data-ling-native-platform="darwin"] {
+	--window-controls-height: max(44px, env(titlebar-area-height, 0px));
+	--window-controls-left-inset: max(96px, env(titlebar-area-x, 0px));
+}
+
+/* Light theme (default). Overridden by `.dark` below — see hooks/use-theme.ts. */
+@theme {
+	--font-sans:
+		ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+	--font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	--font-serif: Georgia, "Times New Roman", serif;
+
+	--text-*: initial;
+	--text-xs: 0.75rem;
+	--text-xs--line-height: 1rem;
+	--text-ui: 0.8125rem;
+	--text-ui--line-height: 1.25rem;
+	--text-sm: 0.875rem;
+	--text-sm--line-height: 1.25rem;
+	--text-base: 0.9375rem;
+	--text-base--line-height: 1.625rem;
+	--text-lg: 1.125rem;
+	--text-lg--line-height: 1.5rem;
+	--text-xl: 1.375rem;
+	--text-xl--line-height: 1.75rem;
+	--radius-*: initial;
+	--radius-sm: 6px;
+	--radius-control: 8px;
+	--radius-panel: 12px;
+	--radius-full: 999px;
+	--spacing-control-compact: 24px;
+	--spacing-control-small: 28px;
+	--spacing-control: 32px;
+	--spacing-control-large: 36px;
+	--color-canvas: var(--color-surface-under);
+	--color-raised: var(--color-surface);
+	--color-floating: var(--color-popover);
+	--color-border-default: color-mix(in srgb, var(--color-text-primary) 20%, transparent);
+	--default-transition-duration: 150ms;
+
+	/* Light palette: white surface over a quiet neutral under-layer, near-black foreground,
+	   and every secondary color derived as an alpha tint of the foreground so it sits correctly
+	   on any surface. */
+	--color-surface: #ffffff;
+	--color-shell-content: var(--color-surface);
+	/* Loading overlays never add another tint over a viewport's native or artwork glass. */
+	--color-loading-veil: #ffffff;
+	--color-surface-raised: #f9f9f9;
+	--color-header: #f2f2f3;
+	/* Sidebar is the canvas, not a second card — same tint as the window chrome. */
+	--color-sidebar: #f2f2f3;
+	--color-sidebar-preview: #f2f2f3;
+	--color-panel: #ffffff;
+	--color-card: #ffffff;
+	--color-popover: #ffffff;
+	/* Modal scrim: 15% black separates transient sheets without hiding their context. */
+	--color-overlay: #00000026;
+	--color-input: #f5f5f5;
+	/* Window canvas behind the content region and transient sidebar preview. */
+	--color-surface-under: #f2f2f3;
+	--color-surface-hover: #1a1a1d0d;
+	--color-border-subtle: #1a1a1d14;
+	--color-border-strong: #1a1a1d3d;
+	--color-text-primary: #1a1a1d;
+	--color-text-muted: #707074;
+	--color-accent: #006dd3;
+	--color-accent-muted: #006dd31a;
+	/* Text painted on top of a solid --color-accent fill — kept separate because dark mode's
+	   accent is light (needs dark text), the inverse of light mode's (needs white text). */
+	--color-accent-foreground: #ffffff;
+	--color-danger: #e02e2a;
+	--color-success: #00a240;
+	--color-warning: #e25507;
+	--color-diff-added: #0a8f3c;
+	--color-diff-removed: #d0342c;
+	--color-git-added: #0a8f3c;
+	--color-git-deleted: #d0342c;
+	--color-git-modified: #0b7fff;
+	--color-git-renamed: #7a5af8;
+	--color-git-untracked: #0f9f6e;
+	--color-context-low: #0a8f3c;
+	--color-context-medium: #d97706;
+	--color-context-high: #d0342c;
+	--color-status-info: #0b7fff;
+	--color-status-success: #0a8f3c;
+	--color-status-warning: #d97706;
+	--color-status-danger: #d0342c;
+	/* Primary action fill (send button, default Button) — near-black in light mode, white in
+	   dark; accent blue is reserved for links and live indicators. */
+	--color-btn-primary: #0d0d0d;
+	--color-btn-primary-foreground: #ffffff;
+	--color-btn-primary-hover: #111113;
+	/* Choice controls follow primary actions unless a skin authors a separate selected pair. */
+	--color-choice-selected: var(--color-btn-primary);
+	--color-choice-selected-foreground: var(--color-btn-primary-foreground);
+	--color-choice-hover: var(--color-surface-raised);
+	/* A one-pixel lift matches the compact control; flat skins remove it in resolution. */
+	--shadow-choice: 0 1px 2px #0000000d;
+	--color-danger-foreground: #ffffff;
+	--color-surface-text: #1a1a1d;
+	--color-surface-text-muted: #707074;
+	--color-surface-accent: #006dd3;
+	--color-scene-text: #1a1a1d;
+	--color-scene-text-muted: #707074;
+	--color-scene-accent: #006dd3;
+	/* Attention-card orbit glow (mint), inline-code teal, and the [!IMPORTANT] alert purple —
+	   tokens so skins can restyle them; consumed via var() where they used to be literals. */
+	--color-attention-glow: #0f9f76;
+	--color-inline-code: #0f766e;
+	/* A 5% ink wash restores the original inline chip; skins resolve its protected equivalent. */
+	--color-inline-code-bg: color-mix(in srgb, var(--color-text-primary) 5%, var(--color-surface-raised));
+	--color-inline-code-link: var(--color-link);
+	--color-alert-important: #924ff7;
+	/* ANSI terminal palette (light-theme values) — consumed by the .ansi-*-fg classes below,
+	   which ansi-to-react emits for shell output in tool results. */
+	--ansi-black: #000000;
+	--ansi-red: #d53538;
+	--ansi-green: #008809;
+	--ansi-yellow: #bd5800;
+	--ansi-blue: #001bcb;
+	--ansi-magenta: #751ed9;
+	--ansi-cyan: #0071ea;
+	--ansi-white: #666666;
+	--ansi-bright-black: #555555;
+	--ansi-bright-red: #f44a4c;
+	--ansi-bright-green: #59d24e;
+	--ansi-bright-yellow: #f87915;
+	--ansi-bright-blue: #006aff;
+	--ansi-bright-magenta: #9840ff;
+	--ansi-bright-cyan: #20b8ff;
+	--ansi-bright-white: #828282;
+
+	/* Derived details — the active skin replaces these as one resolved semantic set. The CSS values remain
+	   authoritative first-paint defaults before the active manifest is applied. */
+	--color-user-bubble: var(--color-surface-raised);
+	--color-today-usage: transparent;
+	/* Bounded reading panels use a 55:45 raised/base mix before the skin resolves its palette. */
+	--color-reading-surface: color-mix(in srgb, var(--color-surface-raised) 55%, var(--color-surface));
+	/* A 3.5% text tint separates compact headers without introducing another surface family. */
+	--color-reading-surface-header: color-mix(in srgb, var(--color-text-primary) 3.5%, var(--color-surface-raised));
+	/* Retaining 75% of the semantic hairline keeps the edge visible over both light and dark art. */
+	--color-reading-surface-border: color-mix(in srgb, var(--color-border-subtle) 75%, transparent);
+	/* Full-height code surfaces need more protection than prose cards. Skin resolution supplies
+	   a mode-aware solid/alpha base; the derived chrome is only a 3% text tint, not another card. */
+	--color-workbench-surface: var(--color-surface-raised);
+	--color-workbench-chrome: color-mix(in srgb, var(--color-text-primary) 3%, var(--color-workbench-surface));
+	/* The default workspace is one continuous plane; skins may tint its navigator from their sidebar role. */
+	--color-workbench-side: var(--color-workbench-surface);
+	--color-composer: var(--color-reading-surface);
+	--color-code-block: var(--color-reading-surface);
+	--color-code-block-header: var(--color-reading-surface-header);
+	--color-code-block-border: var(--color-reading-surface-border);
+	/* Reading surfaces share the panel radius. */
+	--radius-reading-surface: var(--radius-panel);
+	/* Two very low-contrast layers preserve separation from detailed artwork without a floating-card halo. */
+	--shadow-reading-surface:
+		0 0 0 1px color-mix(in srgb, var(--color-text-primary) 2%, transparent),
+		0 1px 2px color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+	--shadow-floating: 0 8px 24px #1a1a1d1a, 0 1px 4px #1a1a1d1a;
+	--color-selection: color-mix(in srgb, var(--color-accent) 28%, transparent);
+	--color-scrollbar-thumb: color-mix(in srgb, var(--color-text-primary) 22%, transparent);
+	--color-link: var(--color-accent);
+	--color-tooltip: var(--color-popover);
+	--color-tooltip-foreground: var(--color-text-primary);
+	--color-sidebar-active: color-mix(in srgb, var(--color-surface) 80%, transparent);
+	/* Status chrome derives from base tokens so skins share the same ownership. */
+	--color-statusbar: var(--color-header);
+	--color-statusbar-foreground: var(--color-text-muted);
+
+	/* Choice shape remains an authored preference within the four-step scale. */
+	--radius-choice: var(--radius-full);
+}
+
+/* Categorical data-viz palette (usage stats charts) — the monochrome-first rule governs
+   chrome, not data marks. Eight stable rank slots keep more models distinguishable before
+   the remainder folds into "other". Tool categories use a separate palette so danger red
+   remains exclusive to failures. `static` is required because these vars are consumed via
+   inline style={} var() references rather than generated utility classes. */
+@theme static {
+	--color-chart-1: #0b7fff;
+	--color-chart-2: #1e8a3e;
+	--color-chart-3: #9e77ed;
+	--color-chart-4: #e03131;
+	--color-chart-5: #e07b00;
+	--color-chart-6: #008c99;
+	--color-chart-7: #c04b93;
+	--color-chart-8: #718618;
+	--color-chart-other: #1a1c1f4d;
+	--color-tool-terminal: #0b7fff;
+	--color-tool-read: #00876f;
+	--color-tool-search: #7a5af8;
+	--color-tool-edit: #008c99;
+	--color-tool-write: #b84f9c;
+	--color-tool-plan: #9a7400;
+	--color-tool-other: #667085;
+}
+
+/* Dark theme: gray-900 surface, gray-800 raised, white foreground with alpha tints
+   (border = 8% white). */
+.dark {
+	--color-surface: #19191c;
+	--color-loading-veil: #19191c;
+	--color-surface-raised: #222226;
+	--color-header: #0d0d0f;
+	--color-sidebar: #0d0d0f;
+	--color-sidebar-preview: #0d0d0f;
+	--color-panel: #19191c;
+	--color-card: #202024;
+	--color-popover: #222226;
+	/* Dark mode needs a 60% scrim so bright content and artwork recede behind the dialog. */
+	--color-overlay: #00000099;
+	--color-input: #28282d;
+	--color-surface-under: #0d0d0f;
+	--color-surface-hover: #ffffff0f;
+	--color-border-subtle: #ffffff14;
+	--color-border-strong: #ffffff40;
+	--color-text-primary: #f5f5f7;
+	--color-text-muted: #a2a2a8;
+	--color-accent: #5aa7ff;
+	--color-accent-muted: #5aa7ff29;
+	--color-accent-foreground: #0d1b24;
+	--color-danger: #ff6764;
+	--color-success: #40c977;
+	--color-warning: #ff8549;
+	--color-diff-added: #40c977;
+	--color-diff-removed: #ff6764;
+	--color-git-added: #40c977;
+	--color-git-deleted: #ff6764;
+	--color-git-modified: #5aaeff;
+	--color-git-renamed: #a78bfa;
+	--color-git-untracked: #4fd1a5;
+	--color-context-low: #40c977;
+	--color-context-medium: #ffb45f;
+	--color-context-high: #ff6764;
+	--color-status-info: #5aaeff;
+	--color-status-success: #40c977;
+	--color-status-warning: #ffb45f;
+	--color-status-danger: #ff6764;
+	--color-btn-primary: #ffffff;
+	--color-btn-primary-foreground: #0d0d0d;
+	--color-btn-primary-hover: #f5f5f7;
+	--color-danger-foreground: #111113;
+	--color-surface-text: #f5f5f7;
+	--color-surface-text-muted: #999999;
+	--color-surface-accent: #5aa7ff;
+	--color-scene-text: #f5f5f7;
+	--color-scene-text-muted: #999999;
+	--color-scene-accent: #5aa7ff;
+	--color-attention-glow: #38d9a9;
+	--color-inline-code: #82d4c8;
+	/* Dark data marks keep the same category hues with enough luminance on #19191c. */
+	--color-chart-5: #d97400;
+	--color-chart-6: #36b8c4;
+	--color-chart-7: #d96eae;
+	--color-chart-8: #a5b642;
+	--color-chart-other: #ffffff4d;
+	--color-tool-terminal: #5aaeff;
+	--color-tool-read: #39c6a3;
+	--color-tool-search: #a78bfa;
+	--color-tool-edit: #36b8c4;
+	--color-tool-write: #dc74bd;
+	--color-tool-plan: #d7b24b;
+	--color-tool-other: #aab2bf;
+	/* Dark-theme ANSI palette (bright-black lightened for readability on #19191c). */
+	--ansi-black: #ffffff;
+	--ansi-red: #f67576;
+	--ansi-green: #85df7b;
+	--ansi-yellow: #fa994c;
+	--ansi-blue: #3d8dff;
+	--ansi-magenta: #b06dff;
+	--ansi-cyan: #6dcbf4;
+	--ansi-white: #999999;
+	--ansi-bright-black: #777777;
+}

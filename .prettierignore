@@ -1,0 +1,13 @@
+/out
+/dist
+/release
+/node_modules
+/output
+/tmpcode
+/resources
+/apps/web/public
+/apps/desktop/.stage
+/apps/desktop/out
+/apps/desktop/build
+/apps/desktop/artifacts
+/pnpm-lock.yaml

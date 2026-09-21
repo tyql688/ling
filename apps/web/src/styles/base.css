@@ -1,0 +1,287 @@
+@layer base {
+	* {
+		border-color: var(--color-border-subtle);
+		/* Keep cross-platform scrollbars compact and theme-aware. */
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-scrollbar-thumb) transparent;
+	}
+
+	/* Text selection follows the accent (skinnable through --color-selection) instead of the
+	   OS default, so a skin's highlight matches its palette. */
+	::selection {
+		background-color: var(--color-selection);
+	}
+
+	/* Focus belongs to the control's surface, never a global accent-colored rectangle. */
+	:focus-visible {
+		outline: 2px solid var(--color-border-strong);
+		outline-offset: 2px;
+	}
+	:where(button, a, summary, [role="button"], [role="menuitem"], [role="option"]):focus-visible {
+		background-color: var(--color-surface-hover);
+	}
+	:where(input, textarea, select, [contenteditable="true"]):focus-visible {
+		/* Text controls use their existing border; an offset outline creates a second frame. */
+		outline: none;
+		border-color: var(--color-border-strong);
+	}
+
+	/* Desktop chrome, not a document: pressing and dragging across a control would leave the
+	   system text-selection highlight on its label. Content keeps its selection — only the
+	   controls opt out. */
+	button,
+	label,
+	summary,
+	[role="button"],
+	[role="menuitem"],
+	[role="option"] {
+		user-select: none;
+	}
+
+	::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+	::-webkit-scrollbar-track,
+	::-webkit-scrollbar-corner {
+		background: transparent;
+	}
+	::-webkit-scrollbar-thumb {
+		border-radius: 9999px;
+		/* Transparent 2px border + padding-box keeps the visible thumb at 6px so it never
+		   reads as a heavy bar, even though the track is a generous 10px hit target. */
+		border: 2px solid transparent;
+		background-color: var(--color-scrollbar-thumb);
+		background-clip: padding-box;
+	}
+	::-webkit-scrollbar-thumb:hover {
+		background-color: color-mix(in srgb, var(--color-scrollbar-thumb), var(--color-text-primary) 20%);
+	}
+
+	/* ansi-to-react (useClasses) emits `<span class="ansi-red-fg">` etc. for shell output. */
+	.ansi-black-fg {
+		color: var(--ansi-black);
+	}
+	.ansi-red-fg {
+		color: var(--ansi-red);
+	}
+	.ansi-green-fg {
+		color: var(--ansi-green);
+	}
+	.ansi-yellow-fg {
+		color: var(--ansi-yellow);
+	}
+	.ansi-blue-fg {
+		color: var(--ansi-blue);
+	}
+	.ansi-magenta-fg {
+		color: var(--ansi-magenta);
+	}
+	.ansi-cyan-fg {
+		color: var(--ansi-cyan);
+	}
+	.ansi-white-fg {
+		color: var(--ansi-white);
+	}
+	.ansi-bright-black-fg {
+		color: var(--ansi-bright-black);
+	}
+	.ansi-bright-red-fg {
+		color: var(--ansi-bright-red);
+	}
+	.ansi-bright-green-fg {
+		color: var(--ansi-bright-green);
+	}
+	.ansi-bright-yellow-fg {
+		color: var(--ansi-bright-yellow);
+	}
+	.ansi-bright-blue-fg {
+		color: var(--ansi-bright-blue);
+	}
+	.ansi-bright-magenta-fg {
+		color: var(--ansi-bright-magenta);
+	}
+	.ansi-bright-cyan-fg {
+		color: var(--ansi-bright-cyan);
+	}
+	.ansi-bright-white-fg {
+		color: var(--ansi-bright-white);
+	}
+	.ansi-black-bg {
+		background-color: var(--ansi-black);
+	}
+	.ansi-red-bg {
+		background-color: var(--ansi-red);
+	}
+	.ansi-green-bg {
+		background-color: var(--ansi-green);
+	}
+	.ansi-yellow-bg {
+		background-color: var(--ansi-yellow);
+	}
+	.ansi-blue-bg {
+		background-color: var(--ansi-blue);
+	}
+	.ansi-magenta-bg {
+		background-color: var(--ansi-magenta);
+	}
+	.ansi-cyan-bg {
+		background-color: var(--ansi-cyan);
+	}
+	.ansi-white-bg {
+		background-color: var(--ansi-white);
+	}
+	.ansi-bright-black-bg {
+		background-color: var(--ansi-bright-black);
+	}
+	.ansi-bright-red-bg {
+		background-color: var(--ansi-bright-red);
+	}
+	.ansi-bright-green-bg {
+		background-color: var(--ansi-bright-green);
+	}
+	.ansi-bright-yellow-bg {
+		background-color: var(--ansi-bright-yellow);
+	}
+	.ansi-bright-blue-bg {
+		background-color: var(--ansi-bright-blue);
+	}
+	.ansi-bright-magenta-bg {
+		background-color: var(--ansi-bright-magenta);
+	}
+	.ansi-bright-cyan-bg {
+		background-color: var(--ansi-bright-cyan);
+	}
+	.ansi-bright-white-bg {
+		background-color: var(--ansi-bright-white);
+	}
+	.ansi-bold {
+		font-weight: 700;
+	}
+	.ansi-dim {
+		opacity: 0.65;
+	}
+	.ansi-italic {
+		font-style: italic;
+	}
+	.ansi-hidden {
+		visibility: hidden;
+	}
+	.ansi-strikethrough {
+		text-decoration: line-through;
+	}
+	.ansi-underline {
+		text-decoration: underline;
+	}
+	.ansi-blink {
+		text-decoration: blink;
+	}
+
+	/* GitHub-style blockquote alerts: `> [!NOTE]` etc. */
+	.markdown-alert {
+		border-left: 2px solid var(--alert-color, var(--color-accent));
+		padding: 0.125rem 0 0.125rem 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+	.markdown-alert-title {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-weight: 600;
+		font-size: var(--text-xs);
+		color: var(--alert-color, var(--color-accent));
+	}
+	.markdown-alert-title svg {
+		fill: none;
+	}
+	.markdown-alert-note {
+		--alert-color: var(--color-accent);
+	}
+	.markdown-alert-tip {
+		--alert-color: var(--color-success);
+	}
+	.markdown-alert-important {
+		--alert-color: var(--color-alert-important);
+	}
+	.markdown-alert-warning {
+		--alert-color: var(--color-warning);
+	}
+	.markdown-alert-caution {
+		--alert-color: var(--color-danger);
+	}
+
+	/* Empty-home backdrop — the app icon's brush-stroke π applied as a mask, so the faint
+	   theme-tinted gradient fills the glyph without obscuring content. */
+	.empty-state-glyph {
+		width: clamp(160px, 22vw, 280px);
+		aspect-ratio: 1024 / 836;
+		opacity: 0.7;
+		background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+		mask-repeat: no-repeat;
+		mask-size: contain;
+		mask-position: center;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-size: contain;
+		-webkit-mask-position: center;
+	}
+
+	/* Stick-to-bottom owns transcript position; browser anchoring would apply a second,
+	   conflicting correction when highlighted code or a diagram changes height. */
+	.chat-timeline-scroll {
+		overflow-anchor: none;
+	}
+
+	/* KaTeX blocks scroll instead of overflowing the ~48rem prose column. */
+	.katex-display {
+		margin: 0.25rem 0;
+		overflow-x: auto;
+		overflow-y: hidden;
+		padding: 0.25rem 0;
+	}
+	.katex {
+		font-size: 1.15em;
+	}
+	/* Long INLINE formulas scroll within themselves instead of being clipped by the
+	   transcript (whose scroller is overflow-x hidden on purpose). */
+	p .katex,
+	li .katex {
+		display: inline-block;
+		max-width: 100%;
+		overflow-x: auto;
+		overflow-y: hidden;
+		vertical-align: middle;
+	}
+
+	html,
+	body,
+	#root {
+		height: 100%;
+	}
+
+	body {
+		background-color: var(--color-surface);
+		color: var(--color-text-primary);
+		font-family: var(--font-sans);
+		-webkit-font-smoothing: auto;
+		overflow: hidden;
+		transition:
+			background-color 150ms ease,
+			color 150ms ease;
+	}
+}
+
+@layer base {
+	/* Bounds apply to the hit area, leaving icons free to use a smaller optical size. */
+	:where(button, summary, [role="button"], [role="tab"], [role="menuitem"]) {
+		min-block-size: 24px;
+		min-inline-size: 24px;
+	}
+	@media (pointer: coarse) {
+		:where(button, summary, [role="button"], [role="tab"], [role="menuitem"]) {
+			min-block-size: 44px;
+			min-inline-size: 44px;
+		}
+	}
+}

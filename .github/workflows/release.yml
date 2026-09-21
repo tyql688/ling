@@ -1,0 +1,344 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      sha: ${{ steps.release.outputs.sha }}
+      release-id: ${{ steps.release.outputs.release-id }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Prepare draft for the tagged source
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Release tags must use vMAJOR.MINOR.PATCH without leading zeroes or suffixes." >&2
+            exit 1
+          fi
+          if [ "$(git cat-file -t "refs/tags/$TAG_NAME")" != "tag" ]; then
+            echo "Release tags must be annotated." >&2
+            exit 1
+          fi
+          VERSION=$(node -p 'require("./package.json").version')
+          SOURCE_SHA=$(git rev-parse HEAD)
+          if [ "$TAG_NAME" != "v$VERSION" ] || [ "$(git rev-parse "refs/tags/$TAG_NAME^{commit}")" != "$SOURCE_SHA" ]; then
+            echo "The requested tag must match the checked-out release version and commit." >&2
+            exit 1
+          fi
+
+          gh api --paginate --slurp "repos/$GH_REPO/releases" > "$RUNNER_TEMP/releases.json"
+          EXISTING=$(jq -c --arg tag "$TAG_NAME" '[.[][] | select(.tag_name == $tag)] | first' "$RUNNER_TEMP/releases.json")
+          # A new tag legitimately has no release yet; failed API reads abort above.
+          if [ "$EXISTING" = "null" ]; then
+            gh release create "$TAG_NAME" --draft --generate-notes --verify-tag --title "$VERSION"
+          fi
+          # GitHub's REST lookup by tag excludes drafts; resolve the draft's API URL first.
+          RELEASE_URL=$(gh release view "$TAG_NAME" --json apiUrl --jq '.apiUrl')
+          gh api "$RELEASE_URL" > "$RUNNER_TEMP/release.json"
+          if ! jq -e '.draft == true' "$RUNNER_TEMP/release.json" >/dev/null; then
+            echo "Refusing to replace assets of a published release." >&2
+            exit 1
+          fi
+          {
+            echo "tag=$TAG_NAME"
+            echo "sha=$SOURCE_SHA"
+            echo "release-id=$(jq -r '.id' "$RUNNER_TEMP/release.json")"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Native runners verify each macOS signature and architecture and execute
+          # its bundled Node. Electron UI behavior still needs a separate smoke run.
+          - os: macos-latest
+            artifact: macos-arm64
+            builder_args: --mac --arm64
+          - os: macos-15-intel
+            artifact: macos-x64
+            builder_args: --mac --x64
+          - os: windows-latest
+            artifact: windows-x64
+            builder_args: --win --x64
+          - os: ubuntu-latest
+            artifact: linux-x64
+            builder_args: --linux --x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        # Vite's production graph exceeds Node's ~2 GiB hosted-runner default; 4 GiB matches
+        # the verified local heap without consuming the runner's remaining packaging headroom.
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: pnpm build
+
+      - name: Stage desktop resources
+        run: pnpm --filter @ling/desktop run stage:app
+
+      # Reusable self-signed certificate (scripts/create-signing-cert.sh) imported into a
+      # throwaway keychain. The same identity must sign every macOS release: TCC privacy
+      # grants and electron-updater's in-place replacement are both keyed on it, so a new
+      # certificate silently resets user permissions and breaks auto-update. It does not
+      # satisfy Gatekeeper - users still run `xattr -cr` until the app is notarized with an
+      # Apple Developer ID.
+      - name: Import macOS signing certificate
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          SIGNING_CERTIFICATE: ${{ secrets.SIGNING_CERTIFICATE }}
+          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SIGNING_CERTIFICATE:-}" ]; then
+            echo "SIGNING_CERTIFICATE is required for stable macOS release identity." >&2
+            exit 1
+          fi
+          if [ -z "${SIGNING_CERTIFICATE_PASSWORD:-}" ]; then
+            echo "SIGNING_CERTIFICATE_PASSWORD is required to open the signing certificate." >&2
+            exit 1
+          fi
+
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          CERTIFICATE_PATH="$RUNNER_TEMP/certificate.p12"
+
+          echo "$SIGNING_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -k "$KEYCHAIN_PATH" -P "$SIGNING_CERTIFICATE_PASSWORD" -A -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # `security find-identity -v` lists trusted identities only, and electron-builder
+          # calls it with that same flag, so an untrusted certificate is invisible to both.
+          CERT_PEM="$RUNNER_TEMP/signing-cert.pem"
+          openssl pkcs12 -in "$CERTIFICATE_PATH" -nokeys -out "$CERT_PEM" -passin "pass:$SIGNING_CERTIFICATE_PASSWORD"
+          sudo -n security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain "$CERT_PEM"
+
+          CERT_ID="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | awk '/^[[:space:]]*[0-9]+\)/ { print $2; exit }')"
+          if [ -z "$CERT_ID" ]; then
+            echo "No usable macOS code signing identity found in the certificate." >&2
+            security find-identity -v -p codesigning "$KEYCHAIN_PATH" >&2
+            exit 1
+          fi
+
+          echo "APPLE_SIGNING_IDENTITY=$CERT_ID" >> "$GITHUB_ENV"
+
+      # electronFuses rewrites the Electron binary, invalidating the signature it shipped
+      # with, so signing must happen here and forceCodeSigning must stay on: an unsigned
+      # fuse-patched arm64 binary is SIGKILLed at launch and `xattr -cr` cannot repair it.
+      # pnpm exec gives electron-builder the workspace's package-manager environment.
+      # A direct Node invocation otherwise falls back to npm dependency collection.
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec node --experimental-strip-types apps/desktop/scripts/package.ts \
+            ${{ matrix.builder_args }} \
+            --config.mac.forceCodeSigning=true \
+            -c.mac.identity="$APPLE_SIGNING_IDENTITY"
+
+      - name: Verify macOS artifacts
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          FOUND=0
+          while IFS= read -r APP; do
+            FOUND=1
+            echo "==> $APP"
+            REQUIREMENT="$(codesign -dr - "$APP" 2>&1)"
+            echo "$REQUIREMENT"
+            codesign --verify --deep --strict --verbose=2 "$APP"
+
+            # An ad-hoc signature pins the requirement to a per-build cdhash instead of the
+            # reusable certificate, which is exactly the identity drift this job prevents.
+            if echo "$REQUIREMENT" | grep -q "cdhash"; then
+              echo "$APP is ad-hoc signed instead of using the reusable certificate." >&2
+              exit 1
+            fi
+
+            # The shell and bundled Host runtime must both match the native runner. Running
+            # the packaged Node also proves the independent Host executable is usable.
+            if ! lipo -archs "$APP/Contents/MacOS/Ling" | tr ' ' '\n' | grep -qx "$(uname -m)"; then
+              echo "$APP was not built for this runner's architecture." >&2
+              exit 1
+            fi
+            NODE="$APP/Contents/Resources/runtime/node"
+            if ! lipo -archs "$NODE" | tr ' ' '\n' | grep -qx "$(uname -m)"; then
+              echo "$NODE was not built for this runner's architecture." >&2
+              exit 1
+            fi
+            "$NODE" -e 'process.exit(0)'
+            test -f "$APP/Contents/Resources/host/dist/index.js"
+            test -f "$APP/Contents/Resources/web/index.html"
+            echo "runtime check: ok"
+          done < <(find apps/desktop/artifacts -maxdepth 2 -name 'Ling.app' -type d | sort)
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "Packaged Ling.app not found under apps/desktop/artifacts/." >&2
+            exit 1
+          fi
+
+      # The self-signed certificate does not silence SmartScreen - only a CA-issued OV or EV
+      # certificate does. It exists so the installer carries a publisher identity instead of
+      # reporting NotSigned, and it must stay stable: once signed, electron-builder records
+      # publisherName in app-update.yml and electron-updater then rejects any update whose
+      # installer is signed by a different publisher.
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          WIN_CSC_LINK: ${{ secrets.SIGNING_CERTIFICATE }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WIN_CSC_LINK:-}" ] || [ -z "${WIN_CSC_KEY_PASSWORD:-}" ]; then
+            echo "SIGNING_CERTIFICATE and SIGNING_CERTIFICATE_PASSWORD are required to sign Windows artifacts." >&2
+            exit 1
+          fi
+          pnpm exec node --experimental-strip-types apps/desktop/scripts/package.ts \
+            ${{ matrix.builder_args }} \
+            --config.win.forceCodeSigning=true
+
+      - name: Verify Windows artifacts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $targets = @(Get-ChildItem -Path apps/desktop/artifacts -Filter *.exe -File) +
+                     @(Get-ChildItem -Path apps/desktop/artifacts/win-unpacked -Filter Ling.exe -File -ErrorAction SilentlyContinue)
+          if ($targets.Count -eq 0) {
+            Write-Error 'No Windows executables found under apps/desktop/artifacts/.'
+          }
+          foreach ($target in $targets) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $target.FullName
+            Write-Host "==> $($target.Name): $($signature.Status)"
+            # A self-signed certificate reports UnknownError because its chain is untrusted on
+            # the runner. That is expected; NotSigned and HashMismatch are not.
+            if ($signature.Status -eq 'NotSigned' -or $signature.Status -eq 'HashMismatch') {
+              Write-Error "$($target.Name) failed signature verification: $($signature.Status)"
+            }
+            Write-Host "    signer: $($signature.SignerCertificate.Subject)"
+          }
+
+      # Linux ships unsigned: AppImage and deb have no signature layer comparable to
+      # Authenticode or Gatekeeper, and electron-updater verifies none on Linux.
+      - name: Package Linux
+        if: runner.os == 'Linux'
+        run: |
+          pnpm exec node --experimental-strip-types apps/desktop/scripts/package.ts ${{ matrix.builder_args }}
+
+      # Release assets do not consume Actions artifact storage. Keep the architecture
+      # manifests separate until every native build has succeeded.
+      - name: Upload assets to the draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.prepare.outputs.tag }}
+          RELEASE_ID: ${{ needs.prepare.outputs.release-id }}
+          ARTIFACT_PLATFORM: ${{ matrix.artifact }}
+        run: |
+          set -euo pipefail
+          if [ "$(gh api "repos/$GH_REPO/releases/$RELEASE_ID" --jq '.draft')" != "true" ]; then
+            echo "Refusing to upload assets to a published release." >&2
+            exit 1
+          fi
+          if [ -f apps/desktop/artifacts/latest-mac.yml ]; then
+            mv apps/desktop/artifacts/latest-mac.yml "apps/desktop/artifacts/latest-$ARTIFACT_PLATFORM.yml"
+          fi
+          shopt -s nullglob
+          FILES=(apps/desktop/artifacts/*.{AppImage,blockmap,deb,dmg,exe,zip} apps/desktop/artifacts/latest*.yml)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "No release assets were produced." >&2
+            exit 1
+          fi
+          gh release upload "$TAG_NAME" "${FILES[@]}" --clobber
+
+  finalize:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Each macOS job emits a latest-mac.yml describing only its own architecture.
+      # electron-updater picks an update by matching arm64 in the filename against the
+      # `files` array, so publishing either manifest as-is would strand the other
+      # architecture on its installed version forever.
+      - name: Finalize the draft update manifests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.prepare.outputs.tag }}
+          RELEASE_ID: ${{ needs.prepare.outputs.release-id }}
+        run: |
+          set -euo pipefail
+          if [ "$(gh api "repos/$GH_REPO/releases/$RELEASE_ID" --jq '.draft')" != "true" ]; then
+            echo "Refusing to change update manifests of a published release." >&2
+            exit 1
+          fi
+          gh release download "$TAG_NAME" --pattern 'latest-macos-*.yml' --dir manifests
+          # The manifest variable belongs to yq's expression language.
+          # shellcheck disable=SC2016
+          yq eval-all '. as $manifest ireduce ({}; . *+ $manifest)' \
+            manifests/latest-macos-arm64.yml manifests/latest-macos-x64.yml > latest-mac.yml
+          # Both native architectures contribute a ZIP and a DMG, for four entries.
+          if [ "$(yq '.files | length' latest-mac.yml)" -ne 4 ]; then
+            echo "The macOS updater manifest must contain both architectures." >&2
+            exit 1
+          fi
+          gh release upload "$TAG_NAME" latest-mac.yml --clobber
+          gh release delete-asset "$TAG_NAME" latest-macos-arm64.yml --yes
+          gh release delete-asset "$TAG_NAME" latest-macos-x64.yml --yes
+          gh release view "$TAG_NAME" --json isDraft,tagName,assets

@@ -1,0 +1,599 @@
+.window-drag-region {
+	-webkit-app-region: drag;
+	app-region: drag;
+	user-select: none;
+}
+
+.window-no-drag-region,
+.window-drag-region :is(button, input, textarea, select, a, [role="button"], [role="menuitem"]) {
+	-webkit-app-region: no-drag;
+	app-region: no-drag;
+}
+
+/* Content enters with a short, shallow motion. The shell itself stays mounted without an
+   opacity animation so its glass can sample the artwork throughout a view change. */
+@keyframes view-fade {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+@utility view-fade-in {
+	/* Do not retain the opacity animation's backdrop root after entry: it prevents descendant
+	   glass from sampling the artwork even though computed backdrop-filter still reports blur. */
+	animation: view-fade 180ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* A selected skin acknowledges the click in 140ms without animating every preview or the window. */
+@keyframes skin-check-in {
+	from {
+		opacity: 0;
+		transform: scale(0.65);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+.skin-selected-check {
+	animation: skin-check-in 140ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+	.skin-selected-check {
+		animation: none;
+	}
+}
+
+@keyframes ling-loading-transition {
+	0%,
+	100% {
+		opacity: 0.5;
+		transform: scale(0.985);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+.loading-transition-glyph {
+	/* Loading glyph leans into the (skinnable) accent, unlike the neutral empty-state
+	   glyph — so switching skins recolors the loading states too. */
+	background: linear-gradient(
+		135deg,
+		color-mix(in srgb, var(--color-accent) 30%, transparent),
+		color-mix(in srgb, var(--color-accent) 11%, transparent) 55%,
+		color-mix(in srgb, var(--color-accent) 24%, transparent)
+	);
+	animation: ling-loading-transition 1.4s ease-in-out infinite;
+}
+
+/* Artwork replaces the decorative loading mark only where the viewport has a backdrop. */
+:root[data-skin-backdrop][data-skin-scope="window"] .loading-transition-glyph,
+:root[data-skin-backdrop][data-skin-scope="conversation"] .conversation-scene .loading-transition-glyph {
+	background: none;
+	animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.loading-transition-glyph {
+		animation: none;
+		opacity: 0.75;
+	}
+
+	/* Tailwind's shared loading spinner has no reduce branch of its own. */
+	.animate-spin {
+		animation: none;
+	}
+}
+
+/* A static border with an opacity pulse avoids repainting a gradient every frame. */
+@keyframes ling-attention-prompt-pulse {
+	0%,
+	100% {
+		opacity: 0.45;
+	}
+	50% {
+		opacity: 0.9;
+	}
+}
+
+.attention-prompt-card {
+	--attention-prompt-glow: var(--color-attention-glow);
+
+	position: relative;
+	isolation: isolate;
+	box-shadow:
+		0 18px 44px rgb(0 0 0 / 18%),
+		0 2px 8px rgb(0 0 0 / 8%);
+}
+
+.attention-prompt-card::before,
+.attention-prompt-card::after {
+	position: absolute;
+	z-index: 0;
+	border-radius: inherit;
+	background: conic-gradient(
+		from 28deg,
+		color-mix(in srgb, var(--attention-prompt-glow) 10%, transparent) 0deg 278deg,
+		color-mix(in srgb, var(--attention-prompt-glow) 18%, transparent) 294deg,
+		color-mix(in srgb, var(--attention-prompt-glow) 82%, white) 318deg,
+		var(--attention-prompt-glow) 329deg,
+		color-mix(in srgb, var(--attention-prompt-glow) 24%, transparent) 345deg,
+		color-mix(in srgb, var(--attention-prompt-glow) 10%, transparent) 360deg
+	);
+	content: "";
+	pointer-events: none;
+	-webkit-mask:
+		linear-gradient(#000 0 0) content-box,
+		linear-gradient(#000 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	animation: ling-attention-prompt-pulse 3.2s ease-in-out infinite;
+}
+
+.attention-prompt-card::before {
+	inset: -6px;
+	padding: 6px;
+	filter: blur(8px);
+	opacity: 0.42;
+}
+
+.attention-prompt-card::after {
+	inset: -1px;
+	padding: 2px;
+}
+
+.attention-prompt-card-surface {
+	position: relative;
+	z-index: 1;
+	border: 1px solid var(--color-border-subtle);
+	border-radius: inherit;
+	background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+	-webkit-backdrop-filter: blur(18px) saturate(108%);
+	backdrop-filter: blur(18px) saturate(108%);
+}
+
+.attention-prompt-card-detail {
+	border: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+	background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-text-primary) 2%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.attention-prompt-card::before,
+	.attention-prompt-card::after {
+		animation: none;
+	}
+}
+
+/* Friendly working pulse: three round dots hop in sequence without moving the status row. */
+@keyframes ling-session-progress-dot {
+	0%,
+	56%,
+	100% {
+		opacity: 0.28;
+		transform: translateY(0) scale(0.78);
+	}
+	28% {
+		opacity: 1;
+		transform: translateY(-1.5px) scale(1);
+	}
+	42% {
+		opacity: 0.55;
+		transform: translateY(0.35px) scale(0.86);
+	}
+}
+.ling-session-progress {
+	display: inline-flex;
+	width: 16px;
+	height: 16px;
+	align-items: center;
+	justify-content: center;
+	/* 2.7px dots with a 1.8px gap centre on 4.5px steps — the SVG circle geometry this replaced. */
+	gap: 1.8px;
+	color: var(--color-accent);
+}
+.ling-session-progress-dot {
+	width: 2.7px;
+	height: 2.7px;
+	border-radius: 50%;
+	background: currentColor;
+	opacity: 0.55;
+	/* Keeps each dot on its own compositor layer, so the hop below never reaches the main thread. */
+	will-change: transform, opacity;
+}
+.ling-session-progress-dot:nth-child(2) {
+	opacity: 0.72;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.ling-session-progress-dot {
+		animation: ling-session-progress-dot 1.15s ease-in-out -230ms infinite both;
+	}
+	.ling-session-progress-dot:nth-child(2) {
+		animation-delay: -115ms;
+	}
+	.ling-session-progress-dot:nth-child(3) {
+		animation-delay: 0ms;
+	}
+}
+
+@keyframes ling-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+/* Rotating wrapper for the loading icons that stay on screen for a whole run. The rotation has to
+   sit on an HTML element: Chromium cannot composite a transform on an SVG root, so `animate-spin`
+   on the icon itself repaints on the main thread every vsync. Short-lived spinners (refresh
+   buttons) keep using the utility - the wrapper only pays off while something is on screen. */
+.ling-spin {
+	display: inline-flex;
+	animation: ling-spin 1s linear infinite;
+	will-change: transform;
+}
+
+/* Integrated terminal: xterm owns glyph/cursor painting while Ling owns the panel
+   geometry and scrollbar tone. Keep the hidden textarea available for IME input. */
+.terminal-xterm-host .xterm {
+	height: 100%;
+	padding: 0;
+}
+
+.terminal-xterm-host .xterm-viewport {
+	/* Ling's workbench surface owns the background; xterm paints only glyphs, selections,
+	   and explicit ANSI cell colors. */
+	background-color: transparent;
+	scrollbar-color: color-mix(in srgb, var(--color-text-muted) 30%, transparent) transparent;
+	scrollbar-width: thin;
+}
+
+.terminal-xterm-host .xterm-scrollable-element,
+.terminal-xterm-host .composition-view {
+	/* xterm writes its theme background inline. Keep the DOM and IME layers transparent so
+	   a failed or stale theme update can never restore the library's black fallback. */
+	background-color: transparent !important;
+}
+
+.terminal-xterm-host .xterm-screen {
+	margin: 0;
+}
+
+/* Files and changes keep the same 16:11 visual canvas: a wide workbench grows smoothly from 64rem
+   up to 80% of the container, capped at 120rem; extremely narrow windows fall back to the original
+   full-width primary/secondary switch so the usable area doesn't get too small. */
+[data-workbench-slot-host] {
+	container-name: workbench-slot;
+	container-type: size;
+}
+
+@container workbench-slot (min-width: 30rem) {
+	.workbench-dialog {
+		width: auto;
+		height: min(clamp(44rem, 55cqw, 82.5rem), calc(100cqh - 1.5rem), calc(68.75cqw - 1.03125rem));
+		max-width: none;
+		max-height: none;
+		aspect-ratio: 16 / 11;
+	}
+}
+
+/* Git history preserves commit identity before secondary refs when the workbench narrows. */
+.git-history-container {
+	container-name: git-history;
+	container-type: inline-size;
+}
+
+@container git-history (max-width: 30rem) {
+	.git-history-refs {
+		display: none;
+	}
+}
+
+/* Change review lives in a bounded workbench dialog. This container boundary lets the
+   dialog switch to a list -> detail flow from its real width without mirroring panel
+   geometry into the review state machine. */
+.change-review-container {
+	container-name: change-review;
+	container-type: inline-size;
+}
+
+.change-review-back {
+	display: none;
+}
+
+@container change-review (max-width: 42rem) {
+	.change-review-header {
+		display: grid;
+		height: auto;
+		min-height: 3.5rem;
+		grid-template-columns: auto minmax(0, 1fr);
+		padding-block: 0.5rem;
+	}
+
+	.change-review-actions {
+		grid-column: 1 / -1;
+		justify-self: end;
+	}
+
+	.change-review-layout {
+		display: block;
+	}
+
+	.change-review-files,
+	.change-review-detail {
+		height: 100%;
+	}
+
+	.change-review-layout[data-mobile-pane="files"] .change-review-detail,
+	.change-review-layout[data-mobile-pane="detail"] .change-review-files {
+		display: none;
+	}
+
+	.change-review-back {
+		display: inline-flex;
+	}
+}
+
+/* Project files share the workbench dialog shell but own a denser master/detail boundary.
+   At narrow dialog widths the tree becomes a true tree -> preview flow; widening the
+   dialog restores simultaneous navigation and code context. */
+.workspace-explorer-container {
+	container-name: workspace-explorer;
+	container-type: inline-size;
+}
+
+.workspace-explorer-back {
+	display: none;
+}
+
+.workspace-image-preview {
+	background-color: var(--color-surface-raised);
+	background-image:
+		linear-gradient(45deg, color-mix(in srgb, var(--color-text-muted) 7%, transparent) 25%, transparent 25%),
+		linear-gradient(-45deg, color-mix(in srgb, var(--color-text-muted) 7%, transparent) 25%, transparent 25%),
+		linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--color-text-muted) 7%, transparent) 75%),
+		linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--color-text-muted) 7%, transparent) 75%);
+	background-position:
+		0 0,
+		0 8px,
+		8px -8px,
+		-8px 0;
+	background-size: 16px 16px;
+}
+
+@container workspace-explorer (max-width: 30rem) {
+	.workspace-explorer-back {
+		display: inline-flex;
+	}
+}
+
+/* Models lives beside the settings sidebar, so viewport breakpoints do not describe its
+   usable width. Switch the card itself from master/detail to list -> detail at 42rem. */
+.models-container {
+	container-name: models;
+	container-type: inline-size;
+}
+
+.models-provider-back {
+	display: none;
+}
+
+@container models (max-width: 42rem) {
+	.models-provider-list,
+	.models-provider-detail {
+		width: 100%;
+	}
+
+	.models-provider-list {
+		border-right: 0;
+	}
+
+	.models-container[data-mobile-pane="providers"] .models-provider-detail,
+	.models-container[data-mobile-pane="detail"] .models-provider-list {
+		display: none;
+	}
+
+	.models-provider-back {
+		display: inline-flex;
+	}
+}
+
+/* Four-pixel cells with a 1.5px gutter retain the supplied compact 3-by-3 silhouette. */
+.working-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 4px);
+	gap: 1.5px;
+	flex-shrink: 0;
+	color: var(--color-text-primary);
+}
+.working-grid-cell {
+	width: 4px;
+	height: 4px;
+	border-radius: 1px;
+	background: currentColor;
+	opacity: 0.15;
+	/* The 650ms repeat overlaps the 270ms chevron sweep. */
+	animation: working-pixel 650ms ease-in-out infinite;
+}
+@keyframes working-pixel {
+	0%,
+	65%,
+	100% {
+		opacity: 0.15;
+	}
+	25% {
+		opacity: 1;
+	}
+}
+.working-label {
+	position: relative;
+	overflow: hidden;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--color-text-muted);
+}
+.working-shimmer-window {
+	position: absolute;
+	inset: 0;
+	color: var(--color-text-primary);
+	mask-image: linear-gradient(90deg, transparent 35%, black 50%, transparent 65%);
+	/* Counter-translating the ink keeps the glyphs still while the light crosses them. */
+	animation: working-light 1.4s linear infinite;
+}
+.working-shimmer-window > span {
+	display: block;
+	animation: working-ink 1.4s linear infinite;
+}
+@keyframes working-light {
+	from {
+		transform: translateX(-100%);
+	}
+	to {
+		transform: translateX(100%);
+	}
+}
+@keyframes working-ink {
+	from {
+		transform: translateX(100%);
+	}
+	to {
+		transform: translateX(-100%);
+	}
+}
+:root[data-skin-motion="none"] .working-shimmer-window {
+	display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+	.working-grid-cell,
+	.working-shimmer-window,
+	.working-shimmer-window > span,
+	.chat-markdown .markstream-react *,
+	.chat-markdown .markstream-react *::before,
+	.chat-markdown .markstream-react *::after {
+		animation: none !important;
+		transition: none !important;
+	}
+	.working-shimmer-window {
+		display: none;
+	}
+}
+
+/* The reading column stays fluid; gutters leave space for the outline without a width cap. */
+.transcript-viewport {
+	container-type: inline-size;
+	--conversation-gutter: clamp(2rem, 5cqi, 5rem);
+}
+
+/* A peer navigator inherits the skin's sidebar material. Headers tint that same plane,
+   while a hairline separates it from the reader without adding another surface layer. */
+.workspace-side-surface {
+	--color-workbench-chrome: color-mix(in srgb, var(--color-text-primary) 3%, var(--color-workbench-side));
+	box-shadow: inset 1px 0 color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+}
+
+.workspace-tool-card {
+	background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+}
+
+.workspace-tool-card:hover:not(:disabled) {
+	background: var(--color-surface-hover);
+}
+
+@media (pointer: coarse) {
+	.transcript-viewport {
+		/* Keep the full 44px outline target inside the gutter on touch screens. */
+		--conversation-gutter: clamp(3rem, 5cqi, 5rem);
+	}
+}
+
+/* Stable pixel columns make the contextual sidebar resize the reader alone. The resting handle is
+   invisible so the reader is separated by the seam gradient alone; pointer and keyboard focus still
+   get the full grab target and a visible line. */
+.workbench-column-divider {
+	transition: background-color 120ms ease;
+}
+.workbench-column-divider::before {
+	content: "";
+	position: absolute;
+	inset: 0 -4px;
+}
+.workbench-column-divider:is(:hover, :focus-visible) {
+	background-color: var(--color-border-subtle);
+}
+.workbench-column-divider:is(:hover, :focus-visible)::after {
+	content: "";
+	position: absolute;
+	inset: 0 -1px;
+	background: var(--color-text-muted);
+}
+
+/* The reader hangs under the shared chrome row instead of behind its own hairline: one soft inset
+   edge carries the depth, so the conversation and the reader read as one surface with a seam. */
+.workbench-reading-seam {
+	box-shadow:
+		inset 1px 0 color-mix(in srgb, var(--color-text-primary) 4%, transparent),
+		inset 7px 0 14px -11px color-mix(in srgb, var(--color-text-primary) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.workbench-column-divider {
+		transition: none;
+	}
+}
+
+/* Collapsing history keeps a measurable scrollport and the same editor in its sticky slot. */
+[data-floating-conversation] {
+	border-radius: var(--radius-panel);
+}
+[data-floating-conversation]:not([data-history-hidden]) {
+	pointer-events: auto;
+}
+[data-floating-conversation] .transcript-viewport {
+	--conversation-gutter: 1rem;
+}
+[data-floating-conversation] .chat-timeline-scroll > div {
+	padding-top: 3rem;
+}
+[data-floating-conversation] [data-timeline-footer] {
+	margin-inline: -1rem;
+}
+[data-history-hidden] :is([data-timeline-rows], .transcript-extension-header, .transcript-history-notice) {
+	visibility: hidden;
+	pointer-events: none;
+}
+[data-history-hidden] .chat-timeline-scroll {
+	scrollbar-width: none;
+	pointer-events: none;
+}
+[data-floating-conversation] [data-timeline-footer] > div:last-child > div {
+	padding-bottom: 0;
+}
+[data-floating-conversation] .floating-conversation-toggle {
+	transition: opacity 150ms;
+}
+@media (prefers-reduced-motion: reduce) {
+	[data-floating-conversation] .floating-conversation-toggle {
+		transition: none;
+	}
+}
+
+[data-floating-conversation] [data-timeline-rows] {
+	position: relative;
+	transition:
+		opacity 180ms,
+		transform 180ms;
+}
+[data-history-hidden] [data-timeline-rows] {
+	opacity: 0;
+	transform: translateY(8px);
+}
+@media (prefers-reduced-motion: reduce) {
+	[data-floating-conversation] [data-timeline-rows] {
+		transition: none;
+	}
+}

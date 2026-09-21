@@ -1,0 +1,94 @@
+appId: dev.ling.desktop
+productName: Ling
+executableName: Ling
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+protocols:
+  - name: Ling
+    schemes:
+      - ling
+directories:
+  buildResources: ../../resources
+  output: artifacts
+npmRebuild: false
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
+publish:
+  provider: github
+  owner: tyql688
+  repo: ling
+files:
+  - out/**/*
+  - package.json
+extraResources:
+  - from: ../../THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+  - from: .stage/icon.png
+    to: icon.png
+  - from: .stage/host
+    to: host
+    filter:
+      - "**/*"
+      - "!node_modules{,/**/*}"
+  - from: .stage/host/node_modules
+    to: host/node_modules
+    filter:
+      - "**/*"
+  - from: .stage/runtime
+    to: runtime
+  - from: .stage/web
+    to: web
+  - from: .stage/builtin-skills
+    to: builtin-skills
+electronLanguages:
+  - en
+  - en-US
+  - zh_CN
+  - zh-CN
+  - ja
+  - ko
+mac:
+  icon: ../../resources/icon.icns
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+win:
+  icon: ../../resources/icon.ico
+  target:
+    - nsis
+linux:
+  icon: ../../resources/icon.png
+  target:
+    - AppImage
+    - deb
+  category: Development
+  syncDesktopName: true
+dmg:
+  title: ${productName} ${version}
+  background: ../../resources/dmg-background.png
+  iconSize: 128
+  iconTextSize: 13
+  window:
+    width: 540
+    height: 380
+  contents:
+    - x: 150
+      y: 210
+      type: file
+    - x: 390
+      y: 210
+      type: link
+      path: /Applications
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  installerLanguages:
+    - en_US
+    - zh_CN
+  include: installer.nsh

@@ -1,0 +1,38 @@
+{
+	"name": "@ling/host",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "vite build"
+	},
+	"dependencies": {
+		"@earendil-works/pi-coding-agent": "0.86.1",
+		"@gotgenes/pi-permission-system": "33.0.5",
+		"@juicesharp/rpiv-todo": "2.10.1",
+		"@ling/contracts": "workspace:*",
+		"@ling/core": "workspace:*",
+		"@ling/node-runtime": "workspace:*",
+		"@parcel/watcher": "2.6.0",
+		"@typescript/native": "npm:typescript@7.0.2",
+		"birpc": "4.0.0",
+		"lru-cache": "11.5.2",
+		"node-pty": "1.2.0-beta.14",
+		"npm": "11.19.1",
+		"p-limit": "^7.3.1",
+		"simple-git": "^3.36.0",
+		"vscode-jsonrpc": "9.0.2",
+		"vscode-languageserver-protocol": "3.18.3",
+		"write-file-atomic": "7.0.1",
+		"ws": "8.21.3",
+		"zod": "4.5.4"
+	},
+	"devDependencies": {
+		"@types/node": "^26.4.0",
+		"@types/ws": "8.18.1",
+		"vite": "^7.3.6"
+	}
+}

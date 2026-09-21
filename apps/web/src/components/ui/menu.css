@@ -1,0 +1,19 @@
+.menu-glide {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 0;
+	pointer-events: none;
+	border-radius: var(--radius-control);
+	opacity: 0;
+}
+[data-menu-glide] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"]):focus {
+	background-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	:is([data-slot="select-content"], [data-slot="dropdown-menu-content"], [data-slot="context-menu-content"]) {
+		/* State variants have higher specificity than the animation utility's media variant. */
+		animation: none !important;
+	}
+}

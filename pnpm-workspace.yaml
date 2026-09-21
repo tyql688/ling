@@ -1,0 +1,35 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  "@google/genai": true
+  esbuild: true
+  node-pty: true
+  node-mac-permissions: true
+  protobufjs: true
+  "@parcel/watcher": false # prebuilt win32/darwin/linux binaries ship as optionalDeps; install script is source-build fallback only
+  electron-winstaller: false # packaging-time only; build script never ran under pnpm 10 either
+  tree-sitter-bash: false # permission parsing uses the shipped WASM grammar, not the native Node binding
+minimumReleaseAgeExclude:
+  - "@earendil-works/chord@0.86.1"
+  - "@earendil-works/pi-agent-core@0.86.1"
+  - "@earendil-works/pi-ai@0.86.1"
+  - "@earendil-works/pi-coding-agent@0.86.1"
+  - "@earendil-works/pi-telemetry@0.86.1"
+  - "@earendil-works/pi-tui@0.86.1"
+  - "@gotgenes/pi-permission-system@33.0.5"
+overrides:
+  "ansi-to-react>linkify-it": 5.0.2
+  "minimatch@3.1.5>brace-expansion": 1.1.18
+  "monaco-editor>dompurify": 3.4.14
+  "minimatch@10.2.5>brace-expansion": 5.0.9
+  "postcss>nanoid": 3.3.18
+  "vite>postcss": 8.5.23
+patchedDependencies:
+  # Backport upstream CSS zoom positioning for Web menus: floating-ui/floating-ui#3492.
+  "@floating-ui/core@1.8.0": patches/@floating-ui__core@1.8.0.patch
+  "@floating-ui/dom@1.8.0": patches/@floating-ui__dom@1.8.0.patch
+  # Expose the staged NSIS copy hook without replacing the signed installer/update workflow.
+  app-builder-lib@26.15.7: patches/app-builder-lib@26.15.7.patch
+  # Keep strict Mermaid labels in SVG and preserve br line breaks before label measurement.
+  markstream-react@2.0.8: patches/markstream-react@2.0.8.patch

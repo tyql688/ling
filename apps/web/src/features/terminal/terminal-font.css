@@ -1,0 +1,12 @@
+/* The small bundled symbol face covers prompt separators independently of OS fonts. */
+@font-face {
+	font-family: "Ling Powerline Symbols";
+	src: url("/fonts/PowerlineSymbols.otf") format("opentype");
+	font-display: swap;
+	unicode-range: U+E0A0-E0A3, U+E0B0-E0B3;
+}
+
+/* Xterm's bundled viewport CSS defaults to black even with a transparent theme. */
+.xterm .xterm-viewport {
+	background-color: transparent;
+}

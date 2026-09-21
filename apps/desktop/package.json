@@ -1,0 +1,36 @@
+{
+	"name": "@ling/desktop",
+	"productName": "Ling",
+	"version": "0.1.0",
+	"description": "Electron desktop shell for Ling",
+	"author": "tyql688",
+	"license": "MIT",
+	"private": true,
+	"type": "module",
+	"main": "./out/main/index.js",
+	"scripts": {
+		"stage:app": "node --experimental-strip-types scripts/stage.ts && pnpm --config.node-linker=hoisted --config.inject-workspace-packages=true --filter @ling/host deploy --prod .stage/host",
+		"check-types": "tsc --noEmit",
+		"dev": "pnpm run stage:app && electron --version && electron-vite dev --ignoreConfigWarning",
+		"build": "electron-vite build --ignoreConfigWarning",
+		"run": "electron-vite preview --ignoreConfigWarning",
+		"package": "pnpm build && pnpm run stage:app && node --experimental-strip-types scripts/package.ts"
+	},
+	"dependencies": {
+		"electron-updater": "^6.8.9",
+		"@ling/node-runtime": "workspace:*"
+	},
+	"devDependencies": {
+		"@ling/contracts": "workspace:*",
+		"@types/node": "^26.4.0",
+		"@types/semver": "7.8.0",
+		"electron": "^43.4.1",
+		"electron-builder": "^26.15.7",
+		"electron-vite": "^5.0.0",
+		"semver": "7.8.5",
+		"zod": "4.5.4"
+	},
+	"optionalDependencies": {
+		"node-mac-permissions": "2.5.0"
+	}
+}

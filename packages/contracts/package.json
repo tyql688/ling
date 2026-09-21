@@ -1,0 +1,15 @@
+{
+	"name": "@ling/contracts",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./*": "./src/*.ts"
+	},
+	"dependencies": {
+		"color2k": "2.0.4",
+		"vscode-languageserver-protocol": "3.18.3",
+		"zod": "4.5.4"
+	},
+	"devDependencies": {}
+}

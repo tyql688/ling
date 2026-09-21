@@ -1,0 +1,17 @@
+diff --git a/templates/nsis/include/extractAppPackage.nsh b/templates/nsis/include/extractAppPackage.nsh
+index f5470bf52e923dc47266cea4684c76ef78ced451..e70435fdb1169387ea8a8791f2375bd3bb04da3f 100644
+--- a/templates/nsis/include/extractAppPackage.nsh
++++ b/templates/nsis/include/extractAppPackage.nsh
+@@ -105,7 +105,11 @@
+     IntOp $R1 $R1 + 1
+ 
+     # Attempt to copy files in atomic way
+-    CopyFiles /SILENT "$PLUGINSDIR\7z-out\*" $OUTDIR
++    !ifmacrodef customCopyAppPackage
++      !insertmacro customCopyAppPackage "$PLUGINSDIR\7z-out" "$OUTDIR"
++    !else
++      CopyFiles /SILENT "$PLUGINSDIR\7z-out\*" $OUTDIR
++    !endif
+     IfErrors 0 DoneExtract7za
+ 
+     DetailPrint `Can't modify "${PRODUCT_NAME}"'s files.`

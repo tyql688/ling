@@ -139,6 +139,7 @@ const cancelSchema: z.ZodType<PiWorkerCancel | PiWorkerMainCancel> = z.discrimin
 const parentMessageSchema: z.ZodType<PiWorkerParentMessage> = z.discriminatedUnion("kind", [
 	z.strictObject({
 		kind: z.literal("attachControl"),
+		role: z.enum(["control", "session"]),
 		protocolVersion: z.literal(PI_WORKER_PROTOCOL_VERSION),
 		generation: generationSchema,
 		systemProxyFallback: z.string().max(4_096).nullable(),

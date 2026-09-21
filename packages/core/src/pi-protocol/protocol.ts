@@ -306,6 +306,7 @@ export type PiWorkerControlFrame =
 export type PiWorkerParentMessage =
 	| {
 			kind: "attachControl";
+			role: "control" | "session";
 			protocolVersion: typeof PI_WORKER_PROTOCOL_VERSION;
 			generation: number;
 			systemProxyFallback: string | null;

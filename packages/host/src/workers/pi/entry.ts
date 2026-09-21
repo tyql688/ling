@@ -73,6 +73,7 @@ function handleParentMessage(value: unknown): void {
 			if (server !== null || generation !== null) throw new Error("Pi worker control port is already attached");
 			generation = message.generation;
 			server = startPiWorkerServer({
+				role: message.role,
 				port: nodeControlPort,
 				generation,
 				systemProxyFallback: message.systemProxyFallback,

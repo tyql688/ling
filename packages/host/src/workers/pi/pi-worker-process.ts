@@ -59,7 +59,7 @@ export interface PendingRequestSummary {
 }
 
 export interface PiWorkerProcessOptions {
-	role: DiagnosticProcessRole;
+	role: Extract<DiagnosticProcessRole, "pi-control" | "pi-session">;
 	generation: number;
 	label: string;
 	hostEnvironment(): Record<string, string>;
@@ -275,6 +275,7 @@ export function spawnPiWorkerProcess(options: PiWorkerProcessOptions): PiWorkerG
 		try {
 			child.send({
 				kind: "attachControl",
+				role: options.role === "pi-control" ? "control" : "session",
 				protocolVersion: PI_WORKER_PROTOCOL_VERSION,
 				generation,
 				systemProxyFallback: options.systemProxyFallback(),

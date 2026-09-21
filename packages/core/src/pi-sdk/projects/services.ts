@@ -134,6 +134,8 @@ function afterSettled<T>(promise: Promise<T>, task: () => Promise<void>): Promis
 }
 
 type PiProjectServicesStateDependencies = {
+	/** Session workers load extensions only in their runtime, not in a second catalog graph. */
+	loadCatalogResources: boolean;
 	readAdapterPlan(cwd: string): Promise<PiAdapterPlan>;
 	agentDir: string;
 	modelRuntimes: Pick<
@@ -150,6 +152,7 @@ type PiProjectServicesStateDependencies = {
 };
 
 interface PiProjectServicesState {
+	loadCatalogResources: boolean;
 	readAdapterPlan: PiProjectServicesStateDependencies["readAdapterPlan"];
 	agentDir: PiProjectServicesStateDependencies["agentDir"];
 	builtinExtensions: PiProjectServicesStateDependencies["builtinExtensions"];
@@ -174,6 +177,7 @@ interface PiProjectServicesState {
 }
 
 export function createPiProjectServices({
+	loadCatalogResources,
 	readAdapterPlan,
 	agentDir,
 	modelRuntimes,
@@ -183,6 +187,7 @@ export function createPiProjectServices({
 	skillResources,
 }: PiProjectServicesStateDependencies) {
 	const owner: PiProjectServicesState = {
+		loadCatalogResources,
 		readAdapterPlan,
 		agentDir: agentDir,
 		builtinExtensions: builtinExtensions,
@@ -305,16 +310,33 @@ async function createBoundedAgentSessionServices(
 	// Resolve Ling's existing trust decision before routing any project path through Pi's explicit-path loader.
 	options.settingsManager.setProjectTrusted(await owner.projectTrustResolver(options.cwd));
 	await options.settingsManager.reload();
-	const plan = await owner.readAdapterPlan(options.cwd);
-	const adapters = await preparePiAdapters({
-		cwd: options.cwd,
-		agentDir: options.agentDir,
-		settingsManager: options.settingsManager,
-		plan,
-	});
-	throwIfOperationAborted(signal);
 	const trusted = options.settingsManager.isProjectTrusted();
 	const createServices = async (modelRuntimeSignal?: AbortSignal) => {
+		if (!owner.loadCatalogResources && !includeBuiltinExtensions) {
+			// A session worker needs canonical cwd, trusted settings and a project lifecycle owner.
+			// Its actual runtime loads the complete extension/provider graph below. The control
+			// worker remains the catalog owner, so this shell must not execute every extension twice.
+			return createAgentSessionServices({
+				...serviceOptions,
+				resourceLoaderReloadOptions: { resolveProjectTrust: async () => trusted },
+				resourceLoaderOptions: {
+					noExtensions: true,
+					noSkills: true,
+					noPromptTemplates: true,
+					noThemes: true,
+					noContextFiles: true,
+				},
+				...(modelRuntimeSignal ? { modelRuntimeSignal } : {}),
+			});
+		}
+		const plan = await owner.readAdapterPlan(options.cwd);
+		const adapters = await preparePiAdapters({
+			cwd: options.cwd,
+			agentDir: options.agentDir,
+			settingsManager: options.settingsManager,
+			plan,
+		});
+		throwIfOperationAborted(signal);
 		const installSkillToggles = owner.createLingSkillToggles(options.settingsManager, options.agentDir);
 		const classify = owner.createProviderScopeClassifyingOverride(
 			options.agentDir,

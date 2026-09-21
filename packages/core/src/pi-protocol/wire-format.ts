@@ -1,5 +1,5 @@
-/** Version 4 includes built-in feature activation in the project's extension plan. */
-export const PI_WORKER_PROTOCOL_VERSION = 4 as const;
+/** Version 5 assigns a worker role before loading project resources. */
+export const PI_WORKER_PROTOCOL_VERSION = 5 as const;
 
 export const PI_WORKER_REQUEST_MAX_BYTES = 64 * 1024 * 1024;
 

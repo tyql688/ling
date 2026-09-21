@@ -70,6 +70,7 @@ export interface PiWorkerServer {
 }
 
 interface StartPiWorkerServerOptions {
+	role: "control" | "session";
 	port: PiWorkerMessagePort;
 	generation: number;
 	systemProxyFallback: string | null;
@@ -218,6 +219,7 @@ export function startPiWorkerServer(options: StartPiWorkerServerOptions): PiWork
 		startupCleanups.push(quotas.dispose);
 		const skillResources = createLingSkillResources();
 		const projects = createPiProjectServices({
+			loadCatalogResources: options.role === "control",
 			readAdapterPlan: (cwd) => callMain("adapters.read", { cwd }),
 			skillResources,
 			agentDir,

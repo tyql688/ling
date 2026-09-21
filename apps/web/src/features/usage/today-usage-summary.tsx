@@ -46,6 +46,9 @@ interface ProviderQuotaState {
 }
 
 const EMPTY_QUOTA_STATE: ProviderQuotaState = { snapshot: null, loading: false, error: false };
+/** Session changes refresh immediately; external Pi activity is checked every five visible minutes.
+ * This leaves the statistics worker's two-minute idle window free to release its scan cache. */
+const USAGE_REFRESH_INTERVAL_MS = 5 * 60_000;
 /** Provider account data refreshes every five minutes while the app is visible. */
 const PROVIDER_QUOTA_REFRESH_INTERVAL_MS = 5 * 60_000;
 /** A one-minute check keeps focus-triggered refreshes bounded without drifting far past the refresh interval. */
@@ -423,6 +426,8 @@ export function TodayUsageSummary({
 
 	const [quotaState, setQuotaState] = useState<ProviderQuotaState>(EMPTY_QUOTA_STATE);
 	const statsRequestRevisionRef = useRef(0);
+	const statsLastAttemptRef = useRef<{ at: number; refreshAt: number } | null>(null);
+	const [statsRefreshTick, setStatsRefreshTick] = useState(0);
 	const quotaRequestRef = useRef<Promise<void> | null>(null);
 	const quotaLastAttemptAtRef = useRef(0);
 	const quotaShownRef = useRef(shown);
@@ -457,11 +462,15 @@ export function TodayUsageSummary({
 
 	useEffect(() => {
 		void refreshAt;
+		void statsRefreshTick;
 		const revision = ++statsRequestRevisionRef.current;
 		if (!shown) {
+			statsLastAttemptRef.current = null;
 			setState(INITIAL_USAGE_STATE);
 			return;
 		}
+		if (document.visibilityState !== "visible") return;
+		statsLastAttemptRef.current = { at: Date.now(), refreshAt };
 		setState((current) => ({ ...current, loading: current.totalTokens === null, error: null }));
 		void hostUsageApi
 			.getStats(7)
@@ -488,7 +497,27 @@ export function TodayUsageSummary({
 		return () => {
 			if (statsRequestRevisionRef.current === revision) statsRequestRevisionRef.current += 1;
 		};
-	}, [hostUsageApi, refreshAt, shown]);
+	}, [hostUsageApi, refreshAt, shown, statsRefreshTick]);
+
+	useEffect(() => {
+		if (!shown) return;
+		const refreshWhenDue = () => {
+			if (document.visibilityState !== "visible") return;
+			const previous = statsLastAttemptRef.current;
+			if (!previous || previous.refreshAt !== refreshAt || Date.now() - previous.at >= USAGE_REFRESH_INTERVAL_MS) {
+				setStatsRefreshTick((tick) => tick + 1);
+			}
+		};
+		// Focus can refresh between interval ticks; restart the interval from that attempt.
+		const interval = window.setInterval(refreshWhenDue, USAGE_REFRESH_INTERVAL_MS);
+		document.addEventListener("visibilitychange", refreshWhenDue);
+		window.addEventListener("focus", refreshWhenDue);
+		return () => {
+			window.clearInterval(interval);
+			document.removeEventListener("visibilitychange", refreshWhenDue);
+			window.removeEventListener("focus", refreshWhenDue);
+		};
+	}, [refreshAt, shown, statsRefreshTick]);
 
 	useEffect(() => {
 		if (!shown) {

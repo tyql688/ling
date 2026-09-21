@@ -34,6 +34,8 @@ const log = createLogger("session-registry");
 
 /** Each warm idle runtime holds a worker process; busy and interactive runtimes are exempt until idle. */
 const MAX_IDLE_MANAGED_SESSIONS = 2;
+/** Keep quick tab switches warm, then release unselected idle workers even below the count limit. */
+const IDLE_MANAGED_SESSION_TTL_MS = 2 * 60_000;
 
 interface AttachManagedSessionOptions {
 	autoTitle?: boolean;
@@ -125,27 +127,27 @@ export function createSessionRegistry({
 	function touchManagedSession(managed: ManagedSession): void {
 		managedSessionAccessSequence += 1;
 		managed.lastAccessSequence = managedSessionAccessSequence;
+		managed.lastAccessAt = Date.now();
 	}
 
 	function isManagedSessionIdle(managed: ManagedSession): boolean {
 		return !managed.disposing && !managed.autoTitleInFlight && !managed.session.isBusy();
 	}
 
-	/** Returns the oldest evictable runtimes above the warm idle-set limit. Callers may protect
+	/** Returns runtimes beyond the warm count or age limit. Callers may protect
 	 * host-owned interaction state (pending dialogs) that the core deliberately cannot inspect. */
 	function listIdleManagedSessionEvictionCandidates(protectedRefs: readonly SessionRef[] = []): SessionRef[] {
 		const protectedKeys = new Set(protectedRefs.map(sessionKey));
 		const idle = [...managedSessions.values()]
-			.filter(
-				(managed) =>
-					isManagedSessionIdle(managed) &&
-					!hasSessionLifecycleOperation(managed.ref) &&
-					!protectedKeys.has(sessionKey(managed.ref)),
-			)
+			.filter((managed) => isManagedSessionIdle(managed) && !hasSessionLifecycleOperation(managed.ref))
 			.sort((left, right) => left.lastAccessSequence - right.lastAccessSequence);
-		const excess = idle.length - MAX_IDLE_MANAGED_SESSIONS;
-		if (excess <= 0) return [];
-		return idle.slice(0, excess).map((managed) => ({ ...managed.ref }));
+		const excess = Math.max(0, idle.length - MAX_IDLE_MANAGED_SESSIONS);
+		const now = Date.now();
+		// Selection and dialogs protect an idle worker from eviction, but still consume a warm slot.
+		return idle
+			.filter((managed) => !protectedKeys.has(sessionKey(managed.ref)))
+			.filter((managed, index) => index < excess || now - managed.lastAccessAt >= IDLE_MANAGED_SESSION_TTL_MS)
+			.map((managed) => ({ ...managed.ref }));
 	}
 
 	function isManagedSessionRetirable(managed: ManagedSession): boolean {
@@ -255,6 +257,7 @@ export function createSessionRegistry({
 			changeReviewListeners: new Set(),
 			disposing: false,
 			lastAccessSequence: 0,
+			lastAccessAt: 0,
 			createdAt: options.createdAt !== undefined ? options.createdAt : Date.now(),
 			placeholderTitle: options.placeholderTitle !== undefined ? options.placeholderTitle : "New session",
 			autoTitleEnabled: options.autoTitle === true,

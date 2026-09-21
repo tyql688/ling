@@ -23,7 +23,7 @@ const sessionStateTokens = new Map<string, RendererSessionStateToken>();
 /** Only live/resuming runtimes have a revision entry; final suspension removes it. */
 const sessionRetentionRevisions = new Map<string, number>();
 const evictionListeners = new Set<RendererSessionEvictionListener>();
-/** Keep four recently suspended transcripts warm, matching the Host's idle runtime allowance. */
+/** Keep four recently suspended transcripts warm for fast history display after their workers exit. */
 const DORMANT_TRANSCRIPT_CAPACITY = 4;
 /** Limit serialized UTF-16 content to 16 MiB so a few large transcripts cannot defeat the entry limit. */
 const DORMANT_TRANSCRIPT_BYTE_CAPACITY = 16 * 1_024 * 1_024;

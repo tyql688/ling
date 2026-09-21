@@ -147,6 +147,7 @@ export function createSessionHost({
 	});
 	const retention = createSessionRuntimeRetentionHost({
 		manager,
+		viewedSessionRefs: clients.viewedSessionRefs,
 		pendingInteractionRefs: () => [
 			...pendingInteractionRefs(),
 			...dialogs.pendingApprovals().map((request) => request.ref),
@@ -188,7 +189,7 @@ export function createSessionHost({
 
 	let disposal: Promise<void> | null = null;
 	return {
-		/** Resumes or creates the session an automatic run targets, bound and retained like a user-opened one. */
+		/** Bind an automatic run without changing the user's selected-session retention. */
 		async prepareCompanionSession(input: CompanionRunRequest) {
 			if (stopping) throw new Error("Session admission is stopping");
 			let ref: SessionRef;
@@ -204,7 +205,7 @@ export function createSessionHost({
 				ref = { cwd: summary.cwd, sessionId: summary.id };
 			}
 			eventBridge.bind(ref);
-			retention.retain(ref);
+			retention.retain(ref, { selection: false });
 			listCache.invalidate();
 			events.broadcast(sessionProcedures.onCatalogChanged.channel, { type: "changed" });
 			return manager.registry.requireManagedSession(ref).session;

@@ -6,6 +6,7 @@ import type {
 import { PI_WORKER_PROTOCOL_VERSION } from "@ling/core/pi-protocol/wire-format";
 import { describe, expect, it, vi } from "vitest";
 import { createPiWorkerRuntimeMirror } from "@ling/host/workers/pi/pi-worker-runtime-mirror";
+import { createPiWorkerRemoteRuntime } from "./pi-worker-session-runtime";
 
 const ref = { cwd: "/project", sessionId: "session" };
 function state(): PiWorkerRuntimeState {
@@ -69,6 +70,28 @@ const turn = () =>
 	});
 
 describe("Host runtime mirror", () => {
+	it.each(["accepted", "rejected"])("keeps a background admission busy until it is %s", async (outcome) => {
+		const admission = Promise.withResolvers<null>();
+		const runtime = createPiWorkerRemoteRuntime("runtime", state(), {
+			call: <Result>() => admission.promise as Promise<Result>,
+			fail: vi.fn(),
+			release: vi.fn(),
+		});
+		const request = runtime.startCompanionRun("run", "test", {});
+		const result =
+			outcome === "accepted"
+				? expect(request).resolves.toBeNull()
+				: expect(request).rejects.toThrow("admission failed");
+		try {
+			expect(runtime.isBusy()).toBe(true);
+		} finally {
+			if (outcome === "accepted") admission.resolve(null);
+			else admission.reject(new Error("admission failed"));
+			await result;
+		}
+		expect(runtime.isBusy()).toBe(false);
+	});
+
 	it("delivers attachment events in order and ignores duplicate sequence numbers", async () => {
 		const h = setup([busy(1, true)]);
 		await turn();

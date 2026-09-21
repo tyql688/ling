@@ -6,6 +6,7 @@ export interface HostClientState {
 	ownerOfSession(ref: SessionRef): string | null;
 	assertCanRespond(clientId: string, ref: SessionRef): void;
 	setViewedSession(clientId: string, ref: SessionRef | null): void;
+	viewedSessionRefs(): SessionRef[];
 	disconnect(clientId: string): void;
 }
 
@@ -27,6 +28,7 @@ export function createHostClientState(): HostClientState {
 			if (ref === null) viewed.delete(clientId);
 			else viewed.set(clientId, { ...ref });
 		},
+		viewedSessionRefs: () => [...viewed.values()].map((ref) => ({ ...ref })),
 		disconnect: (clientId) => {
 			viewed.delete(clientId);
 			for (const [key, owner] of owners) {

@@ -127,6 +127,7 @@ export function createSessionDomain({
 
 		[sessionProcedures.setViewedSession.channel]: async (context, value): Promise<void> => {
 			clients.setViewedSession(context.clientId, value);
+			retention.reap();
 		},
 
 		[sessionProcedures.create.channel]: async (context, request): Promise<SessionSummary> => {

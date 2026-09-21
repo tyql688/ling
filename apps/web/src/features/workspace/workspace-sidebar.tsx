@@ -138,7 +138,7 @@ function WorkspaceSidebar({
 	const [projectScopeCwd, setProjectScopeCwd] = useAtom(sidebarProjectScopeAtom);
 	const [appPage, setAppPage] = useAtom(appPageAtom);
 	const [now, setNow] = useState(() => Date.now());
-	const usageRefreshAt = sessions.reduce((latest, session) => Math.max(latest, session.updatedAt), now);
+	const usageRefreshAt = sessions.reduce((latest, session) => Math.max(latest, session.updatedAt), 0);
 	useEffect(() => {
 		const refresh = () => setNow(Date.now());
 		const timer = window.setInterval(refresh, 60_000);

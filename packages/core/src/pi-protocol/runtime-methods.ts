@@ -64,7 +64,8 @@ export const piRuntimeMethods = {
 			command({ timeoutMs: LONG_REQUEST_TIMEOUT_MS }),
 		),
 		["runId", "text", "configuration"],
-		{},
+		// Keep the worker owned while admission crosses IPC and configures the model.
+		{ busy: true },
 	),
 	"runtime.waitCompanionRun": runtimeMethod(
 		piMethod(

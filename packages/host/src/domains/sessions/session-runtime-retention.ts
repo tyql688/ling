@@ -8,13 +8,14 @@ const log = createLogger("session-runtime-retention");
 interface SessionRuntimeRetentionOptions {
 	manager: ManagedSessionManager;
 	pendingInteractionRefs(): readonly SessionRef[];
+	viewedSessionRefs(): readonly SessionRef[];
 	onSuspending(ref: SessionRef, retentionRevision: number): void;
 	onSuspended(ref: SessionRef, retentionRevision: number): void;
 }
 
 interface SessionRuntimeRetentionHost {
-	/** A selected/new runtime stays live and cancels any archive-triggered suspension request. */
-	retain(ref: SessionRef): number;
+	/** Cancel pending suspension; background admission must not replace the user's selection intent. */
+	retain(ref: SessionRef, options?: { selection: boolean }): number;
 	/** Archive-triggered suspension persists until the runtime becomes truly idle. */
 	suspendWhenIdle(ref: SessionRef): void;
 	/** Re-check after a run, queue, approval, or extension interaction settles. */
@@ -24,6 +25,12 @@ interface SessionRuntimeRetentionHost {
 	retire(refs: readonly SessionRef[]): Array<{ ref: SessionRef; retentionRevision: number }>;
 	prepareShutdown(): void;
 	dispose(): Promise<void>;
+}
+
+interface RetainedSession {
+	ref: SessionRef;
+	retentionRevision: number;
+	selectionRevision: number;
 }
 
 /** Serializes runtime retirement so concurrent resume/archive/run-finish paths cannot dispose the
@@ -36,7 +43,7 @@ export function createSessionRuntimeRetentionHost(
 
 	const requestedSuspensions = new Map<string, { ref: SessionRef; retentionRevision: number }>();
 	const retentionRevisions = new Map<string, number>();
-	const retainedRefs = new Map<string, { ref: SessionRef; retentionRevision: number }>();
+	const retainedRefs = new Map<string, RetainedSession>();
 	let nextRetentionRevision = 0;
 	let activeSweep: Promise<void> | null = null;
 	let sweepRequested = false;
@@ -44,6 +51,7 @@ export function createSessionRuntimeRetentionHost(
 	let disposal: Promise<void> | null = null;
 	const prepareShutdown = (): void => {
 		disposed = true;
+		clearInterval(idleSweepTimer);
 		sweepRequested = false;
 		requestedSuspensions.clear();
 		retainedRefs.clear();
@@ -60,9 +68,9 @@ export function createSessionRuntimeRetentionHost(
 		return current ?? advanceRetentionRevision(ref);
 	};
 	const latestRetainedRef = (): SessionRef | null => {
-		let latest: { ref: SessionRef; retentionRevision: number } | null = null;
+		let latest: RetainedSession | null = null;
 		for (const retained of retainedRefs.values()) {
-			if (!latest || retained.retentionRevision > latest.retentionRevision) latest = retained;
+			if (!latest || retained.selectionRevision > latest.selectionRevision) latest = retained;
 		}
 		return latest?.ref ?? null;
 	};
@@ -71,8 +79,9 @@ export function createSessionRuntimeRetentionHost(
 		while (true) {
 			if (disposed) return;
 			const interactionRefs = options.pendingInteractionRefs();
+			const viewedRefs = options.viewedSessionRefs();
 			const latestRef = latestRetainedRef();
-			const protectedRefs = latestRef ? [...interactionRefs, latestRef] : interactionRefs;
+			const protectedRefs = [...interactionRefs, ...viewedRefs, ...(latestRef ? [latestRef] : [])];
 			const interactionKeys = new Set(interactionRefs.map(sessionKey));
 			for (const [key, request] of requestedSuspensions) {
 				if (findManagedSession(request.ref)) continue;
@@ -104,6 +113,7 @@ export function createSessionRuntimeRetentionHost(
 							if (options.pendingInteractionRefs().some((pendingRef) => sessionKey(pendingRef) === currentKey)) {
 								return false;
 							}
+							if (options.viewedSessionRefs().some((viewedRef) => sessionKey(viewedRef) === currentKey)) return false;
 							options.onSuspending(currentRef, retentionRevision);
 							return true;
 						},
@@ -154,15 +164,29 @@ export function createSessionRuntimeRetentionHost(
 		return tracked;
 	};
 
+	// The count limit is checked on activity; this low-frequency sweep also expires workers
+	// when the user stops switching sessions. Every candidate still passes the disposal fences.
+	const idleSweepTimer = setInterval(() => void queueSweep(), 30_000);
+	idleSweepTimer.unref();
+
 	return {
-		retain(ref) {
+		retain(ref, { selection } = { selection: true }) {
 			if (disposed) throw new Error("Session runtime retention is shutting down");
 			const retentionRevision = advanceRetentionRevision(ref);
 			// IPC resumes can finish out of order. Remember selection intent at request
 			// admission so a slower, stale resume cannot retire the latest selected runtime.
 			// Keep older live intents until retirement so a failed latest resume can fall
 			// back to the renderer's previous selection without racing its suspension.
-			retainedRefs.set(sessionKey(ref), { ref: { ...ref }, retentionRevision });
+			if (selection) {
+				retainedRefs.set(sessionKey(ref), {
+					ref: { ...ref },
+					retentionRevision,
+					selectionRevision: retentionRevision,
+				});
+			} else {
+				const retained = retainedRefs.get(sessionKey(ref));
+				if (retained) retained.retentionRevision = retentionRevision;
+			}
 			requestedSuspensions.delete(sessionKey(ref));
 			void queueSweep();
 			return retentionRevision;

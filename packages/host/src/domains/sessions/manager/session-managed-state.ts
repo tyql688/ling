@@ -32,6 +32,7 @@ export interface ManagedSession {
 	disposing: boolean;
 	/** Monotonic access order used to retire only the least-recently-used idle runtimes. */
 	lastAccessSequence: number;
+	lastAccessAt: number;
 	createdAt: number;
 	placeholderTitle: string;
 	autoTitleEnabled: boolean;

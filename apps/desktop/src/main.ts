@@ -1,6 +1,7 @@
 import { shellProcedures } from "@ling/contracts/api/shell-procedures";
 import { createRuntimeLifetime } from "@ling/node-runtime/runtime-lifetime";
 import { app, dialog, shell } from "electron";
+import electronUpdater from "electron-updater";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { createDesktopHostSupervisor } from "./host/host-supervisor";
@@ -49,13 +50,16 @@ function startDesktop(): void {
 	lifetime.onStop("graphics admission", graphics.stop);
 	lifetime.defer("storage", "graphics state", graphics.dispose);
 	const updater = createDesktopUpdater({
+		updater: electronUpdater.autoUpdater,
 		appVersion: __LING_VERSION__,
 		supported: app.isPackaged,
 		prepareInstall: shutdown.prepareInstall,
 		onPrepared: shutdown.completeInstall,
+		onInstallFailed: shutdown.reportFailure,
 		onEvent: (event) => windowOwner?.send(shellProcedures.updates.onEvent.channel, event),
 	});
-	lifetime.defer("native", "updater", updater.dispose);
+	lifetime.defer("native", "updater requests", updater.stop);
+	app.once("quit", updater.dispose);
 	const attention = createDesktopAttention({
 		getWindow,
 		showWindow: () => windowOwner?.show(),

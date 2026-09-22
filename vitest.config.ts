@@ -30,7 +30,7 @@ export default defineConfig({
 		],
 	},
 	test: {
-		include: ["packages/*/src/**/*.test.ts", "apps/web/src/**/*.test.ts"],
+		include: ["packages/*/src/**/*.test.ts", "apps/web/src/**/*.test.ts", "apps/desktop/src/**/*.test.ts"],
 		environment: "node",
 		// Bound simultaneous grammar and transcript fixtures on developer machines.
 		maxWorkers: 4,

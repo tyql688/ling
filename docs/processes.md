@@ -55,6 +55,8 @@ Graceful shutdown sends a shutdown frame, waits up to 5 s for `shutdownComplete`
 
 Window creation rechecks shutdown after asynchronous state reads. Fatal errors distinguish startup and runtime, attempt every acquired cleanup, show a native notice and exit with code 1 under a twenty-second deadline. A native sheet parent exists even before the main window so macOS continues processing cleanup. Fatal shutdown cannot install an update, relaunch or mark graphics fallback as a clean run. Update handoff rechecks fatal state after draining Host.
 
+Update checks and downloads stop before Host drains, while updater error listeners remain owned by Electron until its final quit event. Installation errors after handoff reach the native failure notice even after shell IPC has closed. Explicit restart-and-install reopens Ling; installing a downloaded update during ordinary quit uses silent installation without relaunching.
+
 ## Diagnostics store
 
 The Host owns `logs/ling-diagnostics.sqlite` under Ling data. It is separate from `ling.sqlite`: diagnostics use `synchronous=NORMAL`, are pruned aggressively and must never block business writes.

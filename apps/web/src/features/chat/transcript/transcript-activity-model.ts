@@ -49,8 +49,9 @@ export type ActivityFailureItem = {
 
 type ActivityItem =
 	| { type: "thinking"; text: string; revisionSources: object[] }
-	/** Intermediate assistant prose on toolUse turns — stays inside the work fold, not a plain bubble. */
-	| { type: "text"; text: string; revisionSources: object[] }
+	/** Prose retains its owner through tool calls and settlement. Message identity keeps
+	 * the terminal reply distinct from adjacent intermediate replies when work folds. */
+	| { type: "text"; messageId: string; text: string; revisionSources: object[] }
 	| { type: "step"; step: ToolStep }
 	/** A displayed extension message delivered mid-turn (e.g. a steered `pi.sendMessage`) — kept at
 	 * its chronological place among the tool steps so it scrolls with the stream. */
@@ -67,9 +68,21 @@ export interface ActivityRow {
 	startTs: number | undefined;
 	endTs: number | undefined;
 	running: boolean;
-	/** A settled turn's outer disclosure already owns expansion, so this row renders
-	 * its contents directly instead of adding a second activity disclosure. */
-	expandedByTurnFold: boolean;
+	/** Keep the work disclosure open while this user turn is active, including when a
+	 * following assistant reply owns the streaming tail. */
+	turnActive: boolean;
+	/** A terminal reply remains in this row when its preceding work folds away. */
+	terminalReply: {
+		messageId: string;
+		index: number;
+		message: Extract<SessionMessage, { role: "assistant" }>;
+	} | null;
+	/** Settled work is controlled by the turn disclosure, without a nested header. */
+	turnFoldState: "collapsed" | "expanded" | null;
+}
+
+export function activityHasWork(row: ActivityRow): boolean {
+	return row.items.some((item) => item.type !== "text" || item.messageId !== row.terminalReply?.messageId);
 }
 
 interface PlainTimelineRow {
@@ -116,7 +129,9 @@ export function timelineRowDisplayRevision(
 		return JSON.stringify([
 			"activity",
 			row.running,
-			row.expandedByTurnFold,
+			row.turnActive,
+			row.turnFoldState,
+			row.terminalReply ? displayRevisionId(row.terminalReply.message) : null,
 			options.toolsExpanded,
 			options.hiddenThinkingLabel,
 			...activityItemRevisions(row),
@@ -184,7 +199,9 @@ export function buildRows(
 ): TimelineRow[] {
 	const indexOffset = options?.indexOffset ?? 0;
 	const callIds = new Set<string>();
-	for (const message of messages) {
+	let latestUserIndex = -1;
+	for (const [index, message] of messages.entries()) {
+		if (message.role === "user") latestUserIndex = index;
 		if (message.role !== "assistant") continue;
 		for (const part of message.content) {
 			if (part.type === "toolCall") callIds.add(part.id);
@@ -196,6 +213,7 @@ export function buildRows(
 	let failureStreak = 0;
 	let lastUserTs: number | undefined = options?.seed?.lastUserTs;
 	let latestUserOrdinal = options?.seed?.latestUserOrdinal ?? -1;
+	let currentTurnStart = 0;
 
 	/** Opens the current turn's activity row on first use; every writer funnels through here. */
 	const ensureActivity = (rowIdentity: string): ActivityRow => {
@@ -207,7 +225,9 @@ export function buildRows(
 				startTs: lastUserTs,
 				endTs: undefined,
 				running: false,
-				expandedByTurnFold: false,
+				turnActive: false,
+				terminalReply: null,
+				turnFoldState: null,
 			};
 			rows.push(activity);
 		}
@@ -228,6 +248,7 @@ export function buildRows(
 				message,
 				userMessageOrdinal: latestUserOrdinal,
 			});
+			currentTurnStart = rows.length;
 			return;
 		}
 		if (message.role === "toolResult") {
@@ -275,6 +296,9 @@ export function buildRows(
 		}
 
 		const content = message.content;
+		// Providers can prefill `stopReason` before streaming finishes. Settlement only
+		// changes which items fold away; it must not move the reply into a new DOM owner.
+		const liveTurn = busy && localIndex > latestUserIndex;
 		const latestToolCallById = new Map(
 			uniqueToolCalls(content.filter((part): part is ToolCallPart => part.type === "toolCall")).map((part) => [
 				part.id,
@@ -305,18 +329,16 @@ export function buildRows(
 				const call = latestToolCallById.get(part.id);
 				if (!call?.name) continue;
 				upsertToolStep(ensureActivity(rowIdentity), call, resultByCallId.get(call.id));
-			} else if (part.type === "text" && message.stopReason === "toolUse") {
-				// Keep intermediate prose inside the work fold so middle replies are not dropped,
-				// without promoting toolUse turns into terminal plain bubbles.
+			} else if (part.type === "text" && message.stopReason !== "error") {
 				previousPartWasThinking = false;
 				if (part.text.trim().length === 0) continue;
 				const textRow = ensureActivity(rowIdentity);
 				const previousItem = textRow.items.at(-1);
-				if (previousItem?.type === "text") {
+				if (previousItem?.type === "text" && previousItem.messageId === rowIdentity) {
 					previousItem.text = `${previousItem.text}\n\n${part.text}`;
 					previousItem.revisionSources.push(part);
 				} else {
-					textRow.items.push({ type: "text", text: part.text, revisionSources: [part] });
+					textRow.items.push({ type: "text", messageId: rowIdentity, text: part.text, revisionSources: [part] });
 				}
 			} else {
 				previousPartWasThinking = false;
@@ -325,10 +347,6 @@ export function buildRows(
 		if (activity) activity.endTs = message.timestamp ?? activity.endTs;
 
 		const hasText = content.some((part) => part.type === "text" && part.text.trim().length > 0);
-		// `toolUse` is an intermediate model turn. Some providers (notably Kimi/OpenAI
-		// compatible models) put a prose preamble beside every tool call; treating that
-		// preamble as a terminal reply splits one agent run into many visible rows.
-		const hasTerminalText = hasText && message.stopReason !== "toolUse";
 		if (message.stopReason === "error") {
 			// A failed attempt stays inside the turn's work row: Pi retries the same turn with a
 			// fresh assistant message, so the retries' thinking and tools belong to this fold
@@ -346,19 +364,22 @@ export function buildRows(
 			return;
 		}
 		failureStreak = 0;
-		if (hasTerminalText || message.stopReason === "aborted") {
+		if ((hasText && message.stopReason !== "toolUse" && !liveTurn) || message.stopReason === "aborted") {
+			const replyRow = ensureActivity(rowIdentity);
+			replyRow.terminalReply = { messageId: rowIdentity, index, message };
+			replyRow.endTs = message.timestamp ?? replyRow.endTs;
 			activity = null;
-			rows.push({
-				kind: "plain",
-				index,
-				message,
-				userMessageOrdinal: latestUserOrdinal,
-			});
 		}
 	});
 
 	const last = rows[rows.length - 1];
 	if (busy && last?.kind === "activity") last.running = true;
+	if (busy) {
+		for (let index = currentTurnStart; index < rows.length; index += 1) {
+			const row = rows[index];
+			if (row?.kind === "activity") row.turnActive = true;
+		}
+	}
 	return rows;
 }
 

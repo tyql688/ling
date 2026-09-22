@@ -23,9 +23,10 @@ describe.skipIf(process.platform === "win32")("Background tasks", () => {
 		try {
 			await tasks.initialize();
 			const expected = `${"输出".repeat(50_000)}END`;
+			// Generate output in the child; Linux limits each launch argument to 128 KiB.
 			const job = await tasks.start(
 				ref,
-				`${quote(process.execPath)} -e ${quote(`process.stdout.write(${JSON.stringify(expected)})`)}`,
+				`${quote(process.execPath)} -e ${quote('process.stdout.write("输出".repeat(50_000) + "END")')}`,
 			);
 			await vi.waitFor(() => expect(notify).toHaveBeenCalledOnce(), { timeout: 10_000 });
 			await features.write(

@@ -1,7 +1,7 @@
 import type { SessionMessage } from "@ling/contracts/session-messages";
 import { sessionMessageRowIdentity } from "@renderer/features/sessions/runtime/session-message-identity";
 import { isResolvedByLaterCompaction } from "./compaction-errors";
-import { toolCategoryForName, type TimelineRow } from "./transcript-activity-model";
+import { activityHasWork, toolCategoryForName, type ActivityRow, type TimelineRow } from "./transcript-activity-model";
 import type { TranscriptRow, TurnFoldRow } from "./transcript-row-model";
 
 interface TurnFoldOptions {
@@ -80,6 +80,10 @@ function collectTurnSegments(rows: readonly TranscriptRow[], messages: readonly 
 			current.failure = failure.message.errorMessage ?? null;
 			current.outcome = failure.resolvedByLaterCompaction ? "completed" : "failed";
 		}
+		if (row.kind === "activity" && row.terminalReply) {
+			current.terminalAssistantIndex = index;
+			current.outcome = isAbortedAssistant(row.terminalReply.message) ? "stopped" : "completed";
+		}
 		if (row.kind === "plain" && row.message.role === "assistant") {
 			if (row.message.stopReason === "error") {
 				current.failure = row.message.errorMessage ?? null;
@@ -116,10 +120,14 @@ export function withTurnFolds(rows: readonly TranscriptRow[], options: TurnFoldO
 
 	const foldRowByAnchorIndex = new Map<number, TurnFoldRow>();
 	const hiddenIndexes = new Set<number>();
-	const expandedActivityIndexes = new Set<number>();
+	const activityFoldStates = new Map<number, ActivityRow["turnFoldState"]>();
 	for (const segment of segments) {
 		if (options.busy && segment === latestSegment) continue;
-		const hidden = segment.foldableIndexes.filter((index) => index !== segment.terminalAssistantIndex);
+		const hidden = segment.foldableIndexes.filter((index) => {
+			if (index !== segment.terminalAssistantIndex) return true;
+			const row = rows[index];
+			return row?.kind === "activity" && activityHasWork(row);
+		});
 		if (hidden.length === 0) continue;
 		const anchorIndex = hidden[0];
 		if (anchorIndex === undefined) continue;
@@ -135,12 +143,9 @@ export function withTurnFolds(rows: readonly TranscriptRow[], options: TurnFoldO
 			retryEntryId: segment.outcome === "failed" && segment === latestSegment ? segment.entryId : null,
 			activity: segment.activity,
 		});
-		if (expanded) {
-			for (const index of hidden) {
-				if (rows[index]?.kind === "activity") expandedActivityIndexes.add(index);
-			}
-		} else {
-			for (const index of hidden) hiddenIndexes.add(index);
+		for (const index of hidden) {
+			if (rows[index]?.kind === "activity") activityFoldStates.set(index, expanded ? "expanded" : "collapsed");
+			if (!expanded && index !== segment.terminalAssistantIndex) hiddenIndexes.add(index);
 		}
 	}
 	if (foldRowByAnchorIndex.size === 0) return [...rows];
@@ -150,9 +155,8 @@ export function withTurnFolds(rows: readonly TranscriptRow[], options: TurnFoldO
 		const fold = foldRowByAnchorIndex.get(index);
 		if (fold) next.push(fold);
 		if (hiddenIndexes.has(index)) continue;
-		next.push(
-			expandedActivityIndexes.has(index) && row.kind === "activity" ? { ...row, expandedByTurnFold: true } : row,
-		);
+		const turnFoldState = activityFoldStates.get(index);
+		next.push(turnFoldState && row.kind === "activity" ? { ...row, turnFoldState } : row);
 	}
 	return next;
 }

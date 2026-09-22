@@ -139,6 +139,13 @@
 .chat-markdown .markstream-react {
 	/* Compact diagrams reserve 120px instead of the renderer's 360px minimum. */
 	--ms-size-diagram-min-height: 120px;
+	/* Short opacity fades soften new text without animating transcript geometry. */
+	--fade-duration: 120ms;
+	--fade-ease: ease-out;
+	/* Ling owns transcript virtualization. Markstream's 600px offscreen placeholder
+	   otherwise enters row measurements before each newly mounted paragraph is laid out. */
+	content-visibility: visible;
+	contain-intrinsic-size: none;
 	display: flex;
 	flex-direction: column;
 	gap: var(--md-block-gap);

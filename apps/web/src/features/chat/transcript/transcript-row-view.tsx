@@ -125,11 +125,13 @@ export const TranscriptRowView = memo(function TranscriptRowView({
 		return (
 			<ActivityGroup
 				row={row}
+				busy={busy}
 				toolsExpanded={toolsExpanded}
 				hiddenThinkingLabel={hiddenThinkingLabel}
 				disclosures={disclosures}
 				onDisclosureChange={(key, expanded) => onDisclosureChange(rowId, key, expanded)}
 				onOpenFileReview={(path) => onOpenTurnReview(null, path)}
+				onFork={onFork}
 			/>
 		);
 	}

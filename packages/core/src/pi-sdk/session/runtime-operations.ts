@@ -14,10 +14,13 @@ interface RuntimeOperationDrains {
 
 export interface PiRuntimeOperationCoordinator {
 	readonly activeCount: number;
+	/** Operations that occupy the conversation; background metadata still owns a drain lease. */
+	readonly foregroundCount: number;
 	readonly activePromptCount: number;
 	readonly pendingMutationCount: number;
 	captureDrains(): RuntimeOperationDrains;
 	run<Result>(run: () => Promise<Result>): Promise<Result>;
+	runBackground<Result>(run: () => Promise<Result>): Promise<Result>;
 	runPrompt<Result>(run: () => Promise<Result>): Promise<Result>;
 	runOrderedMutation<Result>(run: () => Result | Promise<Result>): Promise<Result>;
 	runSynchronously<Result>(operation: string, run: () => Result): Result;
@@ -27,22 +30,25 @@ export function createPiRuntimeOperationCoordinator(
 	options: RuntimeOperationCoordinatorOptions,
 ): PiRuntimeOperationCoordinator {
 	let activeOperations = 0;
+	let backgroundOperations = 0;
 	let activePromptOperations = 0;
 	let operationsDrained: Promise<void> = Promise.resolve();
 	let resolveOperationsDrained: (() => void) | null = null;
 	let mutationTail: Promise<void> = Promise.resolve();
 	let pendingMutations = 0;
 
-	const claim = (): void => {
+	const claim = (background = false): void => {
 		if (activeOperations === 0) {
 			operationsDrained = new Promise((resolve) => {
 				resolveOperationsDrained = resolve;
 			});
 		}
 		activeOperations += 1;
+		if (background) backgroundOperations += 1;
 	};
-	const release = (): void => {
+	const release = (background = false): void => {
 		activeOperations -= 1;
+		if (background) backgroundOperations -= 1;
 		if (activeOperations < 0) {
 			throw new Error("Runtime operation count became negative");
 		}
@@ -66,7 +72,7 @@ export function createPiRuntimeOperationCoordinator(
 		}
 		options.onReleased();
 	};
-	const run = async <Result>(operation: () => Promise<Result>): Promise<Result> => {
+	const run = async <Result>(operation: () => Promise<Result>, background = false): Promise<Result> => {
 		while (true) {
 			options.assertCanStart();
 			const reload = options.getActiveReload();
@@ -74,23 +80,28 @@ export function createPiRuntimeOperationCoordinator(
 				await reload;
 				continue;
 			}
-			claim();
+			claim(background);
 			break;
 		}
+		const releaseOperation = () => release(background);
 		return await Promise.resolve()
 			.then(operation)
 			.then(
 				(result) => {
-					release();
+					releaseOperation();
 					return result;
 				},
-				(error: unknown) => rethrowWithCleanup(error, release, "Runtime operation and its lease cleanup both failed"),
+				(error: unknown) =>
+					rethrowWithCleanup(error, releaseOperation, "Runtime operation and its lease cleanup both failed"),
 			);
 	};
 
 	return {
 		get activeCount() {
 			return activeOperations;
+		},
+		get foregroundCount() {
+			return activeOperations - backgroundOperations;
 		},
 		get activePromptCount() {
 			return activePromptOperations;
@@ -105,6 +116,7 @@ export function createPiRuntimeOperationCoordinator(
 			};
 		},
 		run,
+		runBackground: <Result>(operation: () => Promise<Result>) => run(operation, true),
 		runPrompt<Result>(operation: () => Promise<Result>): Promise<Result> {
 			return run(async () => {
 				// Model selection may await credentials. A new prompt must not observe half-applied configuration.

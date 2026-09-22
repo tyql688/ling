@@ -65,7 +65,7 @@ async function setSessionName(owner: RuntimeCommandOwner, title: string): Promis
 }
 
 async function generateTitle(owner: RuntimeCommandOwner, userMessage: string): Promise<string | undefined> {
-	return owner.operations.run(() => {
+	return owner.operations.runBackground(() => {
 		const model = owner.runtime().session.model;
 		if (!model) return Promise.resolve(undefined);
 		return generateSessionTitle(userMessage, model, owner.runtime().services);

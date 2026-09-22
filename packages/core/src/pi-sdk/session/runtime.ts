@@ -434,7 +434,7 @@ export function createPiSessionRuntimeHandle(
 		return (
 			ownedReplacement.lifecycle !== "active" ||
 			ownedResourceReload.active !== null ||
-			ownedOperations.activeCount > 0 ||
+			ownedOperations.foregroundCount > 0 ||
 			ownedOperations.pendingMutationCount > 0 ||
 			ownedBoundResources.hasUnsettledRun() ||
 			!ownedRuntime.session.isIdle

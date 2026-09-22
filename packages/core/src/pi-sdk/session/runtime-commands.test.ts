@@ -4,6 +4,50 @@ import { createPiRuntimeCommands } from "./runtime-commands";
 import { createPiRuntimeOperationCoordinator } from "./runtime-operations";
 
 it.each([false, true])(
+	"drains background title work without marking the conversation busy, failure=%s",
+	async (fails) => {
+		const operations = createPiRuntimeOperationCoordinator({
+			assertCanStart: () => undefined,
+			getActiveReload: () => null,
+			assertCanRunSynchronously: () => undefined,
+			onReleased: () => undefined,
+		});
+		const title = Promise.withResolvers<void>();
+		const titled = operations
+			.runBackground(() => title.promise)
+			.then(
+				() => "completed",
+				() => "failed",
+			);
+		expect(operations.activeCount).toBe(1);
+		expect(operations.foregroundCount).toBe(0);
+		const drain = operations.captureDrains().runtimeOperations;
+		expect(drain).not.toBeNull();
+		let drained = false;
+		void drain?.then(() => {
+			drained = true;
+		});
+		const prompt = Promise.withResolvers<void>();
+		const prompted = operations.runPrompt(() => prompt.promise);
+		expect(operations.activeCount).toBe(2);
+		expect(operations.foregroundCount).toBe(1);
+		prompt.resolve();
+		await prompted;
+		expect(operations.foregroundCount).toBe(0);
+		expect(operations.activeCount).toBe(1);
+		expect(drained).toBe(false);
+		if (fails) title.reject(new Error("Title provider failed"));
+		else title.resolve();
+		expect(await titled).toBe(fails ? "failed" : "completed");
+		await drain;
+		expect(drained).toBe(true);
+		expect(operations.activeCount).toBe(0);
+		expect(operations.foregroundCount).toBe(0);
+		expect(operations.captureDrains()).toEqual({ runtimeMutations: null, runtimeOperations: null });
+	},
+);
+
+it.each([false, true])(
 	"retries after queued model changes without waiting on itself, and drains on failure=%s",
 	async (fails) => {
 		const operations = createPiRuntimeOperationCoordinator({

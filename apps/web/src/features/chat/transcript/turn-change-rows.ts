@@ -51,7 +51,9 @@ export function withTurnChangeRows(
 		}
 		if (currentEntryId === null) continue;
 		segmentLastIndex = index;
-		if (row.kind === "plain" && row.message.role === "assistant") segmentLastAssistantIndex = index;
+		if ((row.kind === "plain" && row.message.role === "assistant") || (row.kind === "activity" && row.terminalReply)) {
+			segmentLastAssistantIndex = index;
+		}
 	}
 	flushSegment();
 	if (insertAfterIndex.size === 0) return [...rows];

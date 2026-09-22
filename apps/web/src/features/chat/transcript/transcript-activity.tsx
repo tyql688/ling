@@ -24,6 +24,7 @@ import { useTranslation } from "react-i18next";
 import { projectExtensionTerminalText } from "../extension-ui/extension-terminal-text";
 import { activityPreviewText, activityStreamingPreviewText } from "./activity-preview-text";
 import { activitySummary } from "./activity-summary";
+import { AssistantMessageDetails } from "./assistant-message";
 import {
 	AssistantContent,
 	AssistantMarkdownPart,
@@ -40,6 +41,7 @@ import {
 	type ActivityRow,
 	type ToolCategory,
 	type ToolStep,
+	activityHasWork,
 	toolCategoryForName,
 } from "./transcript-activity-model";
 import { CompactionDivider, CustomMessageBlock } from "./transcript-rows";
@@ -281,40 +283,48 @@ function ActivityHeader({
 
 export function ActivityGroup({
 	row,
+	busy,
 	toolsExpanded = false,
 	hiddenThinkingLabel,
 	disclosures,
 	onDisclosureChange,
 	onOpenFileReview,
+	onFork,
 }: {
 	row: ActivityRow;
+	busy: boolean;
 	toolsExpanded?: boolean;
 	hiddenThinkingLabel?: string | null | undefined;
 	disclosures: ReadonlyMap<string, boolean> | undefined;
 	onDisclosureChange: (key: string, expanded: boolean) => void;
 	onOpenFileReview?: ((path: string) => void) | undefined;
+	onFork(entryId: string): void;
 }) {
-	const expanded = row.expandedByTurnFold || (disclosures?.get("activity") ?? row.running);
+	const expanded =
+		row.turnFoldState === "expanded" ||
+		(row.turnFoldState === null && (disclosures?.get("activity") ?? row.turnActive));
 	const workItems = row.items;
 	const { t } = useTranslation();
 	const counts = { read: 0, edit: 0, run: 0, other: 0 };
 	for (const item of workItems) if (item.type === "step") counts[toolCategoryForName(item.step.call.name)] += 1;
 
 	return (
-		<div className="flex flex-col gap-2">
-			{!row.expandedByTurnFold && (
+		<div className="group flex min-w-0 flex-col gap-2">
+			{row.turnFoldState === null && (row.turnActive || activityHasWork(row)) && (
 				<ActivityHeader
 					summary={activitySummary(counts, t)}
-					running={row.running}
+					running={row.turnActive}
 					startTs={row.startTs}
 					endTs={row.endTs}
 					expanded={expanded}
 					onToggle={() => onDisclosureChange("activity", !expanded)}
 				/>
 			)}
-			{expanded && workItems.length > 0 && (
+			{workItems.length > 0 && (
 				<div className="-mx-1 flex flex-col gap-px">
 					{workItems.map((item, index) => {
+						const terminalText = item.type === "text" && item.messageId === row.terminalReply?.messageId;
+						if (!expanded && !terminalText) return null;
 						const streamingTail = row.running && index === workItems.length - 1;
 						if (item.type === "thinking") {
 							return (
@@ -357,7 +367,6 @@ export function ActivityGroup({
 						}
 						if (item.type === "text") {
 							return (
-								// Same surface as the terminal plain bubble — only the fold placement differs.
 								// eslint-disable-next-line react/no-array-index-key -- items never reorder within a turn
 								<div key={index} className="min-w-0 px-1 py-1">
 									<AssistantMarkdownPart text={item.text} streaming={streamingTail} />
@@ -368,7 +377,7 @@ export function ActivityGroup({
 							<ToolStepView
 								key={item.step.call.id}
 								step={item.step}
-								interrupted={!row.running && !item.step.result}
+								interrupted={!row.turnActive && !item.step.result}
 								toolsExpanded={toolsExpanded}
 								manualExpanded={disclosures?.get(`tool:${item.step.call.id}`)}
 								onExpandedChange={(nextExpanded) => onDisclosureChange(`tool:${item.step.call.id}`, nextExpanded)}
@@ -377,6 +386,15 @@ export function ActivityGroup({
 						);
 					})}
 				</div>
+			)}
+			{row.terminalReply && (
+				<AssistantMessageDetails
+					message={row.terminalReply.message}
+					streaming={false}
+					busy={busy}
+					showError={false}
+					onFork={onFork}
+				/>
 			)}
 		</div>
 	);

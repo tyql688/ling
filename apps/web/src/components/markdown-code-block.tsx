@@ -189,10 +189,6 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 				</div>
 			</div>
 			<div className="min-w-0 p-2 pb-3">
-				{/*
-				 * The highlighted path must mount Pierre synchronously so its first paint keeps the final geometry.
-				 * Font family/size go through CSS variables; only theme/line-number changes need a React update.
-				 */}
 				{streaming || (!showLineNumbers && codeHighlightLanguage(language) === "text") ? (
 					// Plain text has no grammar to load. Keep it out of the shared highlighter and AST cache.
 					<PlainCode code={code} wrapLongLines={wrapLongLines} streaming={streaming} />
@@ -203,6 +199,7 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 						showLineNumbers={showLineNumbers}
 						theme={codeTheme}
 						wrapLongLines={wrapLongLines}
+						fallback={<PlainCode code={code} wrapLongLines={wrapLongLines} streaming={false} />}
 					/>
 				)}
 			</div>

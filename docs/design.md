@@ -10,6 +10,10 @@ The session tab row belongs to the conversation's visual surface. One backdrop e
 
 The sidebar's today-usage summary refreshes on session changes while visible and checks external Pi activity every five minutes. Hidden windows defer scans until visible. Relative session timestamps have their own clock and do not keep the usage scanner active.
 
+The current turn's work stays expanded as intermediate assistant replies and tool calls alternate. Starting a reply must not temporarily collapse earlier work and reopen it when a tool starts. Manual disclosure choices still apply; settled turns retain their process fold.
+
+Assistant prose keeps its mounted content through tool-call transitions and settlement. When a turn finishes, its work folds away while the terminal reply remains in place and gains its message actions. Background title generation must not reopen completed work. Transcript virtualization owns visibility and geometry, so Markdown must not substitute an estimated offscreen height. Code stays readable at its actual height until syntax highlighting has rendered. New text uses a short opacity fade; streaming does not animate container height or replay settled paragraphs.
+
 Quickstart and conversations share the Composer's surface, controls and draft projection. Selecting a folder or changing language must preserve editable content, selection and undo history. Mode changes save on selection; confirmation belongs to an actual approval request. The permission system adapter owns policy selection, not another Composer or a second approval UI.
 
 Files and media appear in one attachment area above the Composer text. Adding an existing file reference reuses the same attachment. Text editing and undo do not remove attachments. Images show thumbnails; supported audio and video open with playback controls. A failed preview retains its file card and download action. Attachment previews return keyboard focus to their trigger on close. When the home Composer exceeds the available height, the page scrolls so its editor and send controls remain reachable.

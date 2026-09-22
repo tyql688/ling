@@ -57,24 +57,28 @@ function MessageUsage({ message }: { message: Assistant }) {
 	);
 }
 
-export function AssistantMessage({
-	message,
-	streaming,
-	busy,
-	showError,
-	onFork,
-}: {
+interface AssistantMessageProps {
 	message: Assistant;
 	streaming: boolean;
 	busy: boolean;
 	showError: boolean;
 	onFork(entryId: string): void;
-}) {
+}
+
+export function AssistantMessage(props: AssistantMessageProps) {
+	return (
+		<div className="group min-w-0">
+			<AssistantContent content={props.message.content} streaming={props.streaming} />
+			<AssistantMessageDetails {...props} />
+		</div>
+	);
+}
+
+export function AssistantMessageDetails({ message, streaming, busy, showError, onFork }: AssistantMessageProps) {
 	const { t } = useTranslation();
 	const text = partsText(message.content);
 	return (
-		<div className="group min-w-0">
-			<AssistantContent content={message.content} streaming={streaming} />
+		<>
 			{showError && (
 				<FeedbackNotice tone="danger" className="mt-1 text-xs">
 					{message.errorMessage ?? t("session.turnError")}
@@ -84,7 +88,7 @@ export function AssistantMessage({
 				<p className="mt-1 text-xs italic text-text-muted">{t("session.turnAborted")}</p>
 			)}
 			{text.length > 0 && !streaming && (
-				<div className="mt-1 flex items-center gap-1.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+				<div className="mt-1 flex items-center gap-1.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100">
 					<MessageActions
 						text={text}
 						actionsDisabled={busy}
@@ -100,6 +104,6 @@ export function AssistantMessage({
 					<MessageUsage message={message} />
 				</div>
 			)}
-		</div>
+		</>
 	);
 }

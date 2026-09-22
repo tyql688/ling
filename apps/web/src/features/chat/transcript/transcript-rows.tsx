@@ -484,7 +484,6 @@ export function UserMessageBubble({
 					onKeyDown={() => undefined}
 					onPaste={() => undefined}
 					onSelectionChange={() => undefined}
-					onOpenContext={() => undefined}
 				/>
 				{editLimitExceeded && (
 					<FeedbackNotice tone="danger" className="text-xs">

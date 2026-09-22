@@ -94,7 +94,7 @@ export function TurnMinimap({
 	const activateTurn = (event: ReactMouseEvent<HTMLElement>, ordinal: number) => {
 		jumpTo(ordinal);
 		// Pointer clicks focus native buttons, which would leave focus-within styling active
-		// after the pointer leaves. Keyboard activation has detail=0 and keeps its focus ring.
+		// after the pointer leaves. Keyboard activation has detail=0 and keeps its focus background.
 		if (event.detail === 0) return;
 		const focused = document.activeElement;
 		if (focused instanceof HTMLElement && focused.closest("[data-turn-minimap]")) focused.blur();
@@ -163,7 +163,7 @@ export function TurnMinimap({
 									className={cn("absolute right-full z-20 w-[min(20rem,calc(100vw_-_3rem))] pr-1", vertical)}
 									onClick={(event) => activateTurn(event, turn.ordinal)}
 								>
-									<div className="glass-surface cursor-default rounded-control border border-border-subtle bg-popover p-2.5 shadow-floating">
+									<div className="glass-surface floating-surface cursor-default rounded-menu border border-border-subtle bg-popover p-2.5 shadow-(--shadow-floating)">
 										<p className="line-clamp-2 text-xs font-medium text-text-primary">{turn.userText || "…"}</p>
 										{turn.replyText && <p className="mt-1 line-clamp-3 text-xs text-text-muted">{turn.replyText}</p>}
 									</div>

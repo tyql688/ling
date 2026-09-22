@@ -1,7 +1,6 @@
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { cn } from "@renderer/lib/utils";
 import { cloneElement, type ReactElement, type ReactNode } from "react";
-import { useMenuMotion } from "./menu-motion";
 import { menuContentClass, menuItemClass } from "./menu-styles";
 
 function DropdownMenu(props: DropdownMenuPrimitive.DropdownMenuProps) {
@@ -30,11 +29,9 @@ function DropdownMenuContent({
 	align = "start",
 	...props
 }: DropdownMenuPrimitive.DropdownMenuContentProps) {
-	const motionRef = useMenuMotion<HTMLDivElement>();
 	return (
 		<DropdownMenuPrimitive.Portal>
 			<DropdownMenuPrimitive.Content
-				ref={motionRef}
 				data-slot="dropdown-menu-content"
 				sideOffset={sideOffset}
 				align={align}
@@ -68,7 +65,7 @@ function DropdownMenuLabel({ className, ...props }: DropdownMenuPrimitive.Dropdo
 	return (
 		<DropdownMenuPrimitive.Label
 			data-slot="dropdown-menu-label"
-			className={cn("px-2 py-1 text-xs font-semibold tracking-[0.08em] text-text-muted uppercase", className)}
+			className={cn("px-2 py-1 text-xs font-medium text-text-muted", className)}
 			{...props}
 		/>
 	);
@@ -78,7 +75,7 @@ function DropdownMenuSeparator({ className, ...props }: DropdownMenuPrimitive.Dr
 	return (
 		<DropdownMenuPrimitive.Separator
 			data-slot="dropdown-menu-separator"
-			className={cn("-mx-1 my-1 h-px bg-border-subtle", className)}
+			className={cn("mx-2 my-1 h-px bg-border-subtle", className)}
 			{...props}
 		/>
 	);

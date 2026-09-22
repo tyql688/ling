@@ -135,7 +135,7 @@ function FeedbackToast({ entry, dismiss }: { entry: AppFeedbackEntry; dismiss: (
 						<X className="size-3.5" aria-hidden="true" />
 					</button>
 				}
-				className="pointer-events-auto bg-surface/95 shadow-lg ring-1 ring-black/5 backdrop-blur-xl"
+				className="glass-surface floating-surface pointer-events-auto bg-dialog shadow-(--shadow-floating)"
 			>
 				{entry.description}
 			</FeedbackNotice>

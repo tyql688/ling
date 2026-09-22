@@ -25,6 +25,7 @@ export const DIFF_STYLE = {
 
 const DIFF_INTERACTION_CSS = `
 	[data-code] { overflow: auto; }
+	:focus, :focus-visible { outline: none; }
 
 	[data-separator="line-info"]:is([data-expand-index], [data-ling-load-context]) [data-separator-wrapper] {
 		cursor: pointer;
@@ -51,8 +52,6 @@ const DIFF_INTERACTION_CSS = `
 	[data-separator="line-info"]:is([data-expand-index], [data-ling-load-context]) :is([data-expand-button], [data-separator-content]):is(:hover, :focus-visible) {
 		color: var(--diffs-fg);
 		background-color: color-mix(in srgb, var(--diffs-fg) 12%, var(--diffs-bg-separator));
-		outline: 1px solid var(--diffs-modified-base);
-		outline-offset: -1px;
 		text-decoration: none;
 	}
 `;

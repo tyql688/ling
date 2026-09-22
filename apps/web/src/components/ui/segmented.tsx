@@ -49,7 +49,7 @@ export function Segmented<T extends string>({
 					onClick={() => onChange(option.value)}
 					aria-pressed={option.value === value}
 					className={cn(
-						"relative rounded-control px-3 py-1 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50",
+						"relative rounded-control-inset px-3 py-1 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50",
 						option.value === value ? "font-medium text-text-primary" : "text-text-muted hover:text-text-primary",
 					)}
 				>
@@ -58,8 +58,8 @@ export function Segmented<T extends string>({
 							layoutId={pillId}
 							aria-hidden="true"
 							className={cn(
-								"absolute inset-0 rounded-control",
-								variant === "surface" ? "bg-surface shadow-xs" : "bg-surface-hover",
+								"absolute inset-0 rounded-control-inset",
+								variant === "surface" ? "bg-surface shadow-(--shadow-control)" : "bg-surface-hover",
 							)}
 							transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
 						/>

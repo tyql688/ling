@@ -50,7 +50,7 @@ export function SkinTreatmentPicker({
 							onChange={() => onChange(treatment)}
 							className="peer absolute inset-0 z-10 size-full cursor-pointer opacity-0"
 						/>
-						<span className="flex flex-col gap-2 rounded-control border border-border-subtle bg-surface/50 p-2 text-text-muted transition-colors duration-150 hover:border-text-muted peer-checked:border-text-primary peer-checked:text-text-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-text-primary motion-reduce:transition-none">
+						<span className="flex flex-col gap-2 rounded-control border border-border-subtle bg-surface/50 p-2 text-text-muted transition-colors duration-150 hover:border-text-muted peer-checked:border-text-primary peer-checked:text-text-primary peer-focus-visible:bg-surface-hover motion-reduce:transition-none">
 							<span className="relative isolate block h-16 overflow-hidden rounded-[max(0px,calc(var(--radius-control)-0.5rem))]">
 								<SkinBackdrop layer={{ ...layer, treatment }} motion="none" preview />
 								{treatment.kind === "glass" && (

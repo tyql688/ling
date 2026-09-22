@@ -386,7 +386,7 @@ function WorkspaceSidebar({
 				</div>
 			</div>
 			<div className="flex h-14 shrink-0 items-center gap-1 px-3">
-				{scopeSelector}
+				<div className="min-w-0 flex-1">{scopeSelector}</div>
 				<TooltipIconButton
 					onClick={() => {
 						requestCommandPalette();
@@ -423,7 +423,6 @@ function WorkspaceSidebar({
 						</TooltipTrigger>
 						<TooltipContent shortcut={shortcut("N")}>{t("nav.newConversation")}</TooltipContent>
 					</Tooltip>
-					{scopedProject && renderProjectActionsMenu(scopedProject)}
 				</div>
 				<NavigationItem
 					icon={<Clock aria-hidden="true" />}

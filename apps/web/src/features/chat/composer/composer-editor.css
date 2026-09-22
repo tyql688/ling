@@ -117,7 +117,8 @@
 	cursor: pointer;
 }
 .composer-context.ProseMirror-selectednode {
-	outline: 1px solid var(--color-text-primary);
+	background: var(--color-selection);
+	color: var(--color-text-primary);
 }
 
 .composer-markdown-image {

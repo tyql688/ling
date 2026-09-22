@@ -79,7 +79,7 @@ export function ChangedFileRow({
 		>
 			<label
 				className={cn(
-					"relative flex size-3.5 shrink-0 cursor-default items-center justify-center rounded-sm border transition-colors has-[:focus-visible]:border-accent has-[:focus-visible]:bg-accent/10",
+					"relative flex size-3.5 shrink-0 cursor-default items-center justify-center rounded-sm border transition-colors has-[:focus-visible]:bg-accent/10",
 					reviewed
 						? "border-git-added/60 bg-git-added/15 text-git-added"
 						: "border-border-strong text-transparent hover:border-text-muted",

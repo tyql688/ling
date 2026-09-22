@@ -61,6 +61,17 @@
 	text-shadow: none;
 }
 
+/* Floating materials protect their ink against both light and dark content underneath. */
+.floating-surface {
+	--color-text-muted: var(--color-floating-muted);
+	--color-accent: var(--color-floating-accent);
+	--color-link: var(--color-floating-accent);
+	--color-danger: var(--color-floating-danger);
+	--color-danger-foreground: var(--color-floating-danger-foreground);
+	--color-warning: var(--color-floating-warning);
+	--color-success: var(--color-floating-success);
+}
+
 /* Protected scene surfaces pair ink with their translucent backing.
    Child popovers restore foregrounds tuned for their denser material. */
 .scene-surface {
@@ -69,7 +80,7 @@
 	--color-accent: var(--color-scene-control-accent, var(--color-scene-accent));
 	--color-accent-foreground: var(--color-scene-control-accent-foreground);
 	--color-link: var(--color-accent);
-	/* Local hover and rules use the same ink: 6% feedback, 14% hairline, 36% focus edge. */
+	/* Local hover and rules use the same ink: 6% feedback, 14% hairline, 36% strong divider. */
 	--color-surface-hover: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 	--color-border-subtle: color-mix(in srgb, var(--color-text-primary) 14%, transparent);
 	--color-border-strong: color-mix(in srgb, var(--color-text-primary) 36%, transparent);
@@ -87,14 +98,8 @@
 }
 
 .composer-surface {
-	/* A static hairline defines the input target; focus strengthens only its edge. */
+	/* The input keeps the same quiet edge while typing. */
 	box-shadow: 0 1px 3px color-mix(in srgb, var(--color-scene-surface, var(--color-surface)) 16%, transparent);
-}
-
-.composer-surface:has(textarea:focus-visible) {
-	border-color: var(--color-border-strong);
-	outline: 1px solid var(--color-border-strong);
-	outline-offset: 0;
 }
 
 /* Clip only the decorative edge so completion popovers can still escape the composer. */

@@ -16,13 +16,13 @@ export function ChoiceButton({ selected, static: isStatic = false, children, cla
 			type="button"
 			aria-pressed={selected}
 			className={cn(
-				"inline-flex min-h-10 min-w-0 max-w-full items-center gap-2 rounded-choice px-3.5 py-2 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45 pointer-coarse:min-h-11",
+				"inline-flex min-h-10 min-w-0 max-w-full items-center gap-2 rounded-choice border border-transparent px-3.5 py-2 text-ui font-medium disabled:cursor-not-allowed disabled:opacity-45 pointer-coarse:min-h-11",
 				// Brief, interruptible feedback honors both skin motion and system reduced motion.
 				!isStatic &&
 					"transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] enabled:active:scale-[var(--choice-press-scale)] motion-reduce:transition-none motion-reduce:enabled:active:scale-100",
 				selected
-					? "bg-choice-selected text-choice-selected-foreground shadow-choice"
-					: "bg-surface-raised text-text-muted ring-1 ring-inset ring-border-subtle enabled:hover:bg-choice-hover enabled:hover:text-text-primary",
+					? "bg-choice-selected text-choice-selected-foreground shadow-(--shadow-choice)"
+					: "border-border-subtle bg-surface-raised text-text-muted enabled:hover:bg-choice-hover enabled:hover:text-text-primary enabled:focus-visible:bg-choice-hover enabled:focus-visible:text-text-primary",
 				className,
 			)}
 		>

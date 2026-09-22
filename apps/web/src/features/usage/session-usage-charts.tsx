@@ -1,7 +1,6 @@
 import { formatCompactNumber } from "@renderer/lib/format-number";
 import { formatCost } from "@renderer/lib/format";
 import { formatShare, formatUsageTime, formatUsageTimeRange } from "@renderer/features/usage/usage-format";
-import { TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -63,7 +62,7 @@ export function SessionTokenTimeline({ events }: { events: readonly SessionUsage
 	const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	if (buckets.length === 0) {
-		return <p className="py-12 text-center text-sm text-text-muted">{t("session.usageNoTimeline")}</p>;
+		return <p className="py-8 text-center text-xs text-text-muted">{t("session.usageNoTimeline")}</p>;
 	}
 
 	const fallbackIndex = buckets.length - 1;
@@ -88,14 +87,10 @@ export function SessionTokenTimeline({ events }: { events: readonly SessionUsage
 	return (
 		<div>
 			<div className="min-w-0">
-				<div className="flex items-center justify-between gap-3">
-					<h4 className="text-xs font-semibold text-text-primary">{t("session.usageTimeline")}</h4>
-					<TrendingUp className="size-4 shrink-0 text-text-muted" aria-hidden="true" />
-				</div>
-				<div className="mt-3 overflow-x-auto pb-1">
-					<div style={{ minWidth: `${Math.max(320, buckets.length * 12 + 64)}px` }}>
+				<div className="overflow-x-auto pb-1">
+					<div style={{ minWidth: `${Math.max(240, buckets.length * 8 + 56)}px` }}>
 						<UsageCartesianChart
-							height={194}
+							height={154}
 							language={language}
 							yMax={maxTokens}
 							cumulativeMax={Math.max(1, cumulativeTotal)}
@@ -132,7 +127,7 @@ export function SessionTokenTimeline({ events }: { events: readonly SessionUsage
 						/>
 					</div>
 
-					<ul className="mt-2 flex list-none flex-wrap gap-x-4 gap-y-1.5" aria-label={t("session.usageTokenMix")}>
+					<ul className="mt-1 flex list-none flex-wrap gap-x-3 gap-y-1" aria-label={t("session.usageTokenMix")}>
 						{TOKEN_PARTS.filter((part) => part.key !== "other" || hasOther).map((part) => (
 							<li key={part.key} className="inline-flex items-center gap-1.5 text-xs text-text-muted">
 								<span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: part.color }} aria-hidden="true" />
@@ -150,48 +145,48 @@ export function SessionTokenTimeline({ events }: { events: readonly SessionUsage
 				</div>
 			</div>
 
-			<div className="mt-4 border-border-subtle border-t pt-4">
+			<div className="mt-2 border-t border-border-subtle pt-2">
 				<div className="flex items-start justify-between gap-3">
 					<div className="min-w-0">
 						<h5 className="truncate text-xs font-semibold text-text-primary">
 							{timeRangeLabel(activeBucket, language, spansDays)}
 						</h5>
-						<div className="mt-1 truncate font-mono text-xs text-text-muted">
+						<div className="mt-0.5 truncate text-xs text-text-muted" title={activeModelIdentities.join(", ")}>
 							{activeModelIdentities.length > 0 ? activeModelIdentities.join(", ") : t("session.usageUnknownModel")}
 						</div>
 					</div>
 					<div className="shrink-0 text-right">
-						<div className="font-mono text-xl font-semibold tabular-nums text-text-primary">
+						<div className="text-base font-semibold tabular-nums text-text-primary">
 							{formatCompactNumber(activeBucket.total, language)}
 						</div>
-						<div className="mt-1 font-mono text-xs tabular-nums text-text-muted">
+						<div className="mt-0.5 text-xs tabular-nums text-text-muted">
 							{formatCost(activeBucket.costTotal)} · {t("session.usageCumulative")}{" "}
 							{formatCompactNumber(activeCumulative, language)}
 						</div>
 					</div>
 				</div>
-				<dl className="mt-4 grid grid-cols-4 gap-x-4">
+				<dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-4">
 					<div>
 						<dt className="text-xs text-text-muted">{t("session.usageInput")}</dt>
-						<dd className="mt-0.5 font-mono text-xs tabular-nums text-text-primary">
+						<dd className="mt-0.5 text-xs tabular-nums text-text-primary">
 							{formatCompactNumber(activeBucket.input, language)}
 						</dd>
 					</div>
 					<div>
 						<dt className="text-xs text-text-muted">{t("session.usageOutput")}</dt>
-						<dd className="mt-0.5 font-mono text-xs tabular-nums text-text-primary">
+						<dd className="mt-0.5 text-xs tabular-nums text-text-primary">
 							{formatCompactNumber(activeBucket.output, language)}
 						</dd>
 					</div>
 					<div>
 						<dt className="text-xs text-text-muted">{t("session.usageCacheRead")}</dt>
-						<dd className="mt-0.5 font-mono text-xs tabular-nums text-text-primary">
+						<dd className="mt-0.5 text-xs tabular-nums text-text-primary">
 							{formatCompactNumber(activeBucket.cacheRead, language)}
 						</dd>
 					</div>
 					<div>
 						<dt className="text-xs text-text-muted">{t("session.usageCacheWrite")}</dt>
-						<dd className="mt-0.5 font-mono text-xs tabular-nums text-text-primary">
+						<dd className="mt-0.5 text-xs tabular-nums text-text-primary">
 							{formatCompactNumber(activeBucket.cacheWrite, language)}
 						</dd>
 					</div>
@@ -219,20 +214,23 @@ export function SessionTokenMix({ summary }: { summary: SessionUsageSummary }) {
 
 	return (
 		<div>
-			<div className="flex h-2 overflow-hidden rounded-full bg-surface" aria-hidden="true">
+			<div className="flex h-1.5 overflow-hidden rounded-full bg-surface-hover" aria-hidden="true">
 				{bars.map((part) => (
 					<span key={part.key} style={{ width: `${(values[part.key] / total) * 100}%`, backgroundColor: part.color }} />
 				))}
 			</div>
-			<ul className="mt-3 flex list-none flex-wrap gap-x-5 gap-y-2">
+			<ul className="mt-2 list-none divide-y divide-border-subtle">
 				{shown.map((part) => {
 					const value = values[part.key];
 					return (
-						<li key={part.key} className="inline-flex items-center gap-1.5 text-xs">
+						<li
+							key={part.key}
+							className="grid grid-cols-[auto_minmax(0,1fr)_auto_3.5rem] items-center gap-2 py-2 text-xs"
+						>
 							<span className="size-1.5 rounded-full" style={{ backgroundColor: part.color }} aria-hidden="true" />
 							<span className="text-text-muted">{tokenPartLabel(part.key, t)}</span>
-							<span className="font-mono tabular-nums text-text-primary">{formatCompactNumber(value, language)}</span>
-							<span className="font-mono text-xs tabular-nums text-text-muted">{formatShare(value / total)}</span>
+							<span className="tabular-nums text-text-primary">{value.toLocaleString(language)}</span>
+							<span className="text-right tabular-nums text-text-muted">{formatShare(value / total)}</span>
 						</li>
 					);
 				})}

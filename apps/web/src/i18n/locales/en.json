@@ -1006,7 +1006,7 @@
 		"analytics": "Usage analytics",
 		"analyticsDescription": "Reports anonymous usage stats; first opt-in creates a random identifier.",
 		"vibrancy": "System glass transparency",
-		"vibrancyDescription": "Without artwork, sidebar and conversation share native glass. Higher values reveal more of it; 100% removes Ling's tint while preserving the system's frost. Code, menus, and input keep solid surfaces.",
+		"vibrancyDescription": "Without artwork, sidebar and conversation share native glass. Higher values reveal more of it; 100% removes Ling's tint while preserving the system's frost. Code, menus, and input use their own backing to stay readable.",
 		"about": "About",
 		"version": "Version",
 		"updateCheck": "Check for updates",

@@ -1001,7 +1001,7 @@
 		"analytics": "使用分析",
 		"analyticsDescription": "上报匿名使用统计；首次开启生成随机标识。",
 		"vibrancy": "系统玻璃透明度",
-		"vibrancyDescription": "无图片皮肤时，侧边栏与会话共享原生玻璃。数值越高越通透；100% 移除 Ling 的底色，保留系统磨砂。代码、菜单和输入区保留实色底面。",
+		"vibrancyDescription": "无图片皮肤时，侧边栏与会话共享原生玻璃。数值越高越通透；100% 移除 Ling 的底色，保留系统磨砂。代码、菜单和输入区使用独立底色，保持清晰可读。",
 		"about": "关于",
 		"version": "版本",
 		"updateCheck": "检查更新",

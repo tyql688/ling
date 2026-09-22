@@ -2,7 +2,6 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { cn } from "@renderer/lib/utils";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import type { ReactNode, ComponentPropsWithRef } from "react";
-import { useMenuMotion } from "./menu-motion";
 import { menuContentClass, menuItemClass } from "./menu-styles";
 
 /** Keep Radix controlled while callers use `null` for "nothing selected". */
@@ -27,12 +26,12 @@ function SelectTrigger({
 		<SelectPrimitive.Trigger
 			data-slot="select-trigger"
 			className={cn(
-				"flex h-9 w-fit items-center justify-between gap-1.5 whitespace-nowrap rounded-control border border-border-subtle aria-invalid:border-danger bg-input px-2.5 text-sm text-text-primary transition-colors",
-				"hover:bg-surface-hover focus:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50",
-				"outline-none focus-visible:outline-2 focus-visible:outline-border-strong focus-visible:-outline-offset-2",
+				"flex h-8 w-fit items-center justify-between gap-1.5 whitespace-nowrap rounded-control border border-border-subtle aria-invalid:border-danger bg-input px-2.5 text-ui text-text-primary shadow-(--shadow-control) transition-colors",
+				"hover:bg-choice-hover focus-visible:bg-choice-hover data-[state=open]:bg-choice-hover disabled:cursor-not-allowed disabled:opacity-50",
 				"data-[placeholder]:text-text-muted [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-text-muted",
 				size === "sm" && "h-7 px-1.5 text-xs font-normal",
-				variant === "ghost" && "w-auto border-transparent bg-transparent text-text-muted hover:text-text-primary",
+				variant === "ghost" &&
+					"w-auto border-transparent bg-transparent text-text-muted shadow-none hover:bg-surface-hover hover:text-text-primary focus-visible:bg-surface-hover data-[state=open]:bg-surface-hover",
 				size === "icon" && "size-7 justify-center px-1 [&>svg:last-child]:hidden",
 				className,
 			)}
@@ -63,11 +62,9 @@ function SelectContent({
 	align = "start",
 	...props
 }: SelectPrimitive.SelectContentProps) {
-	const motionRef = useMenuMotion<HTMLDivElement>();
 	return (
 		<SelectPrimitive.Portal>
 			<SelectPrimitive.Content
-				ref={motionRef}
 				data-slot="select-content"
 				position={position}
 				sideOffset={sideOffset}

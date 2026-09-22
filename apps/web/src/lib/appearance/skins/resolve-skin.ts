@@ -298,6 +298,21 @@ function resolveVariables(
 			: { opacity: 100, backdrops: contrastSurfaces };
 	const readingOpacity = windowScene ? readingProtection.opacity : 100;
 	const navigationOpacity = navigationProtection.opacity;
+	// Menus start at 86% tint; form dialogs use at least 94% to keep content behind
+	// text fields quiet. Boundary palettes become opaque before losing AA text contrast.
+	const floatingProtection = systemMaterial
+		? resolveSceneProtection(palette.text, [surfaces.popover], 86)
+		: { opacity: 100, backdrops: [surfaces.popover] };
+	const dialogOpacity = Math.max(94, floatingProtection.opacity);
+	const floatingMuted = readableSkinColor(mutedText, floatingProtection.backdrops, palette.text);
+	const floatingAccent = readableSkinColor(palette.accent, floatingProtection.backdrops, palette.text);
+	const floatingSemantic = semanticColors(dark);
+	for (const key of Object.keys(floatingSemantic) as (keyof typeof floatingSemantic)[]) {
+		floatingSemantic[key] = readableSkinColor(floatingSemantic[key], floatingProtection.backdrops, palette.text);
+	}
+	// Menu selection inherits an authored choice pair, otherwise the skin accent.
+	const menuHighlight = mode.choice?.background ?? palette.accent;
+	const menuHighlightForeground = mode.choice?.foreground ?? foregroundOn(menuHighlight);
 	// Artwork skins use one full-height material across chrome, navigation, readers and tools.
 	// Studio skins retain the distinct authored roles in their light and dark modes.
 	const artworkWorkspace = manifest.kind === "art";
@@ -327,7 +342,8 @@ function resolveVariables(
 	const floatingShadow =
 		elevation === "flat"
 			? "none"
-			: `inset 0 1px 0 ${edge}, 0 ${elevation === "layered" ? "16px 48px" : "8px 24px"} ${shadow}, 0 1px 4px ${shadow}`;
+			: `inset 0 1px 0 ${edge}, 0 ${elevation === "layered" ? "16px 48px" : "8px 24px"} ${shadow}, 0 2px 6px ${shadow}`;
+	const controlShadow = elevation === "flat" ? "none" : `inset 0 1px 0 ${edge}, 0 1px 2px ${shadow}`;
 	// Light skins tint through their dark text at 18%; dark skins use 60% of their canvas so modal scrims never turn white.
 	const overlay = skinColorWithAlpha(dark ? palette.canvas : palette.text, dark ? 0.6 : 0.18);
 	const variables: SkinStyleVariables = {
@@ -355,7 +371,16 @@ function resolveVariables(
 		"--color-workbench-side": artworkWorkspace
 			? artworkWorkspaceSurface
 			: translucent(surfaces.sidebar, navigationOpacity),
-		"--color-popover": translucent(surfaces.popover, windowScene ? 96 : 100),
+		"--color-popover": translucent(surfaces.popover, floatingProtection.opacity),
+		"--color-dialog": translucent(surfaces.popover, dialogOpacity),
+		"--color-floating-muted": floatingMuted,
+		"--color-floating-accent": floatingAccent,
+		"--color-floating-danger": floatingSemantic.danger,
+		"--color-floating-danger-foreground": foregroundOn(floatingSemantic.danger),
+		"--color-floating-warning": floatingSemantic.warning,
+		"--color-floating-success": floatingSemantic.success,
+		"--color-menu-highlight": menuHighlight,
+		"--color-menu-highlight-foreground": menuHighlightForeground,
 		"--color-overlay": overlay,
 		"--color-input": surfaces.input,
 		"--color-surface-under": windowScene ? "transparent" : chromeSurface(palette.canvas),
@@ -433,7 +458,7 @@ function resolveVariables(
 		"--color-selection": skinColorWithAlpha(palette.accent, dark ? 0.3 : 0.24),
 		"--color-scrollbar-thumb": skinColorWithAlpha(palette.text, dark ? 0.3 : 0.22),
 		"--color-link": palette.accent,
-		"--color-tooltip": palette.surface,
+		"--color-tooltip": translucent(surfaces.popover, dialogOpacity),
 		"--color-tooltip-foreground": palette.text,
 		// Selection is an interaction surface above the common scene, like the composer.
 		"--color-sidebar-active": translucent(windowScene ? sceneBacking : palette.surface, windowScene ? 64 : 100),
@@ -449,6 +474,10 @@ function resolveVariables(
 		"--radius-panel": shape.panel,
 		"--shadow-reading-surface": readingShadow,
 		"--shadow-floating": floatingShadow,
+		"--shadow-control": controlShadow,
+		// Fields are recessed with a static, low-contrast inner shadow, never a focus glow.
+		"--shadow-input":
+			elevation === "flat" ? "none" : `inset 0 1px 2px ${skinColorWithAlpha("#000000", dark ? 0.12 : 0.04)}`,
 		// Choice controls use a 1px offset / 2px blur; flat skins remove this elevation entirely.
 		"--shadow-choice": elevation === "flat" ? "none" : `0 1px 2px ${shadow}`,
 		// A 4% press compression is disabled by authored motion:none; system reduced motion wins in CSS.
@@ -457,8 +486,8 @@ function resolveVariables(
 		// Static, viewport-bounded filters keep glass independent of transcript row count.
 		"--glass-filter": sceneFilter,
 		"--glass-chrome-filter": windowScene ? sceneFilter : "none",
-		// Floating content overlaps text and needs its own 18px frost, independent of scene visibility.
-		"--glass-floating-filter": systemMaterial ? "blur(18px) saturate(110%)" : "none",
+		// A bounded 24px frost obscures underlying glyphs while retaining the skin's color.
+		"--glass-floating-filter": systemMaterial ? "blur(24px) saturate(120%)" : "none",
 		// A 24px frost obscures transcript glyphs behind the more transparent composer;
 		// 110% saturation retains the skin hue without increasing foreground opacity.
 		"--glass-composer-filter": systemMaterial ? "blur(24px) saturate(110%)" : "none",

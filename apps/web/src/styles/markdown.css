@@ -252,20 +252,6 @@
 	font-weight: 400;
 }
 
-@media (forced-colors: active) {
-	*:focus-visible {
-		background-image: none;
-		outline: 2px solid CanvasText;
-		outline-offset: 2px;
-	}
-	[data-composer-card] textarea:focus-visible {
-		outline: none;
-	}
-	[data-composer-card]:has(textarea:focus-visible) {
-		outline: 2px solid CanvasText;
-		outline-offset: 2px;
-	}
-}
 .chat-markdown .blockquote-node .paragraph-node + .paragraph-node {
 	margin-top: 0.55em;
 }
@@ -322,14 +308,13 @@
 	color: var(--md-inline-code-link);
 	text-decoration-color: currentColor;
 }
-.chat-markdown :is(a, .link-node, .md-file-mention):is(:hover, :focus-visible) > .md-inline-code {
+.chat-markdown :is(a, .link-node, .md-file-mention):hover > .md-inline-code {
 	/* Strengthen only the hairline to 40%; the protected fill and glyph contrast stay stable. */
 	border-color: color-mix(in srgb, var(--md-inline-code-fg) 40%, transparent);
 }
 .chat-markdown :is(a, .link-node, .md-file-mention):focus-visible > .md-inline-code {
-	/* Two pixels outside the chip distinguish keyboard focus from ordinary hover. */
-	outline: 2px solid var(--md-inline-code-link);
-	outline-offset: 2px;
+	text-decoration: underline;
+	text-underline-offset: 2px;
 }
 /* Inline code naming a changed file keeps the surrounding prose's font metrics. */
 .chat-markdown .md-file-mention {

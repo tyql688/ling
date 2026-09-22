@@ -41,7 +41,7 @@ function HoverCardContent({
 				updatePositionStrategy="always"
 				className={cn(
 					"origin-[--radix-hover-card-content-transform-origin] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 motion-reduce:animate-none",
-					"z-50 w-80 max-w-[calc(100vw-1rem)] rounded-control border border-border-subtle bg-surface p-2.5 text-text-primary shadow-lg outline-none duration-100",
+					"glass-surface floating-surface z-50 w-80 max-w-[calc(100vw-1rem)] rounded-menu border border-border-subtle bg-dialog p-2.5 text-text-primary shadow-(--shadow-floating) outline-none duration-100",
 					className,
 				)}
 				{...props}

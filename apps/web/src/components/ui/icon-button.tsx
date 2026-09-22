@@ -3,7 +3,7 @@ import { cn } from "@renderer/lib/utils";
 import type { ComponentPropsWithRef } from "react";
 
 export const ICON_BUTTON_CLASS =
-	"flex size-7 shrink-0 cursor-default items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary focus-visible:bg-surface-hover focus-visible:text-text-primary active:bg-surface-hover disabled:pointer-events-none disabled:opacity-40";
+	"flex size-7 shrink-0 cursor-default items-center justify-center rounded-control text-text-muted transition-[background-color,color,transform] hover:bg-surface-hover hover:text-text-primary focus-visible:bg-surface-hover focus-visible:text-text-primary active:bg-surface-hover active:scale-[var(--choice-press-scale)] motion-reduce:active:scale-100 disabled:pointer-events-none disabled:scale-100 disabled:opacity-40";
 
 /** Compact workbench action; callers provide its accessible name. */
 export function IconButton({ className, ...props }: ComponentPropsWithRef<"button">) {

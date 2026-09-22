@@ -93,7 +93,7 @@ export function ProjectHoverCard({
 			/>
 			<HoverCardContent
 				side={side}
-				className="w-80 rounded-panel bg-popover/95 p-2 backdrop-blur-xl"
+				className="w-80 p-2"
 				aria-label={t("sidebar.projectDetails", { project: project.name })}
 			>
 				<div className="flex min-w-0 flex-col gap-1.5">

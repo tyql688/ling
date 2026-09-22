@@ -2,7 +2,7 @@ import { useId, type ComponentProps, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@renderer/lib/utils";
 
-/** A full-width native radio or checkbox, with the same surface and focus tokens as Ling forms. */
+/** A full-width native radio or checkbox sharing Ling's form surfaces. */
 export function ChoiceRow({
 	multiple = false,
 	children,
@@ -21,7 +21,7 @@ export function ChoiceRow({
 		<label
 			className={cn(
 				"relative flex min-h-11 min-w-0 items-start gap-3 rounded-control border px-3 py-2.5 text-start text-ui text-text-primary transition-colors motion-reduce:transition-none",
-				"has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-border-strong",
+				"has-[:focus-visible]:bg-choice-hover",
 				props.checked ? "border-border-strong bg-surface-raised" : "border-border-subtle bg-surface",
 				props.disabled ? "opacity-45" : "hover:border-border-strong hover:bg-surface-raised",
 				className,

@@ -21,6 +21,12 @@
 	--surface-success: var(--color-success);
 	--surface-context-medium: var(--color-context-medium);
 	--surface-context-high: var(--color-context-high);
+	--color-floating-muted: var(--color-surface-text-muted);
+	--color-floating-accent: var(--color-surface-accent);
+	--color-floating-danger: var(--color-danger);
+	--color-floating-danger-foreground: var(--color-danger-foreground);
+	--color-floating-warning: var(--color-warning);
+	--color-floating-success: var(--color-success);
 	/* First-paint scene defaults are replaced together by the resolved skin and its boot cache. */
 	--color-scene-surface: var(--color-surface);
 	--color-scene-control-accent-foreground: var(--color-accent-foreground);
@@ -210,6 +216,16 @@
 
 	/* Choice shape remains an authored preference within the four-step scale. */
 	--radius-choice: var(--radius-full);
+	/* Menu padding is 4px plus a 1px hairline; inset corners share the same center. */
+	--radius-menu: calc(var(--radius-control) + 4px);
+	--radius-menu-item: calc(var(--radius-control) - 1px);
+	--radius-control-inset: max(0px, calc(var(--radius-control) - 2px));
+	--radius-dialog: calc(var(--radius-panel) + 4px);
+	--color-dialog: var(--color-popover);
+	--color-menu-highlight: var(--color-accent);
+	--color-menu-highlight-foreground: var(--color-accent-foreground);
+	--shadow-control: inset 0 1px 0 #ffffff40, 0 1px 2px #0000000d;
+	--shadow-input: inset 0 1px 2px #0000000a;
 }
 
 /* Categorical data-viz palette (usage stats charts) — the monochrome-first rule governs

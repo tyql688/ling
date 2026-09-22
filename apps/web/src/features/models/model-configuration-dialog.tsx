@@ -42,7 +42,7 @@ export function ModelConfigurationJson({ value }: { value: BoundedJsonObject }) 
 				</Button>
 			</div>
 			{error && <FeedbackNotice tone="danger">{error}</FeedbackNotice>}
-			<pre className="skin-surface whitespace-pre-wrap break-all rounded-panel border border-reading-surface-border bg-code-block p-3 font-mono text-xs leading-relaxed shadow-reading-surface">
+			<pre className="skin-surface whitespace-pre-wrap break-all rounded-panel border border-reading-surface-border bg-code-block p-3 font-mono text-xs leading-relaxed shadow-(--shadow-reading-surface)">
 				{text}
 			</pre>
 		</div>

@@ -73,7 +73,7 @@ export function UsageCartesianChart({
 	};
 	return (
 		<div
-			className="relative min-w-0 outline-none focus-visible:ring-1 focus-visible:ring-border-strong"
+			className="relative min-w-0 outline-none"
 			style={{ height }}
 			tabIndex={selection ? 0 : undefined}
 			role={selection ? "group" : undefined}

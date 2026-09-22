@@ -78,11 +78,7 @@ export function WorkbenchDialog({
 					variant="workspace"
 					portalled={false}
 					overlayClassName="!absolute z-40 bg-surface-under/55 backdrop-blur-[3px]"
-					className={cn(
-						"workbench-dialog flex flex-col overflow-hidden bg-popover p-0 shadow-[0_26px_90px_rgb(0_0_0/0.24)] ring-1 ring-black/4",
-						containerClassName,
-						panelClassName,
-					)}
+					className={cn("workbench-dialog flex flex-col overflow-hidden p-0", containerClassName, panelClassName)}
 					tabIndex={-1}
 					onEscapeKeyDown={(event) => {
 						if (nestedDialogOpen) event.preventDefault();

@@ -1,5 +1,4 @@
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
-import { useMenuMotion } from "@renderer/components/ui/menu-motion";
 import { menuContentClass, menuItemClass } from "@renderer/components/ui/menu-styles";
 import { cn } from "@renderer/lib/utils";
 
@@ -12,11 +11,9 @@ function ContextMenuTrigger(props: ContextMenuPrimitive.ContextMenuTriggerProps)
 }
 
 function ContextMenuContent({ className, ...props }: ContextMenuPrimitive.ContextMenuContentProps) {
-	const motionRef = useMenuMotion<HTMLDivElement>();
 	return (
 		<ContextMenuPrimitive.Portal>
 			<ContextMenuPrimitive.Content
-				ref={motionRef}
 				data-slot="context-menu-content"
 				className={cn(
 					menuContentClass,
@@ -48,7 +45,7 @@ function ContextMenuSeparator({ className, ...props }: ContextMenuPrimitive.Cont
 	return (
 		<ContextMenuPrimitive.Separator
 			data-slot="context-menu-separator"
-			className={cn("-mx-1 my-1 h-px bg-border-subtle", className)}
+			className={cn("mx-2 my-1 h-px bg-border-subtle", className)}
 			{...props}
 		/>
 	);

@@ -26,7 +26,7 @@ function ZoomableImage({ image }: { image: PreviewImage }) {
 			animate={zoomed ? { scale: ZOOM_SCALE } : { scale: 1, x: 0, y: 0 }}
 			transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
 			className={cn(
-				"max-h-[86vh] max-w-[92vw] rounded-panel bg-popover object-contain shadow-2xl",
+				"max-h-[86vh] max-w-[92vw] rounded-panel bg-dialog object-contain shadow-(--shadow-floating)",
 				zoomed ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in",
 			)}
 		/>
@@ -41,7 +41,7 @@ export function ImagePreviewDialog({ image, onClose }: { image: PreviewImage | n
 				<DialogTitle className="sr-only">{t("session.imagePreview")}</DialogTitle>
 				<button
 					type="button"
-					className="absolute -top-3 -right-3 z-10 flex size-7 items-center justify-center rounded-full border border-border-subtle bg-surface text-text-muted shadow-md transition-colors hover:bg-surface-hover hover:text-text-primary"
+					className="absolute -top-3 -right-3 z-10 flex size-7 items-center justify-center rounded-full border border-border-subtle bg-surface text-text-muted shadow-(--shadow-control) transition-colors hover:bg-surface-hover hover:text-text-primary"
 					onClick={onClose}
 					aria-label={t("markdown.close")}
 				>

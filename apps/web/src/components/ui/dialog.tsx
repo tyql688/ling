@@ -79,18 +79,18 @@ function Dialog(props: DialogPrimitive.DialogProps) {
 
 const dialogContentBase = // will-change promotes zoom/fade to a compositor layer up front: large dialogs (session analysis, workbench)
 	// do not relayout on the main thread during the first frame. Listing only transform/opacity lets the GPU composite.
-	"glass-surface z-50 min-w-0 border-border-subtle bg-popover p-5 text-text-primary shadow-floating outline-none duration-150 will-change-[transform,opacity]";
+	"glass-surface floating-surface z-50 min-w-0 border-border-subtle bg-dialog p-5 text-text-primary shadow-(--shadow-floating) outline-none duration-150 will-change-[transform,opacity]";
 
 const dialogContentVariants = {
 	center:
-		"fixed data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 top-1/2 left-1/2 max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-panel border",
+		"fixed data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 top-1/2 left-1/2 max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-dialog border",
 	"left-sheet":
 		"fixed data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-dvh w-[min(24rem,calc(100vw-3rem))] max-w-none border-r",
 	"right-sheet":
 		"fixed data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-dvh w-[min(32rem,calc(100vw-3rem))] max-w-none border-l",
 	// Large panels don't zoom (zooming re-rasterizes the whole layer texture every frame); fade + small rise stay on the compositor.
 	workspace:
-		"absolute data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom-1 data-[state=open]:slide-in-from-bottom-2 top-1/2 left-1/2 h-[min(44rem,calc(100%-1.5rem))] w-[min(64rem,calc(100%-1.5rem))] max-w-none -translate-x-1/2 -translate-y-1/2 rounded-panel border duration-200 ease-out",
+		"absolute data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom-1 data-[state=open]:slide-in-from-bottom-2 top-1/2 left-1/2 h-[min(44rem,calc(100%-1.5rem))] w-[min(64rem,calc(100%-1.5rem))] max-w-none -translate-x-1/2 -translate-y-1/2 rounded-dialog border duration-200 ease-out",
 	"workspace-right-sheet":
 		"absolute data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-auto w-full max-w-none border-l duration-200 ease-out sm:w-[min(22rem,100%)]",
 };

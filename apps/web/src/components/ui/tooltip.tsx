@@ -31,7 +31,7 @@ function TooltipSurface({ className, ...props }: ComponentPropsWithRef<"div">) {
 		<div
 			data-slot="tooltip-surface"
 			className={cn(
-				"pointer-events-none w-fit max-w-xs select-none rounded-control border border-border-subtle bg-tooltip/95 px-2.5 py-1.5 text-xs font-medium text-tooltip-foreground shadow-[0_8px_24px_rgb(0_0_0/0.14)] ring-1 ring-black/3 backdrop-blur-xl",
+				"glass-surface floating-surface pointer-events-none w-fit max-w-xs select-none rounded-control border border-border-subtle bg-tooltip px-2.5 py-1.5 text-xs font-medium text-tooltip-foreground shadow-(--shadow-floating)",
 				className,
 			)}
 			{...props}
@@ -111,7 +111,7 @@ function TooltipContent({
 				<TooltipPrimitive.Arrow
 					width={10}
 					height={5}
-					className="fill-popover drop-shadow-[0_1px_0_var(--color-border-subtle)]"
+					className="fill-tooltip drop-shadow-[0_1px_0_var(--color-border-subtle)]"
 				/>
 			</TooltipPrimitive.Content>
 		</TooltipPrimitive.Portal>

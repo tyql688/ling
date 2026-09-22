@@ -76,7 +76,7 @@ export function ComposerCard({
 			data-session-composer={variant === "session" ? true : undefined}
 			{...(dropHandlers ?? {})}
 			// The completion popover must escape the frame; never clip the card's overflow.
-			className={cn(COMPOSER_FRAME_CLASSNAME, variant === "home" && "max-w-(--reading-measure)", className)}
+			className={cn(COMPOSER_FRAME_CLASSNAME, variant === "home" && "max-w-(--reading-measure) shrink-0", className)}
 		>
 			{variant === "session" && <span className="composer-working-edge" aria-hidden="true" />}
 			<ComposerDropOverlay active={dropActive} />

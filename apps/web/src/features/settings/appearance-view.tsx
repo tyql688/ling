@@ -254,7 +254,7 @@ function SkinCard({
 					aria-label={deleteLabel}
 					title={deleteLabel}
 					onClick={onDelete}
-					className="absolute right-4 top-4 rounded-control border border-border-subtle bg-popover p-1 text-text-muted opacity-0 transition-opacity hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
+					className="absolute right-4 top-4 rounded-control border border-border-subtle bg-surface p-1 text-text-muted opacity-0 transition-opacity hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
 				>
 					<Trash2 className="size-3.5" aria-hidden="true" />
 				</button>

@@ -42,6 +42,11 @@ export function useMonacoSkinTheme(): string {
 				{ token: "delimiter", foreground: tokenColor(muted) },
 			],
 			colors: {
+				focusBorder: TRANSPARENT_EDITOR_BACKGROUND,
+				"list.focusOutline": TRANSPARENT_EDITOR_BACKGROUND,
+				"list.inactiveFocusOutline": TRANSPARENT_EDITOR_BACKGROUND,
+				"list.focusAndSelectionOutline": TRANSPARENT_EDITOR_BACKGROUND,
+				contrastActiveBorder: TRANSPARENT_EDITOR_BACKGROUND,
 				// The React workbench surface owns the single material layer. Repainting these
 				// Monaco planes with palette.surface made file and diff views fully opaque.
 				"editor.background": TRANSPARENT_EDITOR_BACKGROUND,

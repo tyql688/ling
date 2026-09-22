@@ -195,7 +195,7 @@ export function WorkspaceTabs({
 									onLostPointerCapture={() => tabDrag.finish(false)}
 									style={drag?.key === tab.key ? { transform: `translateX(${drag.offset}px)`, zIndex: 1 } : undefined}
 									className={cn(
-										"group relative isolate flex h-7 max-w-56 min-w-0 shrink-0 cursor-default select-none items-center gap-1.5 rounded-control px-2 text-xs text-text-muted hover:bg-surface-hover/70 hover:text-text-primary focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-text-muted",
+										"group relative isolate flex h-7 max-w-56 min-w-0 shrink-0 cursor-default select-none items-center gap-1.5 rounded-control px-2 text-xs text-text-muted hover:bg-surface-hover/70 hover:text-text-primary focus-visible:bg-surface-hover focus-visible:text-text-primary",
 										active && "bg-surface-hover text-text-primary",
 										noDragRegionClassName,
 										drag?.key === tab.key && "bg-surface-hover opacity-80",

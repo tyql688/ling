@@ -1,14 +1,16 @@
-.menu-glide {
-	position: absolute;
-	top: 0;
-	left: 0;
-	z-index: 0;
-	pointer-events: none;
-	border-radius: var(--radius-control);
-	opacity: 0;
+.menu-item:is([data-highlighted], :focus-visible):not([data-disabled]) {
+	/* The item owns its fill, so pointer, keyboard and scroll geometry always agree. */
+	--color-text-primary: var(--color-menu-highlight-foreground);
+	--color-text-muted: var(--color-menu-highlight-foreground);
+	background-color: var(--color-menu-highlight);
+	color: var(--color-menu-highlight-foreground);
 }
-[data-menu-glide] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"]):focus {
-	background-color: transparent;
+
+.menu-item[data-variant="destructive"]:is([data-highlighted], :focus-visible):not([data-disabled]) {
+	--color-text-primary: var(--color-danger-foreground);
+	--color-text-muted: var(--color-danger-foreground);
+	background-color: var(--color-danger);
+	color: var(--color-danger-foreground);
 }
 
 @media (prefers-reduced-motion: reduce) {

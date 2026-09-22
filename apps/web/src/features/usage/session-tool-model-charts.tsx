@@ -1,5 +1,7 @@
 import { formatCompactNumber } from "@renderer/lib/format-number";
 import { usageModelKey } from "@ling/contracts/usage";
+import { formatCost } from "@renderer/lib/format";
+import { ProviderGlyph } from "@renderer/features/models/provider-glyph";
 import { formatShare } from "@renderer/features/usage/usage-format";
 import type { LucideIcon } from "lucide-react";
 import { Ellipsis, FilePenLine, FilePlus2, FileText, ListTodo, Search, Terminal, Wrench } from "lucide-react";
@@ -64,29 +66,34 @@ export function SessionModelBreakdown({
 	const shareTotal = Math.max(totalTokens, attributedTokens);
 
 	return (
-		<ul className="list-none space-y-3">
+		<ul className="list-none divide-y divide-border-subtle">
 			{models.map((model, index) => {
 				const identity = model.provider ? `${model.provider}/${model.model}` : model.model;
 				const share = shareTotal > 0 ? model.totalTokens / shareTotal : 0;
 				const color = chartColor(index % MAX_MODEL_SERIES);
 				return (
-					<li key={usageModelKey(model.provider, model.model)}>
+					<li key={usageModelKey(model.provider, model.model)} className="py-2.5 first:pt-0 last:pb-0">
 						<div className="flex min-w-0 items-start justify-between gap-4">
 							<div className="min-w-0">
-								<div className="truncate font-mono text-xs font-medium text-text-primary" title={identity}>
-									{model.model}
+								<div
+									className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-text-primary"
+									title={identity}
+								>
+									{model.provider && <ProviderGlyph provider={model.provider} size={14} className="shrink-0" />}
+									<span className="truncate">{model.model}</span>
 								</div>
 								<div className="mt-0.5 truncate text-xs text-text-muted">
 									{model.provider ? `${model.provider} · ` : ""}
 									{t("session.usageModelResponses", { count: model.responses })}
 								</div>
 							</div>
-							<div className="shrink-0 text-right font-mono text-xs tabular-nums text-text-primary">
+							<div className="shrink-0 text-right text-xs tabular-nums text-text-primary">
 								{formatCompactNumber(model.totalTokens, language)}
 								<span className="ml-1.5 text-xs text-text-muted">{formatShare(share)}</span>
+								<div className="mt-0.5 text-text-muted">{formatCost(model.costTotal)}</div>
 							</div>
 						</div>
-						<div className="mt-2 h-1 overflow-hidden rounded-full bg-surface" aria-hidden="true">
+						<div className="mt-2 h-0.5 overflow-hidden rounded-full bg-surface-hover" aria-hidden="true">
 							<div
 								className="session-usage-tool-fill h-full rounded-full"
 								style={{ width: `${share * 100}%`, backgroundColor: color }}
@@ -130,7 +137,7 @@ export function SessionToolBreakdown({ tools }: { tools: readonly SessionToolUsa
 				const share = tool.calls / totalCalls;
 				const style = {
 					"--tool-color": color,
-					"--tool-share": `${Math.max(3, share * 100)}%`,
+					"--tool-share": `${share * 100}%`,
 				} as CSSProperties;
 				return (
 					<li key={tool.name} className="session-usage-tool-row" style={style}>

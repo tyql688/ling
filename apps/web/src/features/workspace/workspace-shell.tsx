@@ -1,7 +1,6 @@
 import { FeatureNavigationContext } from "@renderer/components/workbench/feature-navigation";
 import { appPageAtom } from "@renderer/lib/navigation-state";
 import { SchedulesPage } from "@renderer/features/schedules/schedules-page";
-import { Button } from "@renderer/components/ui/button";
 import { ReadingCloseDialog } from "./reading-close-dialog";
 import { WorkbenchSlotHost } from "@renderer/components/workbench/workbench-slot-host";
 import { WorkspacePanel } from "./workspace-panel";
@@ -9,7 +8,7 @@ import { ShellFrame } from "@renderer/components/shell-frame";
 import { SessionExtensionEditor } from "@renderer/features/chat/extension-ui/session-extension-surfaces";
 import { ReviewWorkspace } from "@renderer/features/review/review-workspace";
 import { TerminalProvider } from "@renderer/features/terminal/terminal-provider";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtomValue } from "jotai";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { WorkspaceHome } from "./empty-state";
@@ -20,9 +19,11 @@ import { WorkspaceChrome, WorkspaceReadingStrip } from "./workspace-heading";
 import { WorkspaceSessionStage } from "./workspace-session-stage";
 import { WorkspaceShortcuts } from "./workspace-shortcuts";
 import { WorkspaceSidebarNavigation } from "./workspace-sidebar";
+import { WorkspaceTitlebar } from "./workspace-titlebar";
 import {
 	useWorkspaceField,
 	useWorkspaceOwner,
+	workspaceHistoryAtom,
 	workspacePanelAtom,
 	workspaceSelectionAtom,
 	workspaceTabsAtom,
@@ -31,11 +32,12 @@ import {
 
 function WorkspaceLayout({ overlay }: { overlay?: ReactNode }) {
 	const { t } = useTranslation();
-	const [appPage, setAppPage] = useAtom(appPageAtom);
+	const appPage = useAtomValue(appPageAtom);
 	const activeSessionRef = useWorkspaceField(workspaceSelectionAtom, "activeSessionRef");
 	const runtimeSessionRef = useWorkspaceField(workspaceSelectionAtom, "runtimeSessionRef");
 	const activeCwd = useWorkspaceField(workspaceSelectionAtom, "activeCwd");
 	const shellSidebar = useWorkspaceField(workspaceSidebarAtom, "shellSidebar");
+	const history = useWorkspaceOwner(workspaceHistoryAtom);
 	return (
 		<ReviewWorkspace sessionRef={runtimeSessionRef} cwd={activeCwd}>
 			<SessionExtensionEditor sessionRef={runtimeSessionRef} />
@@ -55,11 +57,7 @@ function WorkspaceLayout({ overlay }: { overlay?: ReactNode }) {
 					</div>
 					{appPage === "schedules" && (
 						<div className="flex h-full min-h-0 flex-col">
-							<div className="flex h-10 shrink-0 items-center px-4">
-								<Button size="sm" variant="ghost" onClick={() => setAppPage(null)}>
-									{t("palette.backToWorkspace")}
-								</Button>
-							</div>
+							<WorkspaceTitlebar sidebar={shellSidebar} history={history} tools={null} />
 							<SchedulesPage />
 						</div>
 					)}

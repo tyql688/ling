@@ -5,6 +5,8 @@ import { Button } from "@renderer/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@renderer/components/ui/dialog";
 import { FeedbackNotice } from "@renderer/components/ui/feedback";
 import { Input } from "@renderer/components/ui/input";
+import { menuContentClass, menuItemClass } from "@renderer/components/ui/menu-styles";
+import { cn } from "@renderer/lib/utils";
 import { formatRequestError } from "@renderer/lib/errors";
 import { tildify } from "@renderer/lib/format-path";
 import { Check, ChevronDown, GitBranch, LoaderCircle, Plus } from "lucide-react";
@@ -184,7 +186,7 @@ export function WorktreeDialog({ project, open, onOpenChange, onCreate }: Worktr
 										<div
 											id="worktree-branch-options"
 											role="listbox"
-											className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-control border border-border-subtle bg-popover py-1 shadow-lg"
+											className={cn(menuContentClass, "absolute z-20 mt-1 max-h-52 w-full overflow-y-auto p-1")}
 										>
 											{branchesLoading ? (
 												<div className="flex min-h-9 items-center gap-2 px-3 text-xs text-text-muted">
@@ -199,13 +201,16 @@ export function WorktreeDialog({ project, open, onOpenChange, onCreate }: Worktr
 														type="button"
 														role="option"
 														aria-selected={branch.name === trimmedBranch}
+														data-highlighted={index === activeSuggestion ? "" : undefined}
+														data-disabled={branch.checkedOutPath !== null ? "" : undefined}
 														disabled={branch.checkedOutPath !== null}
 														tabIndex={-1}
 														onMouseDown={(event) => event.preventDefault()}
+														onPointerMove={() => {
+															if (branch.checkedOutPath === null) setActiveSuggestion(index);
+														}}
 														onClick={() => chooseBranch(branch)}
-														className={`flex min-h-9 w-full items-center gap-2 px-3 text-left text-xs ${
-															index === activeSuggestion ? "bg-surface-hover text-text-primary" : "text-text-muted"
-														} disabled:cursor-not-allowed disabled:opacity-55`}
+														className={cn(menuItemClass, "w-full text-left")}
 													>
 														<GitBranch className="size-3.5 shrink-0" aria-hidden="true" />
 														<span className="min-w-0 flex-1 truncate font-mono">{branch.name}</span>

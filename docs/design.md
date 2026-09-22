@@ -8,6 +8,8 @@ The left navigation, conversation, reading area and contextual sidebar have sepa
 
 The session tab row belongs to the conversation's visual surface. One backdrop extends through the row to the top of the window, without a separate titlebar fill or horizontal seam. Reading and contextual panes retain their own surface and foreground tokens over that backdrop. Keep the window drag region and controls in their existing safe row.
 
+The scheduled-tasks page uses the same 44px window titlebar and sidebar controls as the workspace. Navigate through the sidebar; do not add a separate return-to-workspace button above the page.
+
 The sidebar's today-usage summary refreshes on session changes while visible and checks external Pi activity every five minutes. Hidden windows defer scans until visible. Relative session timestamps have their own clock and do not keep the usage scanner active.
 
 The current turn's work stays expanded as intermediate assistant replies and tool calls alternate. Starting a reply must not temporarily collapse earlier work and reopen it when a tool starts. Manual disclosure choices still apply; settled turns retain their process fold.
@@ -24,6 +26,8 @@ Web folder selection browses the computer running Ling: users can enter a path, 
 
 Interface zoom must preserve anchored menus, scrolling and keyboard selection in both products. Web uses CSS zoom; Desktop uses native page zoom. The Floating UI Core and DOM ES module entries carry the [upstream CSS zoom correction](https://github.com/floating-ui/floating-ui/pull/3492), which is absent from the published 1.8.0 packages. Remove these patches when the dependency includes that correction, after checking menu placement and selection at 80%, 100% and 150% in Web and Desktop.
 
+Session analysis and provider quotas use compact inspectors with 44px headers and divided disclosure rows. Keep account limits, balances and model/tool breakdowns in lists; charts and provider glyphs add context without nested cards. Session analysis keeps its height stable while sections expand. Details mount on first expansion, preserve their selection until the dialog closes, and use brief opacity/transform motion. Missing or failed quota data remains explicit.
+
 The default interface is monochrome with sparse accent. Settings use divided rows, modest headings and short descriptions. A narrow viewport stacks field labels above controls. Selecting any settings entry closes the navigation sheet, including feature entries and the already active page. Workbench tools use compact panels; full settings-page padding must not consume a narrow sidebar. Product screens show configuration and failures, not build hashes and implementation paths unless those paths are the object being edited.
 
 ## Component map
@@ -37,9 +41,10 @@ The default interface is monochrome with sparse accent. Settings use divided row
 | Option selection | `components/ui/select.tsx` |
 | Action menus | `components/ui/dropdown-menu.tsx`, `context-menu.tsx` |
 | Composer completion lists | `components/ui/completion-panel.tsx`; `hooks/use-completion-popover.ts` owns input focus and keyboard selection |
-| Popup motion and highlight geometry | `components/ui/menu-styles.ts`, `menu-motion.ts`, `menu.css` |
+| Popup surfaces, motion and highlights | `components/ui/menu-styles.ts`, `menu.css` |
 | Navigation entries | `components/ui/navigation-item.tsx` |
 | Settings structure | `components/ui/settings-page.tsx`, `settings-list.tsx` |
+| Expandable inspector rows | `components/ui/disclosure-row.tsx` |
 | Contextual tool pages | `components/ui/panel-page.tsx` |
 | Feedback and failures | `components/ui/feedback.tsx` |
 | Dialogs, pending questions and approvals | `components/ui/dialog.tsx`, `interaction-card.tsx`; chat and Host feature response owners |
@@ -52,7 +57,9 @@ Native file inputs, radio inputs for artwork previews, editable tree labels, dra
 
 ## Menus and focus
 
-Selects, dropdown menus and context menus share their surface, item spacing, disabled treatment and moving highlight. A popup's opening scale must never enter local highlight coordinates. Measure layout offsets and layout sizes, including nested offsets; observe the open surface and focused item for size changes. Pointer movement and arrow keys must produce the same geometry from the first opening. Scrolling moves the highlight with the items.
+Selects, dropdown menus and context menus share a tinted, blurred surface, compact 28px rows and inset corners. The highlighted item paints its own background immediately; pointer movement, keyboard navigation and scrolling keep the same geometry from the first opening. Selection uses the skin's authored choice pair or its accent with a contrasting foreground. Separators remain inset from the outer edge.
+
+Do not draw focus rings anywhere in Ling, including existing controls, custom feature interactions, Markdown, code editors and Pi UI adaptations. Focus must not add an outline, border, inset ring or shadow. Preserve native focus, keyboard navigation, focus restoration, text carets and selection. Use an appropriate background or text treatment to identify a keyboard target. Validation borders and persistent surface hairlines are independent of focus.
 
 Escape closes without changing the selection and restores focus to the trigger, including triggers in Pi extension dialogs. Menus retain Radix's focus collection and typeahead; do not recreate either in feature event handlers. Full labels must remain available for truncated project names. Menu actions use the desktop arrow cursor; ordinary controls inherit Ling's cursor and focus treatment.
 
@@ -74,11 +81,15 @@ Settings → Plugins presents the five Ling features as shared toggle rows befor
 
 ## Skins, typography and motion
 
-Use semantic action, choice, surface, text and radius tokens. Palette values and artwork belong to the skin resolver. Controls do not choose a light or dark palette. Host feature pages and Pi UI adaptations inherit the active tokens and shared styles; they must not install a different base focus outline or cursor rule. Portalled menus use the same active document tokens.
+Use semantic action, choice, surface, text and radius tokens. Palette values and artwork belong to the skin resolver. Controls do not choose a light or dark palette. Host feature pages and Pi UI adaptations inherit the active tokens and shared styles; they must not install a focus ring or a different cursor rule. Portalled menus use the same active document tokens. Shared controls use the same material on macOS, Windows and Web; native window chrome remains Desktop-owned.
+
+Floating menus start with an 86% tint and a static 24px blur. Dialogs and hints retain at least 94% tint to quiet content behind form fields. The resolver strengthens these materials and their secondary text when the authored palette needs more contrast; solid skins and reduced transparency remain opaque. Surface depth follows the skin's elevation setting. Buttons and fields share compact sizing, quiet permanent edges and restrained press feedback. Nested corners account for their container padding.
+
+Reference resolved shadows with `shadow-(--shadow-floating)` and the corresponding control, input, choice or reading token. Named Tailwind shadow utilities can inline the first-paint value at build time and ignore later skin overrides.
 
 Small desktop UI uses the existing `text-ui`, `text-sm` and `text-xs` scale. Main settings headings use `text-xl`; tool panel headings use `text-base`. Body and wrapped descriptions need comfortable line height. Preserve space for Chinese, English, Japanese and Korean. Changes to language refresh labels without replacing editors or drafts.
 
-Motion must honor both the operating system's reduced-motion preference and the skin's motion setting, including controls already open and Pi UI adaptations. Animate transform and opacity, keep frequently used controls brief, and interrupt previous animations when input changes. A static focus background remains when animated highlighting is disabled. A menu highlight must not affect layout.
+Motion must honor both the operating system's reduced-motion preference and the skin's motion setting, including controls already open and Pi UI adaptations. Animate transform and opacity, keep frequently used controls brief, and interrupt previous animations when input changes. Menu highlights are immediate and never affect layout.
 
 ## Acceptance
 

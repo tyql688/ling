@@ -230,21 +230,19 @@ jobs:
             exit 1
           fi
 
-      # The self-signed certificate does not silence SmartScreen - only a CA-issued OV or EV
-      # certificate does. It exists so the installer carries a publisher identity instead of
-      # reporting NotSigned, and it must stay stable: once signed, electron-builder records
-      # publisherName in app-update.yml and electron-updater then rejects any update whose
-      # installer is signed by a different publisher.
+      # electron-updater requires a trusted Authenticode signature as well as a matching
+      # publisherName. A self-signed certificate that works for macOS is insufficient on
+      # ordinary Windows installations; the verification step must reject it before upload.
       - name: Package Windows
         if: runner.os == 'Windows'
         shell: bash
         env:
-          WIN_CSC_LINK: ${{ secrets.SIGNING_CERTIFICATE }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
         run: |
           set -euo pipefail
           if [ -z "${WIN_CSC_LINK:-}" ] || [ -z "${WIN_CSC_KEY_PASSWORD:-}" ]; then
-            echo "SIGNING_CERTIFICATE and SIGNING_CERTIFICATE_PASSWORD are required to sign Windows artifacts." >&2
+            echo "WINDOWS_SIGNING_CERTIFICATE and WINDOWS_SIGNING_CERTIFICATE_PASSWORD are required for trusted Windows signing." >&2
             exit 1
           fi
           pnpm exec node --experimental-strip-types apps/desktop/scripts/package.ts \
@@ -264,10 +262,10 @@ jobs:
           foreach ($target in $targets) {
             $signature = Get-AuthenticodeSignature -LiteralPath $target.FullName
             Write-Host "==> $($target.Name): $($signature.Status)"
-            # A self-signed certificate reports UnknownError because its chain is untrusted on
-            # the runner. That is expected; NotSigned and HashMismatch are not.
-            if ($signature.Status -eq 'NotSigned' -or $signature.Status -eq 'HashMismatch') {
-              Write-Error "$($target.Name) failed signature verification: $($signature.Status)"
+            # Match the updater's SignatureStatus.Valid requirement. UnknownError and
+            # NotTrusted also block updates, even when a signer certificate is present.
+            if ($signature.Status -ne 'Valid') {
+              Write-Error "$($target.Name) cannot pass electron-updater signature verification: $($signature.Status). A trusted Windows code signing certificate is required."
             }
             Write-Host "    signer: $($signature.SignerCertificate.Subject)"
           }

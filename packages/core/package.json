@@ -7,7 +7,7 @@
 		"./*": "./src/*.ts"
 	},
 	"dependencies": {
-		"@earendil-works/pi-coding-agent": "0.86.1",
+		"@earendil-works/pi-coding-agent": "0.87.0",
 		"@ling/builtin-extensions": "workspace:*",
 		"@ling/contracts": "workspace:*",
 		"@ling/node-runtime": "workspace:*",

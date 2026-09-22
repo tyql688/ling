@@ -206,6 +206,18 @@ it("retains SDK system entries without turning prompt/tool metadata into live or
 			{ role: "user", id: `entry:${userId}` },
 		]);
 		expect(summarizePiBranchMessages(session)).toEqual({ messageCount: 1, preview: "Visible question" });
+		sessionManager.appendContextEdit(userId, null);
+		const secondId = sessionManager.appendMessage({ role: "user", content: "Original follow-up", timestamp: 3 });
+		sessionManager.appendContextEdit(secondId, { content: "Shortened provider context" });
+		// Context edits affect provider input, while Ling's transcript keeps original messages and identities.
+		expect(sessionManager.buildSessionContext().messages.filter((message) => message.role === "user")).toEqual([
+			expect.objectContaining({ content: "Shortened provider context" }),
+		]);
+		expect(projectPiBranchMessages({ sessionManager, extensions: null })).toMatchObject([
+			{ role: "user", id: `entry:${userId}`, content: "Visible question" },
+			{ role: "user", id: `entry:${secondId}`, content: "Original follow-up" },
+		]);
+		expect(summarizePiBranchMessages(session)).toEqual({ messageCount: 2, preview: "Visible question" });
 	} finally {
 		adapter.dispose();
 	}

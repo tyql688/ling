@@ -10,7 +10,7 @@
 		"build": "vite build"
 	},
 	"dependencies": {
-		"@earendil-works/pi-coding-agent": "0.86.1",
+		"@earendil-works/pi-coding-agent": "0.87.0",
 		"@gotgenes/pi-permission-system": "33.0.5",
 		"@juicesharp/rpiv-todo": "2.10.1",
 		"@ling/contracts": "workspace:*",

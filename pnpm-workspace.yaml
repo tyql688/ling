@@ -11,12 +11,12 @@ allowBuilds:
   electron-winstaller: false # packaging-time only; build script never ran under pnpm 10 either
   tree-sitter-bash: false # permission parsing uses the shipped WASM grammar, not the native Node binding
 minimumReleaseAgeExclude:
-  - "@earendil-works/chord@0.86.1"
-  - "@earendil-works/pi-agent-core@0.86.1"
-  - "@earendil-works/pi-ai@0.86.1"
-  - "@earendil-works/pi-coding-agent@0.86.1"
-  - "@earendil-works/pi-telemetry@0.86.1"
-  - "@earendil-works/pi-tui@0.86.1"
+  - "@earendil-works/chord@0.87.0"
+  - "@earendil-works/pi-agent-core@0.87.0"
+  - "@earendil-works/pi-ai@0.87.0"
+  - "@earendil-works/pi-coding-agent@0.87.0"
+  - "@earendil-works/pi-telemetry@0.87.0"
+  - "@earendil-works/pi-tui@0.87.0"
   - "@gotgenes/pi-permission-system@33.0.5"
 overrides:
   "ansi-to-react>linkify-it": 5.0.2

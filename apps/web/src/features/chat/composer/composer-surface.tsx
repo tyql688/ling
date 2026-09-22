@@ -27,6 +27,7 @@ export function ComposerSurface({
 	popover,
 	alerts,
 	banner,
+	attachments,
 	editorKey,
 	editorRef,
 	editor,
@@ -46,6 +47,7 @@ export function ComposerSurface({
 	alerts?: ReactNode;
 	/** Status banner above the editor (e.g. the queuedEdit notice). */
 	banner?: ReactNode;
+	attachments?: ReactNode;
 	editorKey: string;
 	editorRef?: Ref<ComposerEditorHandle> | undefined;
 	editor: Omit<ComposerEditorProps, "ref" | "className">;
@@ -63,6 +65,7 @@ export function ComposerSurface({
 				<div className="flex flex-col gap-3">
 					{alerts}
 					{banner}
+					{attachments}
 					<ComposerInput key={editorKey} ref={editorRef} {...editor} className={editorClassName} />
 					{footer}
 				</div>

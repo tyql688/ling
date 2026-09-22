@@ -1,3 +1,4 @@
+import { ComposerAttachments } from "@renderer/features/chat/composer/composer-attachments";
 import { ModelConnectionPrompt } from "@renderer/features/models/model-connection-prompt";
 import { SettingsRetryAction } from "@renderer/components/ui/settings-state";
 import { SESSION_MESSAGE_TEXT_MAX_CHARS } from "@ling/contracts/session";
@@ -46,7 +47,7 @@ export function QuickStartComposer(props: QuickStartComposerProps) {
 		retrySetup,
 		draft,
 		changeDraft,
-		openContext,
+		openFile,
 		selectModel,
 		selectThinking,
 		addProject,
@@ -57,6 +58,9 @@ export function QuickStartComposer(props: QuickStartComposerProps) {
 		modelOptions,
 		submitting,
 		attachmentIssue,
+		addingAttachments,
+		removeAttachment,
+		removeFileReference,
 		fileReferenceIssue,
 		textLimitExceeded,
 		textLimitErrorId,
@@ -100,6 +104,17 @@ export function QuickStartComposer(props: QuickStartComposerProps) {
 					)}
 				</>
 			}
+			attachments={
+				<ComposerAttachments
+					cwd={targetProject?.cwd ?? null}
+					images={draft.attachments}
+					files={draft.fileReferences}
+					pending={addingAttachments}
+					onRemoveImage={removeAttachment}
+					onRemoveFile={removeFileReference}
+					onOpenFile={openFile}
+				/>
+			}
 			editorKey={NEW_CONVERSATION_DRAFT_KEY}
 			editorRef={editorRef}
 			editor={{
@@ -114,7 +129,6 @@ export function QuickStartComposer(props: QuickStartComposerProps) {
 				onSelectionChange: setCursorOffset,
 				onPaste: handlePaste,
 				onLimit: reportLimitExceeded,
-				onOpenContext: openContext,
 			}}
 			editorClassName="px-1"
 			footer={

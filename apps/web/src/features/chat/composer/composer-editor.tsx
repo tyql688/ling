@@ -10,7 +10,7 @@ import { draftFitsLimits, parseDraftContext, type SessionDraft } from "@renderer
 import { MarkdownImage } from "@renderer/components/markdown-image";
 import { MarkdownImageRootContext } from "@renderer/components/markdown-image-root";
 import { SESSION_MESSAGE_TEXT_MAX_CHARS } from "@ling/contracts/session";
-import { contextKey, draftContexts, type DraftContext } from "@renderer/features/sessions/state/draft-context";
+import { contextKey, editorDraftContexts, type DraftContext } from "@renderer/features/sessions/state/draft-context";
 import { cn } from "@renderer/lib/utils";
 import {
 	composerDocumentFromDraft,
@@ -29,6 +29,7 @@ import { ComposerContextPreview } from "./composer-context-preview";
 import { ComposerInlineAlert } from "./composer-shell";
 import { sameComposerDraft, syncComposerProjection } from "./composer-editor-sync";
 import { mergedPastedLength, PASTED_TEXT_BLOCK_MIN_CHARS } from "../../sessions/state/pasted-text";
+import { fileReferenceKey } from "../../sessions/state/composer-file-references";
 
 const COMPOSER_DRAFT_SYNC = "composerDraftSync";
 
@@ -50,7 +51,6 @@ export interface ComposerEditorProps {
 	onSelectionChange: (cursorOffset: number) => void;
 	onKeyDown: (event: globalThis.KeyboardEvent) => void;
 	onPaste: (event: globalThis.ClipboardEvent) => void;
-	onOpenContext: (context: DraftContext) => void;
 	onLimit: () => void;
 	ariaInvalid: boolean;
 	ariaErrorMessageId?: string | undefined;
@@ -79,11 +79,10 @@ export function ComposerEditor(props: ComposerEditorProps & { markdown: boolean 
 	const accepted = useRef(props.draft);
 	const initialized = useRef(false);
 	const pendingFocus = useRef<{ offset: number | undefined } | null>(null);
-	const [preview, setPreview] = useState<DraftContext | null>(null);
+	const [preview, setPreview] = useState<Extract<DraftContext, { kind: "paste" | "review" }> | null>(null);
 	const [contextError, setContextError] = useState<string | null>(null);
 	const openContext = (context: DraftContext) => {
-		if (context.kind === "file") latest.current.onOpenContext(context);
-		else setPreview(context);
+		if (context.kind === "paste" || context.kind === "review") setPreview(context);
 	};
 	const projectionRef = useRef<ReturnType<typeof createComposerProjection> | null>(null);
 	projectionRef.current ??= createComposerProjection(props.markdown);
@@ -120,21 +119,10 @@ export function ComposerEditor(props: ComposerEditorProps & { markdown: boolean 
 			if (extension.name !== "composerContext") return extension;
 			return extension.configure({
 				projectCwd: () => latest.current.projectCwd ?? null,
-				parseContext: (raw: string, sourceCwd: string | null) => {
+				parseContext: (raw: string) => {
 					const context = parseDraftContext(raw);
 					if (!context || latest.current.contextEnabled === false) return null;
-					// A relative reference must keep its original project when pasted into another composer.
-					if (context.kind === "file" && context.value.scope === "project" && sourceCwd !== latest.current.projectCwd) {
-						if (!sourceCwd) return null;
-						return {
-							kind: "file",
-							value: {
-								id: crypto.randomUUID(),
-								scope: "external",
-								path: `${sourceCwd.replace(/[/\\]+$/, "")}/${context.value.path}`,
-							},
-						};
-					}
+					if (context.kind === "file" || context.kind === "image") return null;
 					context.value.id = crypto.randomUUID();
 					return context;
 				},
@@ -149,7 +137,10 @@ export function ComposerEditor(props: ComposerEditorProps & { markdown: boolean 
 					new Plugin({
 						filterTransaction(transaction) {
 							if (!transaction.docChanged) return true;
-							const draft = draftFromComposerProjection(project(transaction.doc, transaction.selection.head));
+							const draft = draftFromComposerProjection(
+								project(transaction.doc, transaction.selection.head),
+								latest.current.draft,
+							);
 							if (draftFitsLimits(draft)) return true;
 							if (draft.text.length > SESSION_MESSAGE_TEXT_MAX_CHARS) latest.current.onLimit();
 							else setContextError(copy.current.contextLimit);
@@ -300,9 +291,21 @@ export function ComposerEditor(props: ComposerEditorProps & { markdown: boolean 
 						TextSelection.create(transaction.doc, positionAt(range.start), positionAt(range.end)),
 					);
 				}
-				transaction.replaceSelectionWith(
-					editor.schema.nodes.composerContext!.create({ context, label: labelRef.current(context) }),
-				);
+				if (context.kind === "file" || context.kind === "image") {
+					transaction.deleteSelection();
+					const projection = project(transaction.doc, transaction.selection.head);
+					const next = draftFromComposerProjection(projection, latest.current.draft);
+					if (context.kind === "file") {
+						const key = fileReferenceKey(context.value);
+						if (!next.fileReferences.some((reference) => fileReferenceKey(reference) === key))
+							next.fileReferences.push(context.value);
+					} else next.attachments.push(context.value);
+					accepted.current = next;
+					latest.current.onChange(next, projection.cursorOffset);
+				} else
+					transaction.replaceSelectionWith(
+						editor.schema.nodes.composerContext!.create({ context, label: labelRef.current(context) }),
+					);
 				editor.view.dispatch(transaction.scrollIntoView());
 				editor.commands.focus();
 			},
@@ -343,7 +346,10 @@ export function ComposerEditor(props: ComposerEditorProps & { markdown: boolean 
 			return;
 		}
 		const wanted = new Map(
-			draftContexts(props.draft).map((context) => [contextKey({ kind: context.kind, id: context.value.id }), context]),
+			editorDraftContexts(props.draft).map((context) => [
+				contextKey({ kind: context.kind, id: context.value.id }),
+				context,
+			]),
 		);
 		const transaction = closeHistory(editor.state.tr);
 		editor.state.doc.descendants((node, position) => {

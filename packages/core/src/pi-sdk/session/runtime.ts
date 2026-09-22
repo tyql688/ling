@@ -17,7 +17,6 @@ import type { PiExtensionUi } from "../extensions/extension-ui-context";
 import { resolvePiMarkdownWidth } from "../extensions/markdown-transformer";
 import type { PiModelProjection } from "../models/model-projection";
 import type { PiAgentSession, PiAgentSessionRuntime } from "../types";
-import { resizeImageAttachmentsForSend } from "./images";
 import { createPiRuntimeBoundResources } from "./runtime-bound-resources";
 import { createPiRuntimeCommands } from "./runtime-commands";
 import { createRuntimeCompanionServices } from "./runtime-companion-services";
@@ -216,7 +215,6 @@ export function createPiSessionRuntimeHandle(
 		getModelState: () => ownedOperations.run(queries.getModelState),
 		...commands,
 		...extensionControls,
-		prepareImagesForSend: resizeImageAttachmentsForSend,
 		createdAt,
 		get ref(): SessionRef {
 			return ownedReplacement.ref;

@@ -127,9 +127,9 @@
 		"fileReferenceResolveFailed": "无法添加文件引用，请重试。",
 		"fileReferenceLimit": "一个草稿最多引用 {{count}} 个文件。",
 		"attachmentLimitCount": "一个草稿最多添加 {{count}} 张图片。",
-		"attachmentLimitFileSize": "{{name}} 超过单张图片 {{size}} MB 的限制。",
-		"attachmentUnsupportedType": "仅支持 PNG、JPEG、GIF 和 WebP 图片。",
-		"attachmentLimitTotalSize": "草稿图片总大小不能超过 {{size}} MB。",
+		"attachmentLimitFileSize": "{{name}} 超过 {{size}} MB 的内嵌传输限制。可添加本地文件以发送路径。",
+		"attachmentUnsupportedType": "此内容不是图片，请作为文件添加。",
+		"attachmentLimitTotalSize": "内嵌图片数据超过 {{size}} MB 的草稿预算。可添加本地文件以发送路径。",
 		"attachmentReadFailed": "无法读取 {{name}}。",
 		"ctxRename": "重命名",
 		"ctxPin": "置顶",
@@ -279,7 +279,14 @@
 		"activity_edit": "编辑 {{count}} 次",
 		"activity_run": "运行 {{count}} 条命令",
 		"activity_other": "其他操作 {{count}} 次",
-		"quickStartDraftOccupied": "请先发送或清空新对话中已有的草稿，再使用建议消息。"
+		"quickStartDraftOccupied": "请先发送或清空新对话中已有的草稿，再使用建议消息。",
+		"attachments": "附件",
+		"previewAttachment": "预览 {{name}}",
+		"removeAttachment": "移除 {{name}}",
+		"addingAttachments": "正在添加附件…",
+		"attachmentPreviewUnavailable": "无法预览，仍可下载此文件。",
+		"downloadAttachment": "下载文件",
+		"attachmentImportFailed": "无法添加 {{name}}。{{message}}。请重新添加。"
 	},
 	"explorer": {
 		"title": "文件",

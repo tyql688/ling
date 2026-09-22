@@ -31,12 +31,12 @@ describe("composer Markdown and context projection", () => {
 		const plain = composerDocumentFromDraft(draft, () => "@file.ts", false);
 		const projected = projectPlainComposerDocument(plain);
 		expect(projected.text).toBe(draft.text);
-		expect(projected.contextPositions).toEqual(draft.contextPositions);
+		expect(projected.contextPositions).toEqual([]);
 		const positionAt = createPlainPositionMapper(plain);
 		for (let offset = 0; offset <= draft.text.length; offset += 1)
 			expect(projectPlainComposerDocument(plain, positionAt(offset)).cursorOffset).toBe(offset);
-		const rich = composerDocumentFromDraft(draftFromComposerProjection(projected), () => "@file.ts");
-		const roundTrip = draftFromComposerProjection(projectComposerDocument(rich));
+		const rich = composerDocumentFromDraft(draftFromComposerProjection(projected, draft), () => "@file.ts");
+		const roundTrip = draftFromComposerProjection(projectComposerDocument(rich), draft);
 		expect(projectPlainComposerDocument(composerDocumentFromDraft(roundTrip, () => "@file.ts", false)).text).toBe(
 			roundTrip.text,
 		);
@@ -112,7 +112,7 @@ describe("composer Markdown and context projection", () => {
 		const restored = composerDocumentFromDraft(draft, () => "@src/main.ts");
 		expect(projectComposerDocument(restored)).toMatchObject({
 			text: snapshot.text,
-			contextPositions: snapshot.contextPositions,
+			contextPositions: [],
 		});
 	});
 	it("migrates legacy context and rebases external edits without retaining deleted items", () => {
@@ -124,8 +124,8 @@ describe("composer Markdown and context projection", () => {
 			fileReferences: [{ id: "f", scope: "project", path: "file.ts" }],
 		};
 		const migrated = projectComposerDocument(composerDocumentFromDraft(draft, (context) => context.value.id));
-		expect(migrated.contextPositions.map(({ kind }) => kind)).toEqual(["paste", "file"]);
-		expect(migrated.contextPositions.map(({ offset }) => offset)).toEqual([5, 5]);
+		expect(migrated.contextPositions.map(({ kind }) => kind)).toEqual(["paste"]);
+		expect(migrated.contextPositions.map(({ offset }) => offset)).toEqual([5]);
 		const positions = [{ kind: "file", id: "f", offset: 5 }] as const;
 		expect(rebaseContextPositions("hello", "hello world", positions)).toEqual(positions);
 		expect(rebaseContextPositions("hello", "hi hello", positions)[0]?.offset).toBe(8);
@@ -138,11 +138,11 @@ describe("composer Markdown and context projection", () => {
 		const draft: SessionDraft = {
 			text: "before after",
 			attachments: [],
-			reviewComments: [],
-			fileReferences: [{ id: "f", scope: "project", path: "file.ts" }],
+			reviewComments: [{ id: "f", filePath: "file.ts", rangeLabel: "L1", text: "fix", excerpt: "line" }],
+			fileReferences: [],
 			pastedBlocks: [{ id: "p", text: "body" }],
 			contextPositions: [
-				{ kind: "file", id: "f", offset: 7 },
+				{ kind: "review", id: "f", offset: 7 },
 				{ kind: "paste", id: "p", offset: 7 },
 			],
 		};

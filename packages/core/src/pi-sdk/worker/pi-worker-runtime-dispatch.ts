@@ -62,11 +62,6 @@ const handlers: PiMethodHandlers<Pick<typeof piRuntimeMethods, RuntimeCallMethod
 		const parsed = args;
 		return await runtime.readImagePart(parsed.entryId, parsed.index);
 	},
-	"runtime.prepareImagesForSend": async (args, options) => {
-		const { runtime } = options;
-		const parsed = args;
-		return await runtime.prepareImagesForSend(parsed.images);
-	},
 	"runtime.sendPrompt": async (args, options) => {
 		const { runtime } = options;
 		const parsed = args;

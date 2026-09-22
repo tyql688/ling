@@ -210,16 +210,15 @@ export function createSessionRuntimeCommands({
 				userAction: "retry",
 			});
 		}
-		const prepared = images && images.length > 0 ? await interaction.session.prepareImagesForSend(images) : undefined;
 		if (mode === "steer") {
-			await runQueueOperation(ref, (session) => session.steer(text, prepared, fileReferences));
+			await runQueueOperation(ref, (session) => session.steer(text, images, fileReferences));
 		} else if (mode === "followUp") {
-			await runQueueOperation(ref, (session) => session.followUp(text, prepared, fileReferences));
+			await runQueueOperation(ref, (session) => session.followUp(text, images, fileReferences));
 		} else {
 			// sendPrompt takes no fileReferences: a fresh turn already carries them as @path text
 			// (the composer projects chips into the message at the send boundary). Only the queued
 			// modes keep the structural list, so their edits stay reversible.
-			await interaction.session.sendPrompt(text, prepared);
+			await interaction.session.sendPrompt(text, images);
 		}
 		void interaction.fileSync.acceptCurrentState();
 	}
@@ -322,9 +321,7 @@ export function createSessionRuntimeCommands({
 		}
 		await runQueueOperation(ref, async (session, queue) => {
 			queue.assertRevision(expectedRevision);
-			const prepared = images && images.length > 0 ? await session.prepareImagesForSend(images) : images;
-			queue.assertRevision(expectedRevision);
-			await session.editQueuedMessage(kind, index, expectedText, text, prepared, fileReferences);
+			await session.editQueuedMessage(kind, index, expectedText, text, images, fileReferences);
 		});
 	}
 

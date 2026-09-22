@@ -23,6 +23,7 @@ interface ComposerDraftAdapter<Snapshot> {
 }
 
 interface ComposerCoreOptions<Snapshot, Payload> {
+	preparing?: boolean;
 	adapter: ComposerDraftAdapter<Snapshot>;
 	/** Last gate before clearing the draft (e.g. the home target-project check); false aborts and leaves the draft untouched. */
 	validate?: (() => boolean) | undefined;
@@ -80,10 +81,11 @@ export function useComposerCore<Snapshot, Payload = void>(
 
 	const { adapter } = options;
 	const hasSendableContent =
-		submitMessageText(adapter.text) !== null ||
-		adapter.attachmentCount > 0 ||
-		adapter.fileReferenceCount > 0 ||
-		adapter.hasExtraContent;
+		!options.preparing &&
+		(submitMessageText(adapter.text) !== null ||
+			adapter.attachmentCount > 0 ||
+			adapter.fileReferenceCount > 0 ||
+			adapter.hasExtraContent);
 
 	const requestSubmit = (payload: Payload): void => {
 		if (pendingRef.current !== null || !hasSendableContent) return;

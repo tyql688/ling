@@ -127,9 +127,9 @@
 		"fileReferenceResolveFailed": "Could not add the file references. Try again.",
 		"fileReferenceLimit": "You can reference up to {{count}} files in one draft.",
 		"attachmentLimitCount": "You can attach up to {{count}} images to one draft.",
-		"attachmentLimitFileSize": "{{name}} is larger than the {{size}} MB per-image limit.",
-		"attachmentUnsupportedType": "Only PNG, JPEG, GIF, and WebP images are supported.",
-		"attachmentLimitTotalSize": "Draft images cannot exceed {{size}} MB in total.",
+		"attachmentLimitFileSize": "{{name}} exceeds the {{size}} MB inline transfer limit. Attach a local file to send its path.",
+		"attachmentUnsupportedType": "This item is not an image. Attach it as a file.",
+		"attachmentLimitTotalSize": "Inline image data exceeds the {{size}} MB draft budget. Attach local files to send their paths.",
 		"attachmentReadFailed": "Could not read {{name}}.",
 		"ctxRename": "Rename",
 		"ctxPin": "Pin",
@@ -279,7 +279,14 @@
 		"activity_edit": "{{count}} edits",
 		"activity_run": "{{count}} commands",
 		"activity_other": "{{count}} other actions",
-		"quickStartDraftOccupied": "Send or clear your existing new-conversation draft before using a suggested message."
+		"quickStartDraftOccupied": "Send or clear your existing new-conversation draft before using a suggested message.",
+		"attachments": "Attachments",
+		"previewAttachment": "Preview {{name}}",
+		"removeAttachment": "Remove {{name}}",
+		"addingAttachments": "Adding attachments…",
+		"attachmentPreviewUnavailable": "Preview unavailable. You can still download the file.",
+		"downloadAttachment": "Download file",
+		"attachmentImportFailed": "Could not add {{name}}. {{message}}. Try attaching it again."
 	},
 	"explorer": {
 		"title": "Files",

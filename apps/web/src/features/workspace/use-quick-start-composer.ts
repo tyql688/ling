@@ -1,5 +1,5 @@
 import { fileReferenceTarget } from "@renderer/features/sessions/state/composer-file-references";
-import type { DraftContext } from "@renderer/features/sessions/state/draft-context";
+import type { PendingFileReference } from "@ling/contracts/draft";
 import { useDomainApi } from "@renderer/lib/host-api-context";
 import { useQuickStartModels } from "./use-quick-start-models";
 import type { CompletionPanelProps } from "@renderer/components/ui/completion-panel";
@@ -130,6 +130,8 @@ export function useQuickStartComposer({ projects, preferredCwd, onAddProject, on
 	const {
 		attachments,
 		attachmentIssue,
+		addingAttachments,
+		removeAttachment,
 		addFiles,
 		handlePaste,
 		fileReferences,
@@ -234,6 +236,7 @@ export function useQuickStartComposer({ projects, preferredCwd, onAddProject, on
 	}
 
 	const core = useComposerCore<SessionDraft>({
+		preparing: addingAttachments,
 		adapter: {
 			text,
 			attachmentCount: attachments.length,
@@ -296,11 +299,12 @@ export function useQuickStartComposer({ projects, preferredCwd, onAddProject, on
 		setCursorOffset(selectionStart);
 		resetActiveIndex();
 	};
-	const openContext = (context: DraftContext) => {
-		if (context.kind === "file" && targetProject && hostUiApi.capabilities.nativePathReveal)
-			void hostProjectApi
-				.revealFileReference({ cwd: targetProject.cwd, reference: fileReferenceTarget(context.value) })
-				.catch((cause: unknown) => setError(formatRequestError(cause)));
+	const openFile = (reference: PendingFileReference): boolean => {
+		if (!targetProject || !hostUiApi.capabilities.nativePathReveal) return false;
+		void hostProjectApi
+			.revealFileReference({ cwd: targetProject.cwd, reference: fileReferenceTarget(reference) })
+			.catch((cause: unknown) => setError(formatRequestError(cause)));
+		return true;
 	};
 	const addProject = () => {
 		void onAddProject()
@@ -310,6 +314,9 @@ export function useQuickStartComposer({ projects, preferredCwd, onAddProject, on
 			.catch((cause: unknown) => setError(formatRequestError(cause)));
 	};
 	return {
+		addingAttachments,
+		removeAttachment,
+		removeFileReference: (id: string) => setFileReferences((current) => current.filter((file) => file.id !== id)),
 		displayModel,
 		displayThinkingLevels,
 		displayThinkingLevel,
@@ -319,7 +326,7 @@ export function useQuickStartComposer({ projects, preferredCwd, onAddProject, on
 		retrySetup,
 		draft,
 		changeDraft,
-		openContext,
+		openFile,
 		selectModel,
 		selectThinking,
 		addProject,

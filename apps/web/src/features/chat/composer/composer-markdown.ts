@@ -1,5 +1,5 @@
 import type { DraftContextPosition } from "@ling/contracts/draft";
-import { contextKey, draftContexts, type DraftContext } from "@renderer/features/sessions/state/draft-context";
+import { contextKey, editorDraftContexts, type DraftContext } from "@renderer/features/sessions/state/draft-context";
 import type { SessionDraft } from "@renderer/features/sessions/state/drafts";
 import { getSchema, Node, type JSONContent } from "@tiptap/core";
 import Image from "@tiptap/extension-image";
@@ -342,10 +342,11 @@ export function composerDocumentFromDraft(
 	schema?: Schema,
 ): ProseMirrorNode {
 	const remaining = new Map(
-		draftContexts(draft).map((context) => [contextKey({ kind: context.kind, id: context.value.id }), context]),
+		editorDraftContexts(draft).map((context) => [contextKey({ kind: context.kind, id: context.value.id }), context]),
 	);
 	const contexts: { context: DraftContext; offset?: number }[] = [];
 	for (const position of draft.contextPositions ?? []) {
+		if (position.kind === "file" || position.kind === "image") continue;
 		const context = remaining.get(contextKey(position));
 		if (!context) throw new Error("Draft context position has no matching item");
 		contexts.push({ context, offset: position.offset });
@@ -380,12 +381,18 @@ export function createComposerProjection(useMarkdown = true) {
 	};
 }
 
-export function draftFromComposerProjection(projection: ComposerProjection): SessionDraft {
+export function draftFromComposerProjection(projection: ComposerProjection, previous?: SessionDraft): SessionDraft {
 	return {
 		text: projection.text,
 		contextPositions: projection.contextPositions,
-		attachments: projection.contexts.flatMap((context) => (context.kind === "image" ? [context.value] : [])),
-		fileReferences: projection.contexts.flatMap((context) => (context.kind === "file" ? [context.value] : [])),
+		attachments: [
+			...(previous?.attachments ?? []),
+			...projection.contexts.flatMap((context) => (context.kind === "image" ? [context.value] : [])),
+		],
+		fileReferences: [
+			...(previous?.fileReferences ?? []),
+			...projection.contexts.flatMap((context) => (context.kind === "file" ? [context.value] : [])),
+		],
 		pastedBlocks: projection.contexts.flatMap((context) => (context.kind === "paste" ? [context.value] : [])),
 		reviewComments: projection.contexts.flatMap((context) => (context.kind === "review" ? [context.value] : [])),
 	};

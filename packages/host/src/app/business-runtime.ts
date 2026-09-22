@@ -1,3 +1,4 @@
+import { createAttachmentFiles } from "../domains/files/attachment-files";
 import type { HostShellEvent } from "@ling/contracts/host-shell";
 import type { SessionRef } from "@ling/contracts/session-ref";
 import { createProjectFileWatchers } from "@ling/host/domains/review/project-file-watcher";
@@ -196,6 +197,9 @@ export async function createHostBusinessRuntime(options: HostBusinessRuntimeOpti
 		});
 		const clients = createHostClientState();
 		const paths = getHostRuntimePaths();
+		const attachments = createAttachmentFiles(paths.dataHome);
+		lifetime.onStop("attachment uploads", attachments.prepareShutdown);
+		lifetime.defer("stores", "attachment uploads", attachments.dispose);
 		const activation = createAccessActivation(paths.dataHome);
 		const features = createBuiltinFeatures(paths.dataHome);
 		const adapterPlan = createPiAdapterPlan(activation, features);
@@ -348,6 +352,7 @@ export async function createHostBusinessRuntime(options: HostBusinessRuntimeOpti
 				void handlers.disconnectClient(clientId).catch((error) => log.error("editor client cleanup failed:", error));
 			},
 			serveMedia: createHostMediaResponder(projectsRestored, {
+				attachments,
 				projectOperations,
 				readSessionImage: manager.commands.readSessionImage,
 			}),

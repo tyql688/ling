@@ -2,7 +2,7 @@ import type { ImageAttachment } from "@ling/contracts/session-messages";
 import {
 	SESSION_IMAGE_MAX_BYTES,
 	SESSION_IMAGE_MAX_ITEMS,
-	SESSION_IMAGE_MIME_TYPES,
+	sessionImageMimeTypeSchema,
 	SESSION_IMAGE_TOTAL_MAX_BYTES,
 } from "@ling/contracts/session";
 
@@ -12,12 +12,12 @@ import {
  * so drafts can't fill up first and then get rejected at send time.
  */
 export const MAX_DRAFT_IMAGE_DATA_URL_BYTES = SESSION_IMAGE_TOTAL_MAX_BYTES;
-const supportedImageMimeTypes = new Set<string>(SESSION_IMAGE_MIME_TYPES);
 
 export interface PendingAttachment {
 	id: string;
 	dataUrl: string;
 	mimeType: string;
+	name?: string;
 }
 
 export type AttachmentIssue =
@@ -33,8 +33,8 @@ interface AttachmentFileCandidate {
 	size: number;
 }
 
-function isSupportedSessionImageMimeType(value: string): value is (typeof SESSION_IMAGE_MIME_TYPES)[number] {
-	return supportedImageMimeTypes.has(value);
+function isSupportedSessionImageMimeType(value: string): value is string {
+	return sessionImageMimeTypeSchema.safeParse(value).success;
 }
 
 interface AttachmentSelection<T> {

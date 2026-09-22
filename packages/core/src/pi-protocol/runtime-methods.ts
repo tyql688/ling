@@ -1,5 +1,5 @@
 import type { ExtensionAutocompleteSuggestions, ModelState, ToolResultSessionMessage } from "@ling/contracts/session";
-import { EXTENSION_UI_INPUT_MAX_CHARS } from "@ling/contracts/session";
+import { EXTENSION_UI_INPUT_MAX_CHARS, SESSION_IMAGE_MAX_ITEMS } from "@ling/contracts/session";
 import { z } from "zod";
 import { companionRunRequestSchema, companionRunSchema, toolResultSnapshotSchema } from "@ling/contracts/companions";
 import { piMethod, piVoidMethod, runtimeMethod } from "./method";
@@ -24,7 +24,7 @@ const extensionUiInputSchema = z.string().max(EXTENSION_UI_INPUT_MAX_CHARS);
 // Terminal geometry is bounded independently of viewport pixel dimensions.
 const dimension = z.number().int().positive().max(10_000);
 // The attachment count and file-reference fan-out bound the serialized prompt.
-const imagesSchema = z.array(imageSchema).max(10);
+const imagesSchema = z.array(imageSchema).max(SESSION_IMAGE_MAX_ITEMS);
 const fileReferencesSchema = z.array(fileReferenceSchema).max(256);
 export const piRuntimeMethods = {
 	"runtime.deliverReply": runtimeMethod(
@@ -196,17 +196,6 @@ export const piRuntimeMethods = {
 			runtimeQuery({ timeoutMs: LIFECYCLE_REQUEST_TIMEOUT_MS }),
 		),
 		["entryId", "index"],
-		{},
-	),
-	"runtime.prepareImagesForSend": runtimeMethod(
-		piMethod(
-			z.strictObject({ images: imagesSchema }),
-			(value: unknown) => {
-				return z.array(imageSchema).max(10).parse(value);
-			},
-			runtimeQuery(),
-		),
-		["images"],
 		{},
 	),
 	"runtime.sendPrompt": runtimeMethod(

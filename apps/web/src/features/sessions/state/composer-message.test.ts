@@ -120,7 +120,7 @@ describe("composer message preparation", () => {
 	it("leaves an invalid attachment intact so its failure can be shown without losing the draft", () => {
 		const source = draft({
 			text: "Keep me",
-			attachments: [{ id: "bad", mimeType: "image/svg+xml", dataUrl: "data:image/svg+xml;base64,Zg==" }],
+			attachments: [{ id: "bad", mimeType: "text/html", dataUrl: "data:text/html;base64,Zg==" }],
 		});
 		expect(() => prepareComposerMessage(source)).toThrow("Unsupported draft image type");
 		expect(source.text).toBe("Keep me");

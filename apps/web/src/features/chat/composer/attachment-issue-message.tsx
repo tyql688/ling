@@ -57,10 +57,12 @@ export function FileReferenceIssueMessage({
 	const { t } = useTranslation();
 	if (issue === null) return null;
 	const message =
-		issue.code === "count"
-			? t("session.fileReferenceLimit", { count: PROJECT_FILE_REFERENCE_MAX_ITEMS })
-			: issue.code === "resolve-failed"
-				? t("session.fileReferenceResolveFailed")
-				: t("session.filePathUnavailable", { name: issue.fileName });
+		issue.code === "import-failed"
+			? t("session.attachmentImportFailed", { name: issue.fileName, message: issue.message })
+			: issue.code === "count"
+				? t("session.fileReferenceLimit", { count: PROJECT_FILE_REFERENCE_MAX_ITEMS })
+				: issue.code === "resolve-failed"
+					? t("session.fileReferenceResolveFailed")
+					: t("session.filePathUnavailable", { name: issue.fileName });
 	return <ComposerInlineAlert message={message} className={className} />;
 }

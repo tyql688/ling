@@ -1,3 +1,10 @@
+import {
+	attachmentFileRequestSchema,
+	attachmentMediaType,
+	attachmentUploadRequestSchema,
+	ATTACHMENT_UPLOAD_MAX_BYTES,
+} from "@ling/contracts/attachments";
+import type { createAttachmentFiles } from "../domains/files/attachment-files";
 import type { SessionRuntimeCommands } from "@ling/host/domains/sessions/manager/session-runtime-commands";
 import { GIT_COMMIT_SHA_PATTERN } from "@ling/contracts/git";
 import { ABSOLUTE_PATH_MAX_CHARS } from "@ling/contracts/path-bounds";
@@ -22,10 +29,11 @@ import {
 	detectPreviewMediaMime,
 	readProjectFilePreview,
 	resolveWorkspaceMediaFile,
+	resolveProjectFileReferencePath,
 } from "@ling/host/domains/files/project-files";
 import type { ProjectAccess } from "@ling/host/runtime/project-access";
 import { createReadStream } from "node:fs";
-import { stat, type FileHandle } from "node:fs/promises";
+import { open, stat, type FileHandle } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { openExistingSkinAsset } from "../domains/skins/skin-package-store";
 
@@ -79,10 +87,6 @@ function streamFile(
 	size: number,
 	mime: string,
 ): Promise<void> {
-	if (size === 0) {
-		response.writeHead(404).end();
-		return Promise.resolve();
-	}
 	const range = parseRange(request.headers.range, size);
 	const start = range?.start ?? 0;
 	const end = range?.end ?? size - 1;
@@ -94,7 +98,7 @@ function streamFile(
 		...(range ? { "Content-Range": `bytes ${start}-${end}/${size}` } : {}),
 		"X-Content-Type-Options": "nosniff",
 	});
-	if (request.method === "HEAD") {
+	if (request.method === "HEAD" || size === 0) {
 		response.end();
 		return Promise.resolve();
 	}
@@ -117,12 +121,17 @@ export function createHostMediaResponder(
 	{
 		projectOperations,
 		readSessionImage,
-	}: { projectOperations: ProjectAccess; readSessionImage: SessionRuntimeCommands["readSessionImage"] },
+		attachments,
+	}: {
+		projectOperations: ProjectAccess;
+		readSessionImage: SessionRuntimeCommands["readSessionImage"];
+		attachments: ReturnType<typeof createAttachmentFiles>;
+	},
 ): HostMediaResponder {
 	const { withKnownOpenProject } = projectOperations;
 
 	return async (request, response) => {
-		if (request.method !== "GET" && request.method !== "HEAD") {
+		if (request.method !== "GET" && request.method !== "HEAD" && request.method !== "POST") {
 			response.writeHead(405, { Allow: "GET, HEAD" }).end();
 			return;
 		}
@@ -130,6 +139,56 @@ export function createHostMediaResponder(
 		const requestUrl = request.url ?? "";
 		try {
 			const parsedUrl = new URL(requestUrl, "http://ling.local");
+			if (parsedUrl.pathname === "/api/media/upload" && request.method === "POST") {
+				const parsed = attachmentUploadRequestSchema.safeParse(Object.fromEntries(parsedUrl.searchParams));
+				if (!parsed.success) {
+					response.writeHead(400).end();
+					return;
+				}
+				if (Number(request.headers["content-length"]) > ATTACHMENT_UPLOAD_MAX_BYTES) {
+					response.writeHead(413).end();
+					return;
+				}
+				const path = await withKnownOpenProject(parsed.data.cwd, (cwd) =>
+					attachments.store(cwd, parsed.data.name, request),
+				);
+				writeBytes(
+					response,
+					Buffer.from(JSON.stringify({ reference: { scope: "external", path } })),
+					"application/json",
+					"no-store",
+				);
+				return;
+			}
+			if (request.method === "POST") {
+				response.writeHead(405).end();
+				return;
+			}
+			if (parsedUrl.pathname === "/api/media/file") {
+				const parsed = attachmentFileRequestSchema.safeParse({
+					cwd: parsedUrl.searchParams.get("cwd"),
+					reference: { scope: parsedUrl.searchParams.get("scope"), path: parsedUrl.searchParams.get("path") },
+				});
+				if (!parsed.success) {
+					response.writeHead(400).end();
+					return;
+				}
+				const path = await withKnownOpenProject(parsed.data.cwd, (cwd) =>
+					resolveProjectFileReferencePath(cwd, parsed.data.reference),
+				);
+				const handle = await open(path, "r");
+				try {
+					const info = await handle.stat();
+					const mime = attachmentMediaType(path);
+					response.setHeader("Content-Security-Policy", "sandbox");
+					if (!mime || parsedUrl.searchParams.get("download") === "1")
+						response.setHeader("Content-Disposition", "attachment");
+					await streamFile(request, response, handle, info.size, mime ?? "application/octet-stream");
+				} finally {
+					await handle.close();
+				}
+				return;
+			}
 			if (parsedUrl.pathname === "/api/media/skin") {
 				await serveSkinMedia(request, response, parsedUrl);
 				return;

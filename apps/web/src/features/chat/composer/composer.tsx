@@ -1,3 +1,4 @@
+import { ComposerAttachments } from "./composer-attachments";
 import { ModelConnectionPrompt } from "@renderer/features/models/model-connection-prompt";
 import type { PendingFileReference } from "@ling/contracts/draft";
 import { type SendMode, SESSION_MESSAGE_TEXT_MAX_CHARS } from "@ling/contracts/session";
@@ -103,6 +104,8 @@ export function Composer({
 	const {
 		attachments,
 		attachmentIssue,
+		addingAttachments,
+		removeAttachment,
 		addFiles,
 		handlePaste,
 		fileReferences,
@@ -193,6 +196,7 @@ export function Composer({
 		});
 
 	const core = useComposerCore<SessionDraft, SendMode>({
+		preparing: addingAttachments,
 		adapter: {
 			text,
 			attachmentCount: attachments.length,
@@ -327,6 +331,21 @@ export function Composer({
 						</div>
 					)
 				}
+				attachments={
+					<ComposerAttachments
+						cwd={sessionRef.cwd}
+						images={attachments}
+						files={fileReferences}
+						pending={addingAttachments}
+						onRemoveImage={removeAttachment}
+						onRemoveFile={(id) => setFileReferences((current) => current.filter((file) => file.id !== id))}
+						onOpenFile={(reference) => {
+							if (!(canOpenFileReference?.(reference) ?? true)) return false;
+							onOpenFileReference(reference);
+							return true;
+						}}
+					/>
+				}
 				editorKey={queuedEdit ? `${draftKey}:queued:${queuedEdit.attachmentScopeKey}` : draftKey}
 				editorRef={editorRef}
 				editor={{
@@ -346,10 +365,6 @@ export function Composer({
 					onSelectionChange: setCursorOffset,
 					onPaste: handlePaste,
 					onLimit: reportLimitExceeded,
-					onOpenContext: (context) => {
-						if (context.kind === "file" && (canOpenFileReference?.(context.value) ?? true))
-							onOpenFileReference(context.value);
-					},
 				}}
 				footer={
 					<ComposerToolbar

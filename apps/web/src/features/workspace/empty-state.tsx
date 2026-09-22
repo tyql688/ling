@@ -49,8 +49,8 @@ function EmptyState({
 			</div>
 		);
 	return (
-		<div className="relative flex flex-1 flex-col items-center justify-center gap-5 overflow-hidden px-6">
-			<h1 className="welcome-greeting relative max-w-lg text-center font-serif text-xl text-text-primary">
+		<div className="relative flex min-h-0 flex-1 flex-col items-center justify-center-safe gap-5 overflow-y-auto overscroll-contain px-6 py-6">
+			<h1 className="welcome-greeting relative max-w-lg shrink-0 text-center font-serif text-xl text-text-primary">
 				{t(`session.emptyGreeting_${greetingSlot()}`)}
 			</h1>
 			<QuickStartComposer

@@ -102,7 +102,7 @@ export function useImageAttachments(source?: AttachmentSource, scopeKey?: string
 			for (const file of selection.accepted) {
 				try {
 					const dataUrl = await readAsDataUrl(file, controller.signal);
-					added.push({ id: crypto.randomUUID(), dataUrl, mimeType: file.type });
+					added.push({ id: crypto.randomUUID(), dataUrl, mimeType: file.type, name: file.name });
 				} catch {
 					if (controller.signal.aborted) return;
 					issue ??= { code: "read-failed", fileName: file.name };
@@ -126,32 +126,5 @@ export function useImageAttachments(source?: AttachmentSource, scopeKey?: string
 		setAttachmentIssue(null);
 	};
 
-	const handlePaste = (event: globalThis.ClipboardEvent) => {
-		const files: File[] = [];
-		if (!event.clipboardData) return;
-		for (const item of event.clipboardData.items) {
-			if (item.kind !== "file" || !item.type.startsWith("image/")) continue;
-			const file = item.getAsFile();
-			if (file !== null) files.push(file);
-			if (files.length >= SESSION_IMAGE_MAX_ITEMS + 1) break;
-		}
-		if (files.length > 0) {
-			event.preventDefault();
-			void addFiles(files);
-		}
-	};
-
-	const clear = () => {
-		attachmentsRef.current = [];
-		setAttachments([]);
-		setAttachmentIssue(null);
-	};
-	const replace = (next: PendingAttachment[]) => {
-		const committed = appendPendingAttachments([], next.slice(0, SESSION_IMAGE_MAX_ITEMS + 1));
-		attachmentsRef.current = committed.accepted;
-		setAttachments(committed.accepted);
-		setAttachmentIssue(committed.issue);
-	};
-
-	return { attachments, attachmentIssue, addFiles, removeAttachment, handlePaste, clear, replace };
+	return { attachments, attachmentIssue, addFiles, removeAttachment };
 }

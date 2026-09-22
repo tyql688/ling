@@ -4,6 +4,18 @@ import { normalizePiMessage } from "./message-normalizer";
 const options = { messageId: "live-1", entryId: "entry-1", occurredAt: 100 };
 
 describe("Pi message normalization", () => {
+	it("displays persisted images independently of provider size and format limits", () => {
+		for (const mimeType of ["image/png", "image/avif", "image/svg+xml"]) {
+			const message = normalizePiMessage(
+				{ role: "user", content: [{ type: "image", mimeType, data: "A".repeat(6 * 1024 * 1024) }] },
+				options,
+			);
+			expect(message).toMatchObject({
+				content: [{ type: "image", mimeType, source: { entryId: "entry-1", index: 0 } }],
+			});
+			expect(JSON.stringify(message).length).toBeLessThan(512);
+		}
+	});
 	it("keeps durable identity and unknown future roles visible", () => {
 		const message = normalizePiMessage({ role: "futureRole", content: "payload" }, options);
 		expect(message).toMatchObject({

@@ -5,6 +5,7 @@ import { createLogger } from "../../logger";
 import type { PiAgentSession } from "../types";
 import type { PiQueueKind, PiQueueMirror } from "./queue-mirror";
 import type { PiRuntimeOperationCoordinator } from "./runtime-operations";
+import { prepareQueuedImages } from "./queued-images";
 
 const log = createLogger("pi-sdk");
 
@@ -171,19 +172,28 @@ export function createPiRuntimeSessionActions(host: RuntimeSessionActionHost): P
 			);
 		},
 		steer: (text, images, fileReferences) =>
-			host.operations.run(() => {
-				const sessionId = host.getSession().sessionManager.getSessionId();
-				return host.queueMirror(sessionId).enqueue("steering", text, images, fileReferences);
+			host.operations.run(async () => {
+				const session = host.getSession();
+				const prepared = await prepareQueuedImages(session, images);
+				return host
+					.queueMirror(session.sessionManager.getSessionId())
+					.enqueue("steering", text, prepared, fileReferences);
 			}),
 		followUp: (text, images, fileReferences) =>
-			host.operations.run(() => {
-				const sessionId = host.getSession().sessionManager.getSessionId();
-				return host.queueMirror(sessionId).enqueue("followUp", text, images, fileReferences);
+			host.operations.run(async () => {
+				const session = host.getSession();
+				const prepared = await prepareQueuedImages(session, images);
+				return host
+					.queueMirror(session.sessionManager.getSessionId())
+					.enqueue("followUp", text, prepared, fileReferences);
 			}),
 		editQueuedMessage: (kind, index, expectedText, text, images, fileReferences) =>
-			host.operations.run(() => {
-				const sessionId = host.getSession().sessionManager.getSessionId();
-				return host.queueMirror(sessionId).edit(kind, index, expectedText, text, images, fileReferences);
+			host.operations.run(async () => {
+				const session = host.getSession();
+				const prepared = await prepareQueuedImages(session, images);
+				return host
+					.queueMirror(session.sessionManager.getSessionId())
+					.edit(kind, index, expectedText, text, prepared, fileReferences);
 			}),
 		promoteQueuedMessage: (index, expectedText) =>
 			host.operations.run(() => {

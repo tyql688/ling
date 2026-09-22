@@ -127,9 +127,9 @@
 		"fileReferenceResolveFailed": "ファイル参照を追加できませんでした。再試行してください。",
 		"fileReferenceLimit": "下書きに参照できるファイルは {{count}} 件までです。",
 		"attachmentLimitCount": "下書きに添付できる画像は {{count}} 枚までです。",
-		"attachmentLimitFileSize": "{{name}} は画像 1 枚の上限 {{size}} MB を超えています。",
-		"attachmentUnsupportedType": "PNG、JPEG、GIF、WebP 画像に対応しています。",
-		"attachmentLimitTotalSize": "添付画像の合計は {{size}} MB までです。",
+		"attachmentLimitFileSize": "{{name}} はインライン転送の上限 {{size}} MB を超えています。ローカルファイルならパスを送信できます。",
+		"attachmentUnsupportedType": "画像ではありません。ファイルとして添付してください。",
+		"attachmentLimitTotalSize": "インライン画像が下書きの上限 {{size}} MB を超えています。ローカルファイルならパスを送信できます。",
 		"attachmentReadFailed": "{{name}} を読み取れませんでした。",
 		"ctxRename": "名前を変更",
 		"ctxPin": "固定",
@@ -279,7 +279,14 @@
 		"activity_edit": "編集 {{count}} 件",
 		"activity_run": "コマンド {{count}} 件",
 		"activity_other": "その他の操作 {{count}} 件",
-		"quickStartDraftOccupied": "既存の新しい会話の下書きを送信または消去してから、提案メッセージを使用してください。"
+		"quickStartDraftOccupied": "既存の新しい会話の下書きを送信または消去してから、提案メッセージを使用してください。",
+		"attachments": "添付ファイル",
+		"previewAttachment": "{{name}} をプレビュー",
+		"removeAttachment": "{{name}} を削除",
+		"addingAttachments": "添付ファイルを追加中…",
+		"attachmentPreviewUnavailable": "プレビューできません。ファイルのダウンロードは可能です。",
+		"downloadAttachment": "ファイルをダウンロード",
+		"attachmentImportFailed": "{{name}} を追加できませんでした。{{message}}。もう一度添付してください。"
 	},
 	"explorer": {
 		"title": "ファイル",

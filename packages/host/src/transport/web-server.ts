@@ -304,6 +304,10 @@ export async function startHostWebServer(options: HostWebServerOptions): Promise
 				return;
 			}
 			if (url.pathname.startsWith("/api/media/")) {
+				if (request.method === "POST" && request.headers.origin !== expectedOrigin) {
+					response.writeHead(403).end();
+					return;
+				}
 				expireHttpSessions();
 				const sessionId = cookieValue(request, "ling_host_session");
 				if (sessionId === null || !httpSessions.has(sessionId)) {

@@ -61,8 +61,7 @@ describe("session request contracts", () => {
 			);
 		}
 		expect(
-			schemas.sendMessageRequestSchema.safeParse({ ...request, images: [{ ...image, mimeType: "image/svg+xml" }] })
-				.success,
+			schemas.sendMessageRequestSchema.safeParse({ ...request, images: [{ ...image, mimeType: "text/html" }] }).success,
 		).toBe(false);
 		expect(
 			schemas.sendMessageRequestSchema.safeParse({ ...request, images: Array(SESSION_IMAGE_MAX_ITEMS + 1).fill(image) })

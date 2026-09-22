@@ -4,7 +4,7 @@ import {
 	type BoundedJsonObject,
 	boundedJsonObjectValidationError,
 } from "@ling/contracts/bounded-json";
-import { sessionImageMimeTypeSchema, THINKING_LEVELS } from "@ling/contracts/session";
+import { SESSION_IMAGE_MAX_ITEMS, sessionImageMimeTypeSchema, THINKING_LEVELS } from "@ling/contracts/session";
 import { TOOL_PROGRESS_MAX_CHARS } from "@ling/contracts/session-tool-progress";
 import { absolutePathSchema as createAbsolutePathSchema, nativeSessionRefSchema } from "../paths";
 import { z } from "zod";
@@ -186,7 +186,7 @@ const queuedMessageSchema = z.strictObject({
 	readOnly: z.boolean().optional(),
 	text: textSchema,
 	draftText: textSchema,
-	images: z.array(imageSchema).max(10),
+	images: z.array(imageSchema).max(SESSION_IMAGE_MAX_ITEMS),
 	fileReferences: z.array(fileReferenceSchema).max(256),
 });
 const queueSchema = z.strictObject({

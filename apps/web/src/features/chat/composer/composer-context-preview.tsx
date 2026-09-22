@@ -1,5 +1,4 @@
 import type { DraftContext } from "@renderer/features/sessions/state/draft-context";
-import { ImagePreviewDialog } from "@renderer/components/image-preview-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@renderer/components/ui/dialog";
 import { Button } from "@renderer/components/ui/button";
 import { useTranslation } from "react-i18next";
@@ -10,13 +9,12 @@ export function ComposerContextPreview({
 	onClose,
 	onExpand,
 }: {
-	context: DraftContext | null;
+	context: Extract<DraftContext, { kind: "paste" | "review" }> | null;
 	label: string;
 	onClose: () => void;
 	onExpand: () => void;
 }) {
 	const { t } = useTranslation();
-	if (context?.kind === "image") return <ImagePreviewDialog image={{ src: context.value.dataUrl }} onClose={onClose} />;
 	const text =
 		context?.kind === "paste"
 			? context.value.text

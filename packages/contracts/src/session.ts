@@ -89,17 +89,11 @@ export const SESSION_IMAGE_MAX_ITEMS = 10;
 export const SESSION_IMAGE_MAX_BYTES = 16 * 1_024 * 1_024;
 /** 32 MiB cap on total images per send; bounds the combined payload — the renderer encoding policy may be stricter. */
 export const SESSION_IMAGE_TOTAL_MAX_BYTES = 32 * 1_024 * 1_024;
-/**
- * 4.5 MiB base64-character cap applied before an image is sent to the model. Layered above the
- * 16 MiB decoded-image draft cap: shared by the send-path `resizeImage` and user-content message
- * normalization, aligned with the SDK default and the ~5 MB rejection threshold most vision models
- * enforce. Tool-result images are display-only — no provider limit applies — and are instead
- * bounded by the normalized-message byte budget.
- */
-export const SESSION_IMAGE_SEND_BASE64_MAX_CHARS = Math.floor(4.5 * 1024 * 1024);
-/** Closed set of accepted image MIME types — only common previewable formats; arbitrary Content-Types are rejected at the bridge. */
-export const SESSION_IMAGE_MIME_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"] as const;
-export const sessionImageMimeTypeSchema = z.enum(SESSION_IMAGE_MIME_TYPES);
+/** Pi owns image format conversion; this boundary only admits an image media type. */
+export const sessionImageMimeTypeSchema = z
+	.string()
+	.max(128)
+	.regex(/^image\/[a-zA-Z0-9.+-]+$/);
 
 export type RunOutcome =
 	| { status: "success" }

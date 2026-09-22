@@ -20,6 +20,11 @@ export function draftContexts(draft: SessionDraft): DraftContext[] {
 	];
 }
 
+/** Attachments live above the editor; only textual context participates in cursor/undo state. */
+export function editorDraftContexts(draft: SessionDraft): DraftContext[] {
+	return draftContexts(draft).filter((context) => context.kind === "paste" || context.kind === "review");
+}
+
 export function contextKey(context: { kind: DraftContext["kind"]; id: string }): string {
 	return `${context.kind}:${context.id}`;
 }

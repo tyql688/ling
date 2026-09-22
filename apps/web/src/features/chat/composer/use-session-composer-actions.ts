@@ -67,7 +67,7 @@ export function useSessionComposerActions({
 	}, [busy, invalidateActions]);
 
 	const saveQueuedEdit = async () => {
-		if (pendingActionRef.current !== null || !queuedEdit) return;
+		if (pendingActionRef.current !== null || !queuedEdit || !core.hasSendableContent) return;
 		let prepared;
 		try {
 			prepared = prepareComposerMessage(snapshotDraft());

@@ -15,6 +15,22 @@ function draftWithText(text: string): SessionDraft {
 }
 
 describe("composer editor draft synchronization", () => {
+	it("keeps attachments outside text editing, including clearing and restoring the editor", () => {
+		const source: SessionDraft = {
+			...draftWithText("draft"),
+			attachments: [{ id: "image", name: "paste.png", mimeType: "image/png", dataUrl: "data:image/png;base64,YQ==" }],
+			fileReferences: [{ id: "file", scope: "external", path: "/tmp/clip.mp4" }],
+		};
+		const accepted = { current: source };
+		const onChange = vi.fn();
+		for (const text of ["", "new text", "draft"]) {
+			const document = composerDocumentFromDraft({ ...source, text }, () => "attachment", false);
+			expect(JSON.stringify(document.toJSON())).not.toContain("base64");
+			syncComposerProjection(projectPlainComposerDocument(document), accepted, onChange, vi.fn());
+			expect(accepted.current.attachments).toEqual(source.attachments);
+			expect(accepted.current.fileReferences).toEqual(source.fileReferences);
+		}
+	});
 	it("publishes normalized Markdown and context positions with the cursor when switching from source mode", () => {
 		const source: SessionDraft = {
 			...draftWithText("# 标题\n内容"),
@@ -31,7 +47,7 @@ describe("composer editor draft synchronization", () => {
 			expect(draft.text).toBe("# 标题\n\n内容");
 			expect(cursorOffset).toBe(draft.text.length);
 			expect(draft.fileReferences).toEqual(source.fileReferences);
-			expect(draft.contextPositions).toEqual([{ kind: "file", id: "file", offset: 8 }]);
+			expect(draft.contextPositions).toEqual([]);
 		});
 		const onSelectionChange = vi.fn();
 		syncComposerProjection(projection, accepted, onChange, onSelectionChange);

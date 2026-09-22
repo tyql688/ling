@@ -17,7 +17,7 @@ export function syncComposerProjection(
 	onChange: (draft: SessionDraft, cursorOffset: number) => void,
 	onSelectionChange: (cursorOffset: number) => void,
 ): void {
-	const draft = draftFromComposerProjection(projection);
+	const draft = draftFromComposerProjection(projection, accepted.current);
 	if (sameComposerDraft(accepted.current, draft)) {
 		onSelectionChange(projection.cursorOffset);
 		return;

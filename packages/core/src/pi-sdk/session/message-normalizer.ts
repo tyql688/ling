@@ -12,8 +12,7 @@ import {
 	type CustomSessionMessage,
 	type ModelChangeSessionMessage,
 	type RenderedCustomSessionMessage,
-	SESSION_IMAGE_MIME_TYPES,
-	SESSION_IMAGE_SEND_BASE64_MAX_CHARS,
+	sessionImageMimeTypeSchema,
 	type SessionMessage,
 	type ToolResultContentPart,
 	type ToolResultSessionMessage,
@@ -47,8 +46,6 @@ const MESSAGE_CONTENT_RESERVE_BYTES = 576 * 1024;
 const MESSAGE_CONTENT_BUDGET_BYTES = MAX_NORMALIZED_MESSAGE_BYTES - MESSAGE_CONTENT_RESERVE_BYTES;
 /** Suffix marking text truncated to fit the content budget. */
 const TEXT_TRUNCATION_SUFFIX = "\n[truncated]";
-/** Image MIME types allowed through; shares its closed set with the shared session contract. */
-const IMAGE_MIME_TYPES = new Set<string>(SESSION_IMAGE_MIME_TYPES);
 
 interface JsonBudget {
 	nodes: number;
@@ -165,7 +162,8 @@ function addressedImagePart(part: Record<string, unknown>): ImageContentPart | n
 function normalizeImagePart(part: Record<string, unknown>): { data: string; mimeType: string } | null {
 	if (part.type !== "image" || typeof part.data !== "string") return null;
 	const mimeType = typeof part.mimeType === "string" ? part.mimeType : part.mediaType;
-	return typeof mimeType === "string" && IMAGE_MIME_TYPES.has(mimeType) ? { data: part.data, mimeType } : null;
+	const parsedMimeType = sessionImageMimeTypeSchema.safeParse(mimeType);
+	return parsedMimeType.success ? { data: part.data, mimeType: parsedMimeType.data } : null;
 }
 
 /** Charges an image's base64 against the budget (base64 is ASCII, so chars == UTF-8 bytes);
@@ -245,12 +243,6 @@ function normalizeUserContent(value: unknown, entryId: string | null): string | 
 			if (part.type === "image" && typeof part.data === "string") {
 				parts.push({ type: "text", text: "[unsupported image omitted]" });
 			}
-			continue;
-		}
-		// The send cap stays for user attachments: it mirrors the provider rejection threshold,
-		// and the send path already downscaled anything larger than it.
-		if (image.data.length > SESSION_IMAGE_SEND_BASE64_MAX_CHARS) {
-			parts.push({ type: "text", text: `[oversized ${image.mimeType} image omitted]` });
 			continue;
 		}
 		if (entryId !== null) {

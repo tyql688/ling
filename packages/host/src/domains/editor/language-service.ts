@@ -14,6 +14,7 @@ import {
 } from "@ling/contracts/editor-language";
 import { resolveExistingProjectPath } from "../files/project-files";
 import { createLanguageProcess, type LanguageProcess } from "./language-process";
+import { createLanguageFileWatcher } from "./language-file-watcher";
 import { resolveLanguageServer, type LanguageServerLaunch } from "./language-servers";
 import { normalizeWorkspaceEdit } from "./workspace-edits";
 import { toError, throwAggregateFailures } from "@ling/core/ling-error";
@@ -34,6 +35,7 @@ interface Connection {
 	cwd: string;
 	launch: LanguageServerLaunch;
 	process: LanguageProcess;
+	watcher: ReturnType<typeof createLanguageFileWatcher>;
 	ready: Promise<void>;
 	capabilities: ServerCapabilities;
 	documents: Map<string, EditorDocument & { uri: string; owner: string }>;
@@ -41,6 +43,7 @@ interface Connection {
 	ticketBytes: number;
 	diagnostics: Map<string, z.infer<typeof editorDiagnosticSchema>[]>;
 	closed: boolean;
+	stopping: Promise<void> | null;
 	editCollector: { versions: DocumentVersions; changes: EditorWorkspaceChange[] } | null;
 	actionQueue: Promise<void>;
 }
@@ -90,14 +93,22 @@ export function createEditorLanguageService(options: {
 		// Bound retained full-text mirrors to 16 MiB per project/server, not only the number of files.
 		if (characters > 8 * 1_048_576) throw new Error("Open language documents exceed their memory budget");
 	}
-	async function stop(connection: Connection) {
+	function stop(connection: Connection): Promise<void> {
+		if (connection.stopping) return connection.stopping;
 		connection.closed = true;
-		connections.delete(connection.id);
 		connection.tickets.clear();
 		connection.ticketBytes = 0;
-		await connection.process.stop();
-		connection.documents.clear();
-		connection.diagnostics.clear();
+		connection.stopping = (async () => {
+			const results = await Promise.allSettled([connection.watcher.dispose(), connection.process.stop()]);
+			connection.documents.clear();
+			connection.diagnostics.clear();
+			connections.delete(connection.id);
+			throwAggregateFailures(
+				results.flatMap((result) => (result.status === "rejected" ? [result.reason] : [])),
+				"Failed to stop editor language resources",
+			);
+		})();
+		return connection.stopping;
 	}
 	async function start(clientId: string, cwd: string, launch: LanguageServerLaunch): Promise<Connection> {
 		if (disposed) throw new Error("Editor language services are shutting down");
@@ -110,6 +121,7 @@ export function createEditorLanguageService(options: {
 			cwd,
 			launch,
 			process: null as unknown as LanguageProcess,
+			watcher: null as unknown as ReturnType<typeof createLanguageFileWatcher>,
 			ready: Promise.resolve(),
 			capabilities: {},
 			documents: new Map(),
@@ -117,30 +129,32 @@ export function createEditorLanguageService(options: {
 			ticketBytes: 0,
 			diagnostics: new Map(),
 			closed: false,
+			stopping: null,
 			editCollector: null,
 			actionQueue: Promise.resolve(),
 		};
+		function onFailure(error: Error) {
+			if (connection.closed) return;
+			for (const doc of connection.documents.values())
+				options.onDiagnostics(clientId, {
+					id,
+					path: doc.path,
+					version: doc.version,
+					diagnostics: [],
+					error: error.message,
+				});
+			options.onError(error);
+			void stop(connection).catch((error: unknown) => options.onError(toError(error)));
+		}
+		connection.watcher = createLanguageFileWatcher({
+			cwd,
+			notify: (method, params) => connection.process.notify(method, params),
+			onError: onFailure,
+		});
 		connection.process = createLanguageProcess({
 			...launch,
 			cwd,
-			onFailure(error) {
-				if (connection.closed) return;
-				for (const doc of connection.documents.values())
-					options.onDiagnostics(clientId, {
-						id,
-						path: doc.path,
-						version: doc.version,
-						diagnostics: [],
-						error: error.message,
-					});
-				connection.closed = true;
-				connections.delete(id);
-				options.onError(error);
-				connection.documents.clear();
-				connection.tickets.clear();
-				connection.ticketBytes = 0;
-				connection.diagnostics.clear();
-			},
+			onFailure,
 			onNotification(method, value) {
 				if (method !== "textDocument/publishDiagnostics" || connection.closed) return;
 				const result = z
@@ -177,12 +191,15 @@ export function createEditorLanguageService(options: {
 					);
 				}
 				if (method === "workspace/workspaceFolders") return [{ uri: pathToFileURL(cwd).href, name: cwd }];
-				if (
-					method === "client/registerCapability" ||
-					method === "client/unregisterCapability" ||
-					method.endsWith("/refresh")
-				)
+				if (method === "client/registerCapability") {
+					await connection.watcher.register(value);
 					return null;
+				}
+				if (method === "client/unregisterCapability") {
+					await connection.watcher.unregister(value);
+					return null;
+				}
+				if (method.endsWith("/refresh")) return null;
 				if (method === "workspace/applyEdit") {
 					// Commands only collect a proposal; the renderer reviews it and applies it through its document owner.
 					const request = z.object({ edit: z.json(), label: z.string().optional() }).parse(value);
@@ -211,6 +228,7 @@ export function createEditorLanguageService(options: {
 				capabilities: {
 					general: { positionEncodings: ["utf-16"] },
 					workspace: {
+						didChangeWatchedFiles: { dynamicRegistration: true, relativePatternSupport: true },
 						configuration: true,
 						workspaceFolders: true,
 						applyEdit: true,

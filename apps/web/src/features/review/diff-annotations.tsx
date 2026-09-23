@@ -76,7 +76,7 @@ export function useDiffAnnotations(
 	);
 	const comment = selection === null ? null : diffSelectionComment(diff, selection);
 	const annotationProps: Pick<
-		DiffBasePropsReact<undefined>,
+		DiffBasePropsReact<undefined, undefined>,
 		"selectedLines" | "lineAnnotations" | "renderAnnotation"
 	> = {
 		selectedLines: selection,

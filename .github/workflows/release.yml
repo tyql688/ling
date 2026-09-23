@@ -230,44 +230,38 @@ jobs:
             exit 1
           fi
 
-      # electron-updater requires a trusted Authenticode signature as well as a matching
-      # publisherName. A self-signed certificate that works for macOS is insufficient on
-      # ordinary Windows installations; the verification step must reject it before upload.
-      - name: Package Windows
+      # Windows currently ships through manual downloads. Keep resource editing enabled
+      # while electron-builder.yml explicitly disables signing. No Windows update feed
+      # is uploaded, so existing signed clients never receive an unsigned replacement.
+      - name: Package unsigned Windows installer
         if: runner.os == 'Windows'
-        shell: bash
-        env:
-          WIN_CSC_LINK: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
         run: |
-          set -euo pipefail
-          if [ -z "${WIN_CSC_LINK:-}" ] || [ -z "${WIN_CSC_KEY_PASSWORD:-}" ]; then
-            echo "WINDOWS_SIGNING_CERTIFICATE and WINDOWS_SIGNING_CERTIFICATE_PASSWORD are required for trusted Windows signing." >&2
-            exit 1
-          fi
-          pnpm exec node --experimental-strip-types apps/desktop/scripts/package.ts \
-            ${{ matrix.builder_args }} \
-            --config.win.forceCodeSigning=true
+          pnpm exec node --experimental-strip-types apps/desktop/scripts/package.ts ${{ matrix.builder_args }}
 
       - name: Verify Windows artifacts
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $targets = @(Get-ChildItem -Path apps/desktop/artifacts -Filter *.exe -File) +
-                     @(Get-ChildItem -Path apps/desktop/artifacts/win-unpacked -Filter Ling.exe -File -ErrorAction SilentlyContinue)
-          if ($targets.Count -eq 0) {
-            Write-Error 'No Windows executables found under apps/desktop/artifacts/.'
+          $installers = @(Get-ChildItem -Path apps/desktop/artifacts -Filter *.exe -File)
+          $app = Get-Item apps/desktop/artifacts/win-unpacked/Ling.exe
+          if ($installers.Count -ne 1) {
+            throw 'Expected exactly one Windows installer.'
           }
-          foreach ($target in $targets) {
+          foreach ($target in @($installers) + @($app)) {
             $signature = Get-AuthenticodeSignature -LiteralPath $target.FullName
             Write-Host "==> $($target.Name): $($signature.Status)"
-            # Match the updater's SignatureStatus.Valid requirement. UnknownError and
-            # NotTrusted also block updates, even when a signer certificate is present.
-            if ($signature.Status -ne 'Valid') {
-              Write-Error "$($target.Name) cannot pass electron-updater signature verification: $($signature.Status). A trusted Windows code signing certificate is required."
+            if ($signature.Status -ne 'NotSigned') {
+              throw "$($target.Name) must be explicitly unsigned for manual distribution; found $($signature.Status)."
             }
-            Write-Host "    signer: $($signature.SignerCertificate.Subject)"
+          }
+          $resources = 'apps/desktop/artifacts/win-unpacked/resources'
+          $arch = & "$resources/runtime/node.exe" -p 'process.arch'
+          if ($LASTEXITCODE -ne 0 -or $arch -ne 'x64') {
+            throw 'Packaged Windows Node must execute natively as x64.'
+          }
+          foreach ($entry in @('host/dist/index.js', 'web/index.html', 'builtin-skills')) {
+            if (!(Test-Path "$resources/$entry")) { throw "Missing packaged resource: $entry" }
           }
 
       # Linux ships unsigned: AppImage and deb have no signature layer comparable to
@@ -297,7 +291,11 @@ jobs:
             mv apps/desktop/artifacts/latest-mac.yml "apps/desktop/artifacts/latest-$ARTIFACT_PLATFORM.yml"
           fi
           shopt -s nullglob
-          FILES=(apps/desktop/artifacts/*.{AppImage,blockmap,deb,dmg,exe,zip} apps/desktop/artifacts/latest*.yml)
+          if [ "$ARTIFACT_PLATFORM" = "windows-x64" ]; then
+            FILES=(apps/desktop/artifacts/*.exe)
+          else
+            FILES=(apps/desktop/artifacts/*.{AppImage,blockmap,deb,dmg,zip} apps/desktop/artifacts/latest*.yml)
+          fi
           if [ "${#FILES[@]}" -eq 0 ]; then
             echo "No release assets were produced." >&2
             exit 1

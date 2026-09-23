@@ -91,7 +91,7 @@ function HighlightedCodeView({
 	fallback,
 }: {
 	file: FileContents;
-	options: FileOptions<undefined>;
+	options: FileOptions<undefined, undefined>;
 	fallback: ReactNode;
 }) {
 	const [ready, setReady] = useState(false);

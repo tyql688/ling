@@ -15,6 +15,7 @@ interface DesktopUpdaterOptions {
 	>;
 	appVersion: string;
 	supported: boolean;
+	manualDownloadUrl?: string | undefined;
 	prepareInstall(): Promise<void>;
 	onPrepared(): void;
 	onInstallFailed(error: Error): void;
@@ -23,6 +24,7 @@ interface DesktopUpdaterOptions {
 
 export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 	const autoUpdater = options.updater;
+	const supported = options.supported && !options.manualDownloadUrl;
 	let stopped = false;
 	let disposed = false;
 	let latestEvent: UpdateEvent | null = null;
@@ -43,7 +45,12 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 	};
 	const assertAvailable = (): void => {
 		if (stopped || disposed) throw new Error("The updater is shutting down");
-		if (!options.supported) throw new Error("Updates are only available in packaged builds");
+		if (!supported)
+			throw new Error(
+				options.manualDownloadUrl
+					? "This build requires manual installation from the release page"
+					: "Updates are only available in packaged builds",
+			);
 		if (installation !== "idle") throw new Error("Update installation has started. Restart Ling before retrying.");
 	};
 	const installFailed = (error: unknown): Error => {
@@ -121,7 +128,8 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 		},
 		getState: (): UpdateState => ({
 			appVersion: options.appVersion,
-			supported: options.supported,
+			supported,
+			...(options.manualDownloadUrl ? { manualDownloadUrl: options.manualDownloadUrl } : {}),
 			event: latestEvent,
 		}),
 		check: async (): Promise<void> => {
@@ -185,7 +193,7 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 		},
 		/** Called only after ordinary shutdown has drained every owner successfully. */
 		installOnQuit: (): boolean => {
-			if (downloadedVersion === null || installation !== "idle") return false;
+			if (!supported || downloadedVersion === null || installation !== "idle") return false;
 			installation = "preparing";
 			publish({ type: "installing" });
 			try {

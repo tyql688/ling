@@ -53,6 +53,9 @@ function startDesktop(): void {
 		updater: electronUpdater.autoUpdater,
 		appVersion: __LING_VERSION__,
 		supported: app.isPackaged,
+		// Unsigned Windows releases use manual installation until a trusted publisher is configured.
+		manualDownloadUrl:
+			app.isPackaged && process.platform === "win32" ? "https://github.com/tyql688/ling/releases/latest" : undefined,
 		prepareInstall: shutdown.prepareInstall,
 		onPrepared: shutdown.completeInstall,
 		onInstallFailed: shutdown.reportFailure,

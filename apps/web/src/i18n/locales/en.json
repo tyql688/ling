@@ -1010,6 +1010,8 @@
 		"about": "About",
 		"version": "Version",
 		"updateCheck": "Check for updates",
+		"updateManualDescription": "Download and install updates manually for this build.",
+		"updateOpenDownloads": "Go to downloads",
 		"updateChecking": "Checking…",
 		"updateNone": "Up to date",
 		"updateAvailable": "New version {{version}} available",

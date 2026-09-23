@@ -52,6 +52,7 @@ electronLanguages:
   - ja
   - ko
 mac:
+  minimumSystemVersion: "13.0"
   icon: ../../resources/icon.icns
   target:
     - dmg
@@ -59,6 +60,7 @@ mac:
   category: public.app-category.developer-tools
 win:
   icon: ../../resources/icon.ico
+  signExecutable: false
   target:
     - nsis
 linux:

@@ -235,10 +235,12 @@ export function SystemPermissionsSection() {
 /** Version row plus the native updater state machine (check → download → restart-install). */
 export function UpdateRow() {
 	const hostUpdatesApi = useDomainApi("updates");
+	const appApi = useDomainApi("app");
 
 	const { t } = useTranslation();
 	const [appVersion, setAppVersion] = useState("");
 	const [supported, setSupported] = useState(false);
+	const [manualDownloadUrl, setManualDownloadUrl] = useState<string>();
 	const [phase, setPhase] = useState<UpdateEvent | null>(null);
 
 	useEffect(() => {
@@ -250,6 +252,7 @@ export function UpdateRow() {
 				if (cancelled) return;
 				setAppVersion(state.appVersion);
 				setSupported(state.supported);
+				setManualDownloadUrl(state.manualDownloadUrl);
 				if (!eventReceived) setPhase(state.event);
 			})
 			.catch((error: unknown) => {
@@ -278,7 +281,7 @@ export function UpdateRow() {
 	const status = (() => {
 		switch (phase?.type) {
 			case undefined:
-				return null;
+				return manualDownloadUrl ? t("settings.updateManualDescription") : null;
 			case "checking":
 				return t("settings.updateChecking");
 			case "not-available":
@@ -304,6 +307,12 @@ export function UpdateRow() {
 				<span className="max-w-64 truncate text-xs text-text-muted" title={status}>
 					{status}
 				</span>
+			)}
+			{manualDownloadUrl && (
+				<Button variant="outline" size="sm" onClick={() => invoke(() => appApi.openExternal(manualDownloadUrl))}>
+					<ExternalLink className="size-3.5" aria-hidden="true" />
+					{t("settings.updateOpenDownloads")}
+				</Button>
 			)}
 			{supported &&
 				(phase === null || phase.type === "not-available" || (phase.type === "error" && !phase.restartRequired)) && (

@@ -1,5 +1,4 @@
 diff --git a/templates/nsis/include/extractAppPackage.nsh b/templates/nsis/include/extractAppPackage.nsh
-index f5470bf52e923dc47266cea4684c76ef78ced451..e70435fdb1169387ea8a8791f2375bd3bb04da3f 100644
 --- a/templates/nsis/include/extractAppPackage.nsh
 +++ b/templates/nsis/include/extractAppPackage.nsh
 @@ -105,7 +105,11 @@

@@ -38,9 +38,11 @@ import {
 } from "@renderer/features/sessions/state/session";
 import { isExpectedCompanionRace } from "@renderer/lib/errors";
 import i18next from "i18next";
-import type { Store } from "jotai/vanilla/store";
+import type { createStore } from "jotai/vanilla";
 import { sessionViewFamily } from "../state/session";
 import { reduceSessionView } from "./session-view";
+
+type Store = ReturnType<typeof createStore>;
 
 const scheduleMessageUpdateFlush: ScheduleSessionMessageUpdateFlush = (callback) => {
 	let finished = false;

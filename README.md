@@ -23,6 +23,10 @@ Ling brings Pi conversations, project files, change review and terminals into on
 
 Install Node.js **22.19 or newer**, Git and the pnpm version declared in [package.json](package.json) (currently **11.25.0**).
 
+The macOS desktop app requires **macOS 13 or newer**.
+
+Windows installers are currently unsigned and may show an unknown-publisher warning. Download and install updates manually from [Releases](https://github.com/tyql688/ling/releases/latest); the Windows app links to that page from Settings.
+
 ```sh
 git clone https://github.com/tyql688/ling.git
 cd ling

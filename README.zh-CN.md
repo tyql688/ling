@@ -23,6 +23,10 @@ Ling 将 Pi 会话、项目文件、变更审阅和终端放在同一个工作�
 
 安装 Node.js **22.19 或更新版本**、Git，以及 [package.json](package.json) 声明的 pnpm 版本（目前为 **11.25.0**）。
 
+macOS 桌面端要求 **macOS 13 或更新版本**。
+
+Windows 安装包目前未签名，系统可能提示发布者未知。请从 [Releases](https://github.com/tyql688/ling/releases/latest) 手动下载安装更新；Windows 版设置页提供下载入口。
+
 ```sh
 git clone https://github.com/tyql688/ling.git
 cd ling

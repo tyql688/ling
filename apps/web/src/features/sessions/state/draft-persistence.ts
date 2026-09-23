@@ -9,8 +9,7 @@ import {
 	type WriteDraft,
 } from "@ling/contracts/draft";
 import { errorMessage } from "@ling/contracts/ling-error";
-import { atom } from "jotai/vanilla";
-import type { Store } from "jotai/vanilla/store";
+import { atom, type createStore } from "jotai/vanilla";
 import { rebaseContextPositions } from "./draft-context";
 import {
 	draftsAtom,
@@ -28,6 +27,7 @@ const RECOVERY_KEY = "ling:draft-recovery";
 const DEBOUNCE_MS = 1000;
 const MAX_WAIT_MS = 5000;
 type DraftApi = HostApi["draft"];
+type Store = ReturnType<typeof createStore>;
 type DraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 interface PendingDraft {
 	request: WriteDraft;

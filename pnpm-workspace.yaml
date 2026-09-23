@@ -11,13 +11,19 @@ allowBuilds:
   electron-winstaller: false # packaging-time only; build script never ran under pnpm 10 either
   tree-sitter-bash: false # permission parsing uses the shipped WASM grammar, not the native Node binding
 minimumReleaseAgeExclude:
-  - "@earendil-works/chord@0.87.0"
-  - "@earendil-works/pi-agent-core@0.87.0"
-  - "@earendil-works/pi-ai@0.87.0"
-  - "@earendil-works/pi-coding-agent@0.87.0"
-  - "@earendil-works/pi-telemetry@0.87.0"
-  - "@earendil-works/pi-tui@0.87.0"
-  - "@gotgenes/pi-permission-system@33.0.5"
+  - "@earendil-works/chord@0.87.1"
+  - "@earendil-works/pi-agent-core@0.87.1"
+  - "@earendil-works/pi-ai@0.87.1"
+  - "@earendil-works/pi-coding-agent@0.87.1"
+  - "@earendil-works/pi-telemetry@0.87.1"
+  - "@earendil-works/pi-tui@0.87.1"
+  - "@gotgenes/pi-permission-system@33.0.7"
+  - electron@44.4.4
+  - framer-motion@13.4.1
+  - motion-dom@13.4.1
+  - motion@13.4.1
+  - npm@11.20.0
+  - undici@8.11.0
 overrides:
   "ansi-to-react>linkify-it": 5.0.2
   "minimatch@3.1.5>brace-expansion": 1.1.18
@@ -30,6 +36,6 @@ patchedDependencies:
   "@floating-ui/core@1.8.0": patches/@floating-ui__core@1.8.0.patch
   "@floating-ui/dom@1.8.0": patches/@floating-ui__dom@1.8.0.patch
   # Expose the staged NSIS copy hook without replacing the signed installer/update workflow.
-  app-builder-lib@26.15.7: patches/app-builder-lib@26.15.7.patch
-  # Keep strict Mermaid labels in SVG and preserve br line breaks before label measurement.
-  markstream-react@2.0.8: patches/markstream-react@2.0.8.patch
+  app-builder-lib@26.16.1: patches/app-builder-lib@26.16.1.patch
+  # Preserve strict SVG labels, line breaks and the classic diagram layout across Mermaid upgrades.
+  markstream-react@2.0.13: patches/markstream-react@2.0.13.patch

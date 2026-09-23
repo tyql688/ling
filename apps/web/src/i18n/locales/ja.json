@@ -1010,6 +1010,8 @@
 		"about": "このアプリについて",
 		"version": "バージョン",
 		"updateCheck": "更新を確認",
+		"updateManualDescription": "このバージョンは更新を手動でダウンロードしてインストールしてください。",
+		"updateOpenDownloads": "ダウンロードページへ",
 		"updateChecking": "確認中…",
 		"updateNone": "最新です",
 		"updateAvailable": "新しいバージョン {{version}} があります",

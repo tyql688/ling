@@ -23,6 +23,10 @@ Ling は Pi の会話、プロジェクトファイル、変更レビュー、�
 
 Node.js **22.19 以降**、Git、および [package.json](package.json) に指定された pnpm（現在は **11.25.0**）をインストールしてください。
 
+macOS デスクトップ版には **macOS 13 以降**が必要です。
+
+Windows インストーラーは現在未署名のため、発行元不明の警告が表示される場合があります。[Releases](https://github.com/tyql688/ling/releases/latest) から更新を手動でダウンロードしてインストールしてください。Windows 版の設定画面にもダウンロードページへのリンクがあります。
+
 ```sh
 git clone https://github.com/tyql688/ling.git
 cd ling

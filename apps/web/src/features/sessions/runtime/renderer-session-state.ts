@@ -14,8 +14,9 @@ import {
 	sessionTranscriptStateFamily,
 } from "@renderer/features/sessions/state/session";
 import { attachmentDataUrlBytes } from "@renderer/features/sessions/state/image-attachment-policy";
-import type { Store } from "jotai/vanilla/store";
+import type { createStore } from "jotai/vanilla";
 
+type Store = ReturnType<typeof createStore>;
 type RendererSessionStateToken = symbol;
 type RendererSessionEvictionListener = (keys: readonly string[]) => void;
 
@@ -82,7 +83,7 @@ function resetSessionRuntimeAtoms(
 	else sessionViewFamily.remove(key);
 
 	if (removeSeenAt) {
-		// jotai/utils atomFamily retains params forever unless remove() is called; without this,
+		// jotai-family retains params forever unless remove() is called; without this,
 		// every deleted session leaves a derived seen-at atom behind.
 		sessionSeenAtFamily.remove(key);
 	}

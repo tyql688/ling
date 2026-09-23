@@ -1,7 +1,9 @@
 export interface UpdateState {
 	appVersion: string;
-	/** False in unpackaged development builds because no update channel is available. */
+	/** Whether this build can check, download and install native updates. */
 	supported: boolean;
+	/** Release page for packaged builds distributed through manual installation. */
+	manualDownloadUrl?: string;
 	/** Latest native update state, including events emitted before the settings view mounted. */
 	event: UpdateEvent | null;
 }

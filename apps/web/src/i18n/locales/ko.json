@@ -1010,6 +1010,8 @@
 		"about": "정보",
 		"version": "버전",
 		"updateCheck": "업데이트 확인",
+		"updateManualDescription": "이 버전은 업데이트를 직접 다운로드하여 설치해야 합니다.",
+		"updateOpenDownloads": "다운로드 페이지 열기",
 		"updateChecking": "확인 중…",
 		"updateNone": "최신 버전입니다",
 		"updateAvailable": "새 버전 {{version}}이 있습니다",

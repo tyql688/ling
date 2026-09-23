@@ -7,7 +7,7 @@ import { createDesktopUpdater } from "./updater";
 const info = { version: "0.2.0", files: [], path: "update.zip", sha512: "fixture", releaseDate: "2026-09-22" };
 const available: UpdateCheckResult = { isUpdateAvailable: true, updateInfo: info, versionInfo: info };
 
-function createFixture(prepareInstall?: () => Promise<void>) {
+function createFixture(prepareInstall?: () => Promise<void>, manualDownloadUrl?: string) {
 	const events = new EventEmitter();
 	const received: UpdateEvent[] = [];
 	const backend = {
@@ -34,6 +34,7 @@ function createFixture(prepareInstall?: () => Promise<void>) {
 		updater: backend,
 		appVersion: "0.1.0",
 		supported: true,
+		manualDownloadUrl,
 		prepareInstall: prepareInstall ?? (() => updater.stop()),
 		onPrepared,
 		onInstallFailed,
@@ -44,6 +45,20 @@ function createFixture(prepareInstall?: () => Promise<void>) {
 }
 
 describe("desktop update lifecycle", () => {
+	it("exposes manual downloads and rejects every native update entry point for unsigned builds", async () => {
+		const manualDownloadUrl = "https://github.com/tyql688/ling/releases/latest";
+		const { updater, backend, events } = createFixture(undefined, manualDownloadUrl);
+		expect(updater.getState()).toMatchObject({ supported: false, manualDownloadUrl });
+		await expect(updater.check()).rejects.toThrow("manual installation");
+		await expect(updater.download()).rejects.toThrow("manual installation");
+		expect(() => updater.install()).toThrow("manual installation");
+		events.emit("update-downloaded", info);
+		expect(updater.installOnQuit()).toBe(false);
+		expect(backend.checkForUpdates).not.toHaveBeenCalled();
+		expect(backend.downloadUpdate).not.toHaveBeenCalled();
+		expect(backend.quitAndInstall).not.toHaveBeenCalled();
+	});
+
 	it("reports a native installation error after request shutdown and releases listeners only at final quit", async () => {
 		const { updater, events, onInstallFailed } = createFixture();
 		await updater.check();

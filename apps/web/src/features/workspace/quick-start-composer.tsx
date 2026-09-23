@@ -56,6 +56,7 @@ export function QuickStartComposer(props: QuickStartComposerProps) {
 		completionPanel,
 		completionInput,
 		modelOptions,
+		defaultModel,
 		submitting,
 		attachmentIssue,
 		addingAttachments,
@@ -183,13 +184,17 @@ export function QuickStartComposer(props: QuickStartComposerProps) {
 					<ComposerModelControls
 						options={modelOptions}
 						selected={displayModel}
+						defaultModel={defaultModel}
 						modelLabel={modelPillLabel}
 						thinkingLevel={displayThinkingLevel}
 						thinkingLevels={displayThinkingLevels}
 						modelDisabled={!readyToSubmit || submitting}
 						thinkingDisabled={!readyToSubmit || submitting}
 						projectPath={targetProject?.cwd ?? null}
-						onModelSelect={selectModel}
+						onModelSelect={(model) => {
+							selectModel(model);
+							editorRef.current?.focus();
+						}}
 						onThinkingLevelChange={selectThinking}
 					/>
 				</ComposerToolbarFrame>

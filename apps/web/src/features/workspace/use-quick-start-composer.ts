@@ -156,6 +156,7 @@ export function useQuickStartComposer({ projects, preferredCwd, onAddProject, on
 	const {
 		model,
 		modelOptions,
+		defaultModel,
 		pickedThinkingLevel,
 		modelPillLabel,
 		effectiveThinkingLevel,
@@ -341,6 +342,7 @@ export function useQuickStartComposer({ projects, preferredCwd, onAddProject, on
 				: undefined,
 		},
 		modelOptions,
+		defaultModel,
 		submitting,
 		attachmentIssue,
 		fileReferenceIssue,

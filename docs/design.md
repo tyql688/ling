@@ -30,6 +30,8 @@ Session analysis and provider quotas use compact inspectors with 44px headers an
 
 The default interface is monochrome with sparse accent. Settings use divided rows, modest headings and short descriptions. A narrow viewport stacks field labels above controls. Selecting any settings entry closes the navigation sheet, including feature entries and the already active page. Workbench tools use compact panels; full settings-page padding must not consume a narrow sidebar. Product screens show configuration and failures, not build hashes and implementation paths unless those paths are the object being edited.
 
+Long settings option groups use the shared stacked field layout. Pi default tools place their label and description above an equal-width grid that adapts to the available content width, so the sidebar and interface zoom cannot squeeze the description into a narrow column.
+
 ## Component map
 
 | Responsibility | Owner |
@@ -41,6 +43,7 @@ The default interface is monochrome with sparse accent. Settings use divided row
 | Option selection | `components/ui/select.tsx` |
 | Action menus | `components/ui/dropdown-menu.tsx`, `context-menu.tsx` |
 | Composer completion lists | `components/ui/completion-panel.tsx`; `hooks/use-completion-popover.ts` owns input focus and keyboard selection |
+| Anchored selection panels | `components/ui/picker-panel.tsx`; `features/models/model-picker.tsx` owns model and provider navigation |
 | Popup surfaces, motion and highlights | `components/ui/menu-styles.ts`, `menu.css` |
 | Navigation entries | `components/ui/navigation-item.tsx` |
 | Settings structure | `components/ui/settings-page.tsx`, `settings-list.tsx` |
@@ -62,6 +65,14 @@ Selects, dropdown menus and context menus share a tinted, blurred surface, compa
 Do not draw focus rings anywhere in Ling, including existing controls, custom feature interactions, Markdown, code editors and Pi UI adaptations. Focus must not add an outline, border, inset ring or shadow. Preserve native focus, keyboard navigation, focus restoration, text carets and selection. Use an appropriate background or text treatment to identify a keyboard target. Validation borders and persistent surface hairlines are independent of focus.
 
 Escape closes without changing the selection and restores focus to the trigger, including triggers in Pi extension dialogs. Menus retain Radix's focus collection and typeahead; do not recreate either in feature event handlers. Full labels must remain available for truncated project names. Menu actions use the desktop arrow cursor; ordinary controls inherit Ling's cursor and focus treatment.
+
+## Model selection
+
+Model selection opens in an anchored non-modal popover, above its Composer trigger or below its settings trigger. It has no backdrop and never moves the editor, transcript or neighboring settings fields. Conversation, quickstart, Pi defaults, per-model compaction settings and reference-model selection share one picker. Narrow Composers keep the model trigger directly visible. Opening or closing the picker must preserve the editor instance, draft, attachments and undo history; changing its owning project or conversation closes it.
+
+The selection surface is 440px wide, constrained to the available viewport or containing dialog, and normally 304px tall. When the available viewport height is smaller, only the list area contracts so the search and footer remain reachable. It flips and shifts near an edge without changing surrounding layout. Search and footer stay fixed while provider and model lists scroll independently; empty results and provider navigation keep the same height. At widths below 376px, provider selection occupies the same list area with a back action. Wider panels show a 108px provider rail. Provider filtering uses the actual configured provider, including when a model ID names another provider. The provider rail follows model search results while retaining All providers and the selected provider. Its search action opens the provider page in the same surface; provider search matches provider names and IDs independently of the model query. Each page retains its own query when navigating between them. Browse across all providers by default, or narrow to one without losing the model query. Full model identities remain available on hover.
+
+Search follows Pi TUI's whitespace/slash tokenization, ordered fuzzy matching, letter/number token fallback and relevance ranking. All tokens must match. Search also includes provider display names. Current and known default models lead an unfiltered list; a default prefix finds the supplied default model. A changed query highlights its best result, and matching text is emphasized without changing the label. The search field’s clear action clears only the current page’s query and keeps the picker open. Tab reaches the provider rail as one stop; arrows or Home/End move within it and Enter confirms the provider before returning to model search. Arrow keys move through search results and Enter selects; IME confirmation must not select a model. Escape closes the provider page first, then the picker, restoring trigger focus; selection returns to the Composer editor when applicable. Clicks or focus outside close the picker. Keyboard targets use quiet backgrounds with no focus rings.
 
 ## Questions and approvals
 

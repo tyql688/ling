@@ -478,17 +478,12 @@ const ReasoningBlock = memo(
 						<span
 							ref={summaryRef}
 							className={cn(
-								"min-w-0 flex-1 overflow-hidden whitespace-nowrap text-text-muted",
+								"min-w-0 overflow-hidden whitespace-nowrap text-text-muted",
 								// An ellipsis would paint over the very characters the scroll is revealing.
 								isStreaming ? "text-clip" : "text-ellipsis",
 							)}
 						>
 							{preview}
-						</span>
-					)}
-					{isStreaming && (
-						<span className="ling-spin ml-auto shrink-0" aria-hidden="true">
-							<LoaderCircle className="size-3.5" />
 						</span>
 					)}
 					<ChevronDown
@@ -498,6 +493,11 @@ const ReasoningBlock = memo(
 						)}
 						aria-hidden="true"
 					/>
+					{isStreaming && (
+						<span className="ling-spin ml-auto shrink-0" aria-hidden="true">
+							<LoaderCircle className="size-3.5" />
+						</span>
+					)}
 				</button>
 				{expanded && (
 					<div className={cn("mt-1 ml-7 border-border-subtle border-l pl-3", EXPANDED_DETAIL_SCROLL_CLASS)}>

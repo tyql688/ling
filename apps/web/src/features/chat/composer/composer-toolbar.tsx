@@ -35,6 +35,7 @@ import { AccessModeControl } from "@renderer/features/pi-adapters/permission-sys
 import { TodoProgress } from "@renderer/features/pi-adapters/todo/todo-progress";
 import { BackgroundTasksProgress } from "@renderer/features/background-tasks/background-tasks-progress";
 import type { SessionRef } from "@ling/contracts/session-ref";
+import { sessionKey } from "@ling/contracts/session-ref";
 import { useTranslation } from "react-i18next";
 import type { ComposerPendingAction } from "./use-composer-core";
 
@@ -61,7 +62,6 @@ interface ComposerToolbarProps {
 	onSubmit: () => void;
 }
 
-/** Both entry points retain one action row; narrow columns move model controls into a dialog. */
 /** Feature controls shared by every composer: access mode for the project, progress badges for a session. */
 export function ComposerFeatureControls({
 	projectPath,
@@ -95,8 +95,8 @@ export function ComposerToolbarFrame({
 	const { t } = useTranslation();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	return (
-		<div className="flex min-h-8 min-w-0 items-center gap-2">
-			<div className="-m-1 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+		<div className="flex min-h-8 min-w-0 items-end gap-2 @min-[36rem]/composer:items-center">
+			<div className="-m-1 flex min-w-0 flex-1 flex-wrap items-center gap-1 p-1 @min-[36rem]/composer:flex-nowrap @min-[36rem]/composer:overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 				<input
 					ref={fileInputRef}
 					type="file"
@@ -135,6 +135,8 @@ export function ComposerToolbarFrame({
 export function ComposerModelControls({
 	options,
 	selected,
+	defaultModel,
+	ownerKey,
 	modelLabel,
 	thinkingLevel,
 	thinkingLevels,
@@ -147,6 +149,8 @@ export function ComposerModelControls({
 }: {
 	options: readonly ModelPickerOption[];
 	selected: Pick<ModelPickerOption, "provider" | "id" | "name"> | null;
+	defaultModel?: Pick<ModelPickerOption, "provider" | "id"> | null;
+	ownerKey?: string;
 	modelLabel?: string;
 	thinkingLevel: ThinkingLevel;
 	thinkingLevels: readonly ThinkingLevel[];
@@ -159,17 +163,16 @@ export function ComposerModelControls({
 }) {
 	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
-	const model = (compact: boolean) => (
+	const model = (
 		<ModelPicker
 			options={options}
 			selected={selected}
+			defaultModel={defaultModel ?? null}
+			ownerKey={ownerKey ?? projectPath ?? ""}
+			placement="top-start"
 			onSelect={onModelSelect}
 			disabled={modelDisabled}
-			triggerClassName={
-				compact
-					? "h-8 max-w-48 rounded-control border border-border-subtle px-2 text-xs"
-					: "h-7 max-w-36 shrink-0 rounded-control border border-transparent bg-transparent px-1.5 text-xs font-normal leading-5 text-text-muted hover:bg-surface-hover hover:text-text-primary disabled:opacity-100 @min-[40rem]/composer:max-w-48"
-			}
+			triggerClassName="h-7 max-w-36 shrink-0 rounded-control border border-transparent bg-transparent px-1.5 text-xs font-normal leading-5 text-text-muted hover:bg-surface-hover hover:text-text-primary disabled:opacity-100 @min-[40rem]/composer:max-w-48"
 		>
 			<ProviderGlyph provider={selected?.provider ?? ""} size={14} className="shrink-0" />
 			<span className="min-w-0 truncate">{modelLabel ?? selected?.name ?? t("session.defaultModel")}</span>
@@ -191,61 +194,59 @@ export function ComposerModelControls({
 	);
 	return (
 		<>
-			<Dialog open={open} onOpenChange={setOpen}>
-				<Tooltip>
-					<TooltipTrigger
-						render={
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={() => setOpen(true)}
-								aria-label={t("session.sessionSettings")}
-								className="size-7 shrink-0 text-text-muted @min-[36rem]/composer:hidden"
-							/>
-						}
-					>
-						<SlidersHorizontal className="size-3.5" aria-hidden="true" />
-					</TooltipTrigger>
-					<TooltipContent>{t("session.sessionSettings")}</TooltipContent>
-				</Tooltip>
-				<DialogContent size="small">
-					<DialogCloseButton aria-label={t("session.cancel")} />
-					<DialogHeader>
-						<DialogTitle>{t("session.sessionSettings")}</DialogTitle>
-						<DialogDescription>
-							{t(additionalSettings ? "session.sessionSettingsDescription" : "session.modelSettingsDescription")}
-						</DialogDescription>
-					</DialogHeader>
-					<div className="mt-4 divide-y divide-border-subtle overflow-hidden rounded-panel border border-border-subtle">
-						{projectPath && (
-							<div className="flex min-h-11 items-center justify-between gap-4 px-3 py-2">
-								<span className="text-xs text-text-muted">{t("project.title")}</span>
-								<span className="min-w-0 truncate text-xs font-medium" title={projectPath}>
-									{basenameFromPath(projectPath)}
-								</span>
-							</div>
-						)}
-						<div className="flex min-h-11 items-center justify-between gap-4 px-3 py-2">
-							<span className="text-xs text-text-muted">{t("modelPicker.title")}</span>
-							{model(true)}
+			{model}
+			{(thinkingLevels.length > 1 || additionalSettings) && (
+				<Dialog open={open} onOpenChange={setOpen}>
+					<Tooltip>
+						<TooltipTrigger
+							render={
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={() => setOpen(true)}
+									aria-label={t("session.sessionSettings")}
+									className="size-7 shrink-0 text-text-muted @min-[36rem]/composer:hidden"
+								/>
+							}
+						>
+							<SlidersHorizontal className="size-3.5" aria-hidden="true" />
+						</TooltipTrigger>
+						<TooltipContent>{t("session.sessionSettings")}</TooltipContent>
+					</Tooltip>
+					<DialogContent size="small">
+						<DialogCloseButton aria-label={t("session.cancel")} />
+						<DialogHeader>
+							<DialogTitle>{t("session.sessionSettings")}</DialogTitle>
+							<DialogDescription>
+								{t(additionalSettings ? "session.sessionSettingsDescription" : "session.modelSettingsDescription")}
+							</DialogDescription>
+						</DialogHeader>
+						<div className="mt-4 divide-y divide-border-subtle overflow-hidden rounded-panel border border-border-subtle">
+							{projectPath && (
+								<div className="flex min-h-11 items-center justify-between gap-4 px-3 py-2">
+									<span className="text-xs text-text-muted">{t("project.title")}</span>
+									<span className="min-w-0 truncate text-xs font-medium" title={projectPath}>
+										{basenameFromPath(projectPath)}
+									</span>
+								</div>
+							)}
+							{thinkingLevels.length > 1 && (
+								<div className="flex min-h-11 items-center justify-between gap-4 px-3 py-2">
+									<span className="text-xs text-text-muted">{t("session.thinkingLevelLabel")}</span>
+									{thinking(true)}
+								</div>
+							)}
+							{additionalSettings && (
+								<div className="flex min-h-11 items-center justify-between gap-4 px-3 py-2">
+									<span className="text-xs text-text-muted">{additionalSettings.label}</span>
+									{additionalSettings.control}
+								</div>
+							)}
 						</div>
-						{thinkingLevels.length > 1 && (
-							<div className="flex min-h-11 items-center justify-between gap-4 px-3 py-2">
-								<span className="text-xs text-text-muted">{t("session.thinkingLevelLabel")}</span>
-								{thinking(true)}
-							</div>
-						)}
-						{additionalSettings && (
-							<div className="flex min-h-11 items-center justify-between gap-4 px-3 py-2">
-								<span className="text-xs text-text-muted">{additionalSettings.label}</span>
-								{additionalSettings.control}
-							</div>
-						)}
-					</div>
-				</DialogContent>
-			</Dialog>
+					</DialogContent>
+				</Dialog>
+			)}
 			<div className="hidden min-w-0 items-center gap-1 @min-[36rem]/composer:flex">
-				{model(false)}
 				{thinkingLevels.length > 1 && thinking(false)}
 				{additionalSettings?.control}
 			</div>
@@ -451,6 +452,7 @@ export function ComposerToolbar({
 			}
 		>
 			<ComposerModelControls
+				ownerKey={sessionRef ? sessionKey(sessionRef) : projectPath}
 				options={modelState?.models ?? []}
 				selected={currentModel}
 				thinkingLevel={modelState?.thinkingLevel ?? "off"}

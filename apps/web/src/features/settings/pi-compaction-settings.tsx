@@ -58,6 +58,11 @@ export function PiCompactionSettings({
 						<ModelPicker
 							options={models}
 							selected={model}
+							defaultModel={
+								snapshot.defaultProvider && snapshot.defaultModel
+									? { provider: snapshot.defaultProvider, id: snapshot.defaultModel }
+									: null
+							}
 							onSelect={setModel}
 							triggerId={controlId}
 							triggerAriaLabelledBy={labelId}

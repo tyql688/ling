@@ -57,20 +57,31 @@ interface SettingsRowProps {
 	layout?: "default" | "toggle";
 }
 
-function rowClassName(layout: "default" | "toggle", className?: string): string {
+function rowClassName(layout: "default" | "toggle" | "stacked", className?: string): string {
 	return cn(
 		layout === "toggle"
 			? "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3.5 sm:gap-8 sm:px-5"
-			: "flex flex-col items-stretch justify-between gap-3 px-4 py-3.5 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(10rem,auto)] sm:items-center sm:gap-8 sm:px-5",
+			: layout === "stacked"
+				? "flex min-w-0 flex-col items-stretch gap-3 px-4 py-3.5 sm:px-5"
+				: "flex flex-col items-stretch justify-between gap-3 px-4 py-3.5 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(10rem,auto)] sm:items-center sm:gap-8 sm:px-5",
 		className,
 	);
 }
 
-function ControlSlot({ children, compact }: { children: ReactNode; compact: boolean }) {
+function ControlSlot({
+	children,
+	compact,
+	stacked = false,
+}: {
+	children: ReactNode;
+	compact: boolean;
+	stacked?: boolean;
+}) {
 	return (
 		<div
 			className={cn(
-				"flex flex-wrap items-center gap-2 sm:justify-end",
+				"flex flex-wrap items-center gap-2",
+				stacked ? "min-w-0 w-full" : "sm:justify-end",
 				!compact && "max-sm:[&_button]:min-h-10 max-sm:[_[data-slot=select-trigger]]:min-h-10",
 			)}
 		>
@@ -103,16 +114,25 @@ interface SettingsFieldRowProps {
 	children: (ids: SettingsFieldIds) => ReactNode;
 	className?: string;
 	group?: boolean;
+	/** Long option groups use the whole row instead of competing with their description. */
+	layout?: "default" | "stacked";
 }
 
 /** Field-type settings row: the shared row establishes the accessible relationship between label, description, and control. */
-export function SettingsFieldRow({ label, description, children, className, group = false }: SettingsFieldRowProps) {
+export function SettingsFieldRow({
+	label,
+	description,
+	children,
+	className,
+	group = false,
+	layout = "default",
+}: SettingsFieldRowProps) {
 	const generatedId = useId();
 	const controlId = `${generatedId}-control`;
 	const labelId = `${generatedId}-label`;
 	const descriptionId = description === undefined ? undefined : `${generatedId}-description`;
 	return (
-		<div className={rowClassName("default", className)}>
+		<div className={rowClassName(layout, className)}>
 			<div className="flex min-w-0 flex-col gap-0.5">
 				{group ? (
 					<span id={labelId} className="text-sm font-medium text-text-primary">
@@ -129,7 +149,9 @@ export function SettingsFieldRow({ label, description, children, className, grou
 					</span>
 				)}
 			</div>
-			<ControlSlot compact={false}>{children({ controlId, labelId, descriptionId })}</ControlSlot>
+			<ControlSlot compact={false} stacked={layout === "stacked"}>
+				{children({ controlId, labelId, descriptionId })}
+			</ControlSlot>
 		</div>
 	);
 }

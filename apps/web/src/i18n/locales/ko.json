@@ -105,8 +105,8 @@
 		"composerPlaceholder": "에이전트에게 메시지 보내기…",
 		"composerLabel": "에이전트에게 보낼 메시지",
 		"sessionSettings": "세션 설정",
-		"sessionSettingsDescription": "프로젝트, 모델, 추론 수준, 실행 중 전송 동작",
-		"modelSettingsDescription": "프로젝트, 모델, 추론 수준",
+		"sessionSettingsDescription": "이 대화의 사고 수준과 메시지 전송 방식을 조정합니다.",
+		"modelSettingsDescription": "사고 수준을 조정합니다.",
 		"messageTextLimit": "메시지는 최대 {{count}}자까지 입력할 수 있습니다.",
 		"titleTextLimit": "세션 제목은 최대 {{count}}자까지 입력할 수 있습니다.",
 		"send": "보내기",
@@ -618,7 +618,19 @@
 	"modelPicker": {
 		"title": "모델 선택",
 		"placeholder": "모델, 제공자, ID 검색",
-		"noResults": "일치하는 모델이 없습니다."
+		"noResults": "일치하는 모델이 없습니다.",
+		"allProviders": "모든 제공업체",
+		"searchProvider": "{{provider}} 모델 검색",
+		"backToModels": "모델로 돌아가기",
+		"providers": "제공업체",
+		"default": "기본값",
+		"noProviderResults": "{{provider}}에 일치하는 모델이 없습니다.",
+		"resultCount": "{{provider}} · 모델 {{count}}개",
+		"keyboardHint": "Tab으로 영역 전환, 위아래 키로 이동, Enter로 선택, Esc로 뒤로 또는 닫기",
+		"searchProviders": "제공업체 이름 또는 ID 검색",
+		"clearSearch": "검색 지우기",
+		"noMatchingProviders": "일치하는 제공업체가 없습니다.",
+		"providerCount": "제공업체 {{count}}개"
 	},
 	"plugins": {
 		"title": "플러그인",

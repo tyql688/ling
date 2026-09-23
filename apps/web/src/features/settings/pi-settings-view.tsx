@@ -395,6 +395,7 @@ export function PiSettingsView() {
 						<ModelPicker
 							options={modelOptions}
 							selected={defaultModelValue}
+							defaultModel={defaultModelValue}
 							onSelect={(model) => void apply({ type: "defaultModel", provider: model.provider, modelId: model.id })}
 							triggerId={controlId}
 							triggerAriaLabelledBy={labelId}
@@ -432,37 +433,45 @@ export function PiSettingsView() {
 						</Select>
 					)}
 				</SettingsFieldRow>
-				<SettingsFieldRow group label={t("settings.defaultTools")} description={t("settings.defaultToolsDescription")}>
+				<SettingsFieldRow
+					group
+					layout="stacked"
+					label={t("settings.defaultTools")}
+					description={t("settings.defaultToolsDescription")}
+				>
 					{({ labelId, descriptionId }) => (
 						<div
 							role="group"
 							aria-labelledby={labelId}
 							aria-describedby={descriptionId}
-							className="flex flex-wrap justify-end gap-1.5"
+							className="@container/default-tools min-w-0 w-full"
 						>
-							{PI_BUILT_IN_TOOL_NAMES.filter((tool) => tool !== "powershell" || isWindows).map((tool) => {
-								const selected = snapshot.defaultTools.includes(tool);
-								return (
-									<ChoiceButton
-										key={tool}
-										type="button"
-										selected={selected}
-										onClick={() =>
-											void apply(() =>
-												piSettingsUpdateSchema.parse({
-													type: "defaultTools",
-													tools: selected
-														? snapshot.defaultTools.filter((name) => name !== tool)
-														: [...snapshot.defaultTools, tool],
-												}),
-											)
-										}
-										className="min-h-7 px-2.5 py-1 font-mono text-xs"
-									>
-										{tool}
-									</ChoiceButton>
-								);
-							})}
+							{/* Each column leaves room for the Windows powershell label and its selection mark. */}
+							<div className="grid grid-cols-1 gap-2 @min-[18rem]/default-tools:grid-cols-2 @min-[34rem]/default-tools:grid-cols-4">
+								{PI_BUILT_IN_TOOL_NAMES.filter((tool) => tool !== "powershell" || isWindows).map((tool) => {
+									const selected = snapshot.defaultTools.includes(tool);
+									return (
+										<ChoiceButton
+											key={tool}
+											type="button"
+											selected={selected}
+											onClick={() =>
+												void apply(() =>
+													piSettingsUpdateSchema.parse({
+														type: "defaultTools",
+														tools: selected
+															? snapshot.defaultTools.filter((name) => name !== tool)
+															: [...snapshot.defaultTools, tool],
+													}),
+												)
+											}
+											className="w-full justify-between font-mono text-xs"
+										>
+											<span className="min-w-0 break-all text-start">{tool}</span>
+										</ChoiceButton>
+									);
+								})}
+							</div>
 						</div>
 					)}
 				</SettingsFieldRow>

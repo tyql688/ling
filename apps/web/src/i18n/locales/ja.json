@@ -105,8 +105,8 @@
 		"composerPlaceholder": "エージェントにメッセージを送信…",
 		"composerLabel": "エージェントへのメッセージ",
 		"sessionSettings": "セッション設定",
-		"sessionSettingsDescription": "プロジェクト、モデル、思考レベル、実行中の送信動作",
-		"modelSettingsDescription": "プロジェクト、モデル、思考レベル",
+		"sessionSettingsDescription": "この会話の思考レベルとメッセージ送信方法を調整します。",
+		"modelSettingsDescription": "思考レベルを調整します。",
 		"messageTextLimit": "メッセージは {{count}} 文字までです。",
 		"titleTextLimit": "タイトルは {{count}} 文字までです。",
 		"send": "送信",
@@ -618,7 +618,19 @@
 	"modelPicker": {
 		"title": "モデルを選択",
 		"placeholder": "モデル、プロバイダー、ID を検索",
-		"noResults": "一致するモデルはありません。"
+		"noResults": "一致するモデルはありません。",
+		"allProviders": "すべてのプロバイダー",
+		"searchProvider": "{{provider}} のモデルを検索",
+		"backToModels": "モデルに戻る",
+		"providers": "プロバイダー",
+		"default": "既定",
+		"noProviderResults": "{{provider}} に一致するモデルはありません。",
+		"resultCount": "{{provider}} · {{count}} モデル",
+		"keyboardHint": "Tab で領域を切り替え、上下キーで移動、Enter で選択、Esc で戻る・閉じる",
+		"searchProviders": "プロバイダー名や ID を検索",
+		"clearSearch": "検索をクリア",
+		"noMatchingProviders": "一致するプロバイダーがありません。",
+		"providerCount": "{{count}} 件のプロバイダー"
 	},
 	"plugins": {
 		"title": "プラグイン",

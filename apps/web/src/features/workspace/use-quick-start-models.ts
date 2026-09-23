@@ -109,6 +109,7 @@ export function useQuickStartModels(cwd: string | null) {
 	};
 
 	return {
+		defaultModel: resolvedDefault,
 		displayModel,
 		displayThinkingLevels,
 		displayThinkingLevel,

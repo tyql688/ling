@@ -105,8 +105,8 @@
 		"composerPlaceholder": "Message the agent…",
 		"composerLabel": "Message to the agent",
 		"sessionSettings": "Session settings",
-		"sessionSettingsDescription": "Project, model, thinking level, and follow-up behavior",
-		"modelSettingsDescription": "Project, model and reasoning level",
+		"sessionSettingsDescription": "Adjust thinking effort and message delivery for this conversation.",
+		"modelSettingsDescription": "Adjust thinking effort.",
 		"messageTextLimit": "A message can contain up to {{count}} characters.",
 		"titleTextLimit": "A session title can contain up to {{count}} characters.",
 		"send": "Send",
@@ -618,7 +618,21 @@
 	"modelPicker": {
 		"title": "Choose model",
 		"placeholder": "Search models, providers, or IDs",
-		"noResults": "No matching models."
+		"noResults": "No matching models.",
+		"allProviders": "All providers",
+		"searchProvider": "Search {{provider}} models",
+		"backToModels": "Back to models",
+		"providers": "Providers",
+		"default": "Default",
+		"noProviderResults": "No matching models in {{provider}}.",
+		"resultCount_one": "{{provider}} · {{count}} model",
+		"resultCount_other": "{{provider}} · {{count}} models",
+		"keyboardHint": "Tab to change area, arrows to move, Enter to select, Esc to go back or close",
+		"searchProviders": "Search provider names or IDs",
+		"clearSearch": "Clear search",
+		"noMatchingProviders": "No matching providers.",
+		"providerCount_one": "{{count}} provider",
+		"providerCount_other": "{{count}} providers"
 	},
 	"plugins": {
 		"title": "Plugins",

@@ -277,6 +277,7 @@ export function Composer({
 	);
 	const handleModelSelect = (provider: string, modelId: string) => {
 		if (busy) return;
+		editorRef.current?.focus();
 		if (currentModel?.provider === provider && currentModel.id === modelId) return;
 		void setModel(provider, modelId).then((next) => {
 			if (!next) return;

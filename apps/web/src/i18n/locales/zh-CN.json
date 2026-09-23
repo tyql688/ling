@@ -105,8 +105,8 @@
 		"composerPlaceholder": "给 agent 发消息…",
 		"composerLabel": "发给 agent 的消息",
 		"sessionSettings": "会话设置",
-		"sessionSettingsDescription": "项目、模型、思考级别与运行中发送方式",
-		"modelSettingsDescription": "项目、模型与思考级别",
+		"sessionSettingsDescription": "调整当前对话的思考强度和消息发送方式。",
+		"modelSettingsDescription": "调整思考强度。",
 		"messageTextLimit": "一条消息最多可包含 {{count}} 个字符。",
 		"titleTextLimit": "会话标题最多可包含 {{count}} 个字符。",
 		"send": "发送",
@@ -616,8 +616,20 @@
 	},
 	"modelPicker": {
 		"title": "选择模型",
-		"placeholder": "搜索模型、供应商或 ID",
-		"noResults": "没有匹配的模型。"
+		"placeholder": "搜索模型、提供商或 ID",
+		"noResults": "没有匹配的模型。",
+		"allProviders": "全部提供商",
+		"searchProvider": "搜索 {{provider}} 的模型",
+		"backToModels": "返回模型",
+		"providers": "提供商",
+		"default": "默认",
+		"noProviderResults": "{{provider}} 中没有匹配的模型。",
+		"resultCount": "{{provider}} · {{count}} 个模型",
+		"keyboardHint": "Tab 切换区域，上下键移动，回车选择，Esc 返回或收起",
+		"searchProviders": "搜索提供商名称或 ID",
+		"clearSearch": "清空搜索",
+		"noMatchingProviders": "没有匹配的提供商。",
+		"providerCount": "{{count}} 个提供商"
 	},
 	"plugins": {
 		"title": "插件",

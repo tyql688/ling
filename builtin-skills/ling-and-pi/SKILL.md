@@ -1,6 +1,6 @@
 ---
 name: ling-and-pi
-description: "Configure and troubleshoot Pi in Ling: global versus project settings, project trust, instruction files, resource reload, and shared data directories. Use when a setting or prompt did not take effect, Ling and the Pi CLI behave differently, or the user needs to locate the effective configuration."
+description: "Configure and troubleshoot Pi and MCP services in Ling: add or edit MCP servers, global versus project scope, feature and service switches, project trust, instructions, and resource reload. Use when configuring MCP from a conversation, a setting did not take effect, or Ling and the Pi CLI behave differently."
 ---
 
 # Configuring Pi in Ling
@@ -8,6 +8,10 @@ description: "Configure and troubleshoot Pi in Ling: global versus project setti
 Help the user identify the effective configuration, make the requested change, and verify its effect in Ling. Use the `ling_plugins` tool or Settings → Plugins for Pi packages/extensions, [manage-skills](../manage-skills/SKILL.md) for standalone skills, and [skin-studio](../skin-studio/SKILL.md) for Ling appearance packages.
 
 Ling embeds Pi and shares its configured agent directory with the CLI. Pi's installed documentation owns setting names, prompt semantics, and file formats; read the relevant documentation and actual files instead of inventing configuration keys. This skill covers the differences that matter when using Pi through Ling.
+
+## Configure MCP from a conversation
+
+Read [references/mcp.md](references/mcp.md) when adding, changing, removing, enabling or troubleshooting MCP services. Prefer the `ling_mcp` management tool when available. It stays available while built-in MCP execution is off; configuration edits preserve that switch. Read the current feature state and target file revision before changes, use the user's intended scope, and report saved configuration, pending reloads and live connection checks separately. The runtime `mcp` gateway and the `ling-and-pi` skill each have independent availability: neither a loaded skill nor a saved server enables MCP.
 
 ## Locate the effective configuration
 
@@ -18,11 +22,12 @@ Resolve the current project and the actual Pi agent directory before editing. `<
 | Global Pi settings | `<agent-dir>/settings.json`; Ling's Pi Settings controls edit this scope |
 | Project Pi settings | `<project>/.pi/settings.json`; trusted project values override global values, including nested settings |
 | Project Pi Config panel | A read-only view of that project's settings; edit the file with normal file tools |
+| MCP configuration | `ling_mcp` or Settings → MCP services; see the MCP reference for Pi-specific and shared global/project layers |
 | Global instructions | `<agent-dir>/AGENTS.md`, `SYSTEM.md`, and `APPEND_SYSTEM.md`; Ling provides editors for these files |
 | Credentials and models | Pi's `auth.json` and `models.json` under `<agent-dir>`; use Ling's credential/model controls when available and never print secrets |
 | Session history | Pi files under `<agent-dir>/sessions`; locate the actual session rather than reconstructing its filename or editing a live log |
 | Ling app state | Separate app data; `LING_USER_DATA_DIR` moves it without moving Pi data or `~/.ling/skins` |
-| Ling feature state | Todo review, access mode, questions, background tasks and schedules keep their data under `~/.ling` (`LING_HOME`); the permission system's rule files stay in Pi's own locations |
+| Ling feature state | Built-in switches and feature data live under `~/.ling` (`LING_HOME`); change switches through Ling controls or their management tools, not by editing state files. The permission system's rule files stay in Pi's own locations |
 
 A different CLI executable or agent directory can explain different behavior. Upgrading the Pi CLI does not upgrade Ling's bundled Pi SDK. The workspace terminal is separate from agent shell tools; their output is not mirrored.
 

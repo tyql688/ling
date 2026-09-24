@@ -7,6 +7,7 @@ import type { BeforeBindSession, SessionRuntimeProvider } from "@ling/core/pi-pr
 import type { SessionTranscriptProjectionCache } from "../transcript-projection-cache-port";
 import {
 	type SessionRef,
+	type PiResourceReloadMode,
 	type SessionResourceReloadSummary,
 	type SessionSummary,
 	type ThinkingLevel,
@@ -71,8 +72,11 @@ export function createManagedSessionManager({
 		resourceRevision: 0,
 	};
 	return {
-		reloadSessionResources(projectCwds?: readonly string[]): Promise<SessionResourceReloadSummary> {
-			return reloadSessionResources(owner, projectCwds);
+		reloadSessionResources(
+			projectCwds?: readonly string[],
+			mode: PiResourceReloadMode = "full",
+		): Promise<SessionResourceReloadSummary> {
+			return reloadSessionResources(owner, projectCwds, mode);
 		},
 		createSession(
 			cwd: string,
@@ -161,7 +165,8 @@ async function disposeUnattachedRuntime(
  */
 async function reloadSessionResources(
 	owner: ManagedSessionsState,
-	projectCwds?: readonly string[],
+	projectCwds: readonly string[] | undefined,
+	mode: PiResourceReloadMode,
 ): Promise<SessionResourceReloadSummary> {
 	if (projectCwds?.length === 0)
 		return { revision: owner.resourceRevision, reloaded: 0, deferred: 0, failed: [], failedOmitted: 0 };
@@ -174,7 +179,7 @@ async function reloadSessionResources(
 	const selected = projectCwds === undefined ? null : new Set(projectCwds);
 	const targets = owner.registry.listManagedSessions().filter((managed) => !selected || selected.has(managed.ref.cwd));
 	for (const managed of targets) {
-		managed.resourceReload.requestRevision(revision);
+		managed.resourceReload.requestRevision(revision, mode);
 	}
 
 	const attempts = await Promise.allSettled(targets.map((managed) => managed.resourceReload.reconcile(revision)));

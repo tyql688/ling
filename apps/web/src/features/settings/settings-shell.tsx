@@ -23,6 +23,7 @@ import {
 	PanelLeftOpen,
 	Pi,
 	Puzzle,
+	Plug,
 	ShieldCheck,
 	SlidersHorizontal,
 	SquareTerminal,
@@ -49,6 +50,11 @@ const TerminalSettingsView = lazy(() =>
 const ModelsView = lazy(() =>
 	import("@renderer/features/models/models-view").then(({ ModelsView }) => ({ default: ModelsView })),
 );
+const McpSettingsView = lazy(() =>
+	import("@renderer/features/pi-adapters/mcp/mcp-settings-view").then(({ McpSettingsView }) => ({
+		default: McpSettingsView,
+	})),
+);
 const PluginsView = lazy(() =>
 	import("@renderer/features/plugins/plugins-view").then(({ PluginsView }) => ({ default: PluginsView })),
 );
@@ -73,6 +79,7 @@ const CATEGORIES: { id: SettingsCategory; labelKey: string; icon: typeof Sliders
 	{ id: "terminal", labelKey: "settings.terminal", icon: SquareTerminal },
 	{ id: "pi", labelKey: "settings.pi", icon: Pi },
 	{ id: "models", labelKey: "settings.models", icon: Boxes },
+	{ id: "mcp", labelKey: "mcp.title", icon: Plug },
 	{ id: "plugins", labelKey: "nav.plugins", icon: Puzzle },
 	{ id: "skills", labelKey: "skills.title", icon: GraduationCap },
 	{ id: "permissions", labelKey: "permissions.title", icon: ShieldCheck },
@@ -254,6 +261,7 @@ export function SettingsShell({ onBack, themeController }: SettingsShellProps) {
 					{category === "pi" && <PiSettingsView />}
 					{category === "models" && <ModelsView providerProjectCwd={providerProjectCwd} />}
 					{category === "plugins" && <PluginsView />}
+					{category === "mcp" && <McpSettingsView projects={projects} activeCwd={providerProjectCwd} />}
 					{category === "skills" && <SkillsView />}
 					{category === "usage" && <UsageView />}
 					{category === "diagnostics" && <DiagnosticsView />}

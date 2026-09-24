@@ -83,7 +83,7 @@ const dialogContentBase = // will-change promotes zoom/fade to a compositor laye
 
 const dialogContentVariants = {
 	center:
-		"fixed data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 top-1/2 left-1/2 max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-dialog border",
+		"fixed data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 top-1/2 left-1/2 max-h-[calc(100dvh/var(--app-css-zoom,1)-2rem)] w-[calc(100vw/var(--app-css-zoom,1)-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-dialog border",
 	"left-sheet":
 		"fixed data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-dvh w-[min(24rem,calc(100vw-3rem))] max-w-none border-r",
 	"right-sheet":

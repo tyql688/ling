@@ -1,6 +1,8 @@
 import type { ExtensionAutocompleteSuggestions, ModelState, ToolResultSessionMessage } from "@ling/contracts/session";
+import { piResourceReloadModeSchema } from "@ling/contracts/session";
 import { EXTENSION_UI_INPUT_MAX_CHARS, SESSION_IMAGE_MAX_ITEMS } from "@ling/contracts/session";
 import { z } from "zod";
+import { mcpCommandSchema } from "@ling/contracts/mcp";
 import { companionRunRequestSchema, companionRunSchema, toolResultSnapshotSchema } from "@ling/contracts/companions";
 import { piMethod, piVoidMethod, runtimeMethod } from "./method";
 import type { PiWorkerRuntimeSnapshotResult, PiWorkerRuntimeStateSnapshotResult } from "./protocol";
@@ -168,8 +170,11 @@ export const piRuntimeMethods = {
 	),
 	/** Rebuilds extension, tool and skill resources while idle, preserving the session identity. */
 	"runtime.reloadResources": runtimeMethod(
-		piVoidMethod(z.strictObject({}), command({ timeoutMs: LIFECYCLE_REQUEST_TIMEOUT_MS, deferHeartbeat: true })),
-		[],
+		piVoidMethod(
+			z.strictObject({ mode: piResourceReloadModeSchema.optional() }),
+			command({ timeoutMs: LIFECYCLE_REQUEST_TIMEOUT_MS, deferHeartbeat: true }),
+		),
+		["mode"],
 		{ busy: true },
 	),
 	"runtime.readToolResult": runtimeMethod(
@@ -205,6 +210,11 @@ export const piRuntimeMethods = {
 		),
 		["text", "images"],
 		{ busy: true, acceptReplacement: true },
+	),
+	"runtime.runMcpCommand": runtimeMethod(
+		piVoidMethod(z.strictObject({ input: mcpCommandSchema }), command({ timeoutMs: LONG_REQUEST_TIMEOUT_MS })),
+		["input"],
+		{ busy: true },
 	),
 	"runtime.steer": runtimeMethod(
 		piVoidMethod(

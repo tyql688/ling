@@ -84,6 +84,7 @@ export function createLingApiClient(options: LingApiClientOptions): LingApi {
 	return {
 		editorLanguage: host.editorLanguage,
 		voice: host.voice,
+		mcp: host.mcp,
 		app: {
 			...host.app,
 			openExternal: options.shell.app.openExternal,

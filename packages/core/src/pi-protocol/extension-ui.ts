@@ -1,3 +1,4 @@
+import { mcpStatusSchema } from "@ling/contracts/mcp";
 import {
 	EMPTY_EXTENSION_UI_STATE,
 	EXTENSION_UI_KEY_MAX_CHARS,
@@ -115,6 +116,10 @@ function assertExtensionUiStateEvent(state: ExtensionUiStateSnapshot, event: Ext
 		case "editorText":
 			assertExtensionText(event.text, "setEditorText.text");
 			return;
+		case "mcpStatus":
+			if (event.value !== null) mcpStatusSchema.parse(event.value);
+			return;
+		case "mcpSettings":
 		case "voiceSettings":
 			assertExtensionText(event.requestId, "voiceSettings.requestId", EXTENSION_UI_KEY_MAX_CHARS);
 			return;
@@ -135,6 +140,10 @@ function assertExtensionUiStateEvent(state: ExtensionUiStateSnapshot, event: Ext
 
 function applyStateEvent(state: ExtensionUiStateSnapshot, event: ExtensionUiStateEvent): ExtensionUiStateSnapshot {
 	switch (event.type) {
+		case "mcpStatus":
+			return { ...state, mcpStatus: event.value };
+		case "mcpSettings":
+			return { ...state, mcpSettingsRequestId: event.requestId };
 		case "voiceSettings":
 			return { ...state, voiceSettingsRequestId: event.requestId };
 		case "status":

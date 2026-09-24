@@ -54,7 +54,8 @@ export function createVoiceDomain(options: {
 				run(context, input.operationId, input.cwd, async (signal) => {
 					const result = await options.resources.mutateThenReloadPiResources(
 						"Voice settings and resource reload failed",
-						() => options.piWorker.configureVoice(input, signal),
+						async () => (await options.piWorker.configureVoice(input, signal)) ?? undefined,
+						{ mode: "configuration", reloadProjectCatalogs: false },
 					);
 					if (result.mutation.failed) {
 						const failure = piResourceReloadError(result.reload);

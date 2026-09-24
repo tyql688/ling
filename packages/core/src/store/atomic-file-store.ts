@@ -50,6 +50,15 @@ export async function readUtf8FileBounded(
 	return readUtf8FileBoundedWithBomPolicy(filePath, maxBytes, signal, false);
 }
 
+/** Adapters whose upstream format rejects BOMs must observe the original text before parsing. */
+export async function readUtf8FileBoundedPreserveBom(
+	filePath: string,
+	maxBytes: number,
+	signal?: AbortSignal,
+): Promise<string | undefined> {
+	return readUtf8FileBoundedWithBomPolicy(filePath, maxBytes, signal, true);
+}
+
 async function readUtf8FileBoundedWithBomPolicy(
 	filePath: string,
 	maxBytes: number,

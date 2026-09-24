@@ -2,6 +2,64 @@ import { describe, expect, it, vi } from "vitest";
 import { createFeatureSnapshot } from "./feature-snapshot";
 
 describe("feature snapshot ownership", () => {
+	it("coalesces change events during an action into one settled read", async () => {
+		const load = vi.fn(async () => "saved");
+		const owner = createFeatureSnapshot(load);
+		const stop = owner.start();
+		await owner.act(async () => {
+			await owner.refresh();
+			await owner.refresh();
+			expect(load).not.toHaveBeenCalled();
+		});
+		expect(load).toHaveBeenCalledOnce();
+		expect(owner.getSnapshot()).toEqual({ value: "saved", error: null, busy: false });
+		stop();
+	});
+
+	it("refreshes partial writes while retaining the failure and fences pre-action reads", async () => {
+		const older = Promise.withResolvers<string>();
+		const load = vi.fn<() => Promise<string>>().mockReturnValueOnce(older.promise).mockResolvedValue("persisted");
+		const owner = createFeatureSnapshot(load);
+		const stop = owner.start();
+		const reading = owner.refresh();
+		const error = new Error("Reload failed after saving");
+		expect(
+			await owner.act(async () => {
+				await owner.refresh();
+				throw error;
+			}),
+		).toBe(false);
+		older.resolve("old");
+		await reading;
+		expect(load).toHaveBeenCalledTimes(2);
+		expect(owner.getSnapshot()).toEqual({ value: "persisted", error, busy: false });
+		stop();
+	});
+
+	it.each([false, true])("keeps external changes during the final refresh, mutation failed: %s", async (failed) => {
+		const first = Promise.withResolvers<string>();
+		const started = Promise.withResolvers<void>();
+		const load = vi
+			.fn<() => Promise<string>>()
+			.mockImplementationOnce(() => {
+				started.resolve();
+				return first.promise;
+			})
+			.mockResolvedValue("external change");
+		const owner = createFeatureSnapshot(load);
+		const stop = owner.start();
+		const error = new Error("Partially saved");
+		const action = owner.act(async () => {
+			if (failed) throw error;
+		});
+		await started.promise;
+		await owner.refresh();
+		first.resolve("own change");
+		expect(await action).toBe(!failed);
+		expect(owner.getSnapshot()).toEqual({ value: "external change", error: failed ? error : null, busy: false });
+		stop();
+	});
+
 	it("keeps the latest successful data when a later refresh fails", async () => {
 		const older = Promise.withResolvers<string>();
 		const load = vi.fn<() => Promise<string>>().mockReturnValueOnce(older.promise).mockResolvedValueOnce("latest");

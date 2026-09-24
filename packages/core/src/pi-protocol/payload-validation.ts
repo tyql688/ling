@@ -1,3 +1,4 @@
+import { mcpStatusSchema } from "@ling/contracts/mcp";
 import {
 	EXTENSION_UI_KEY_MAX_CHARS,
 	EXTENSION_UI_RENDERED_LINE_MAX_ITEMS,
@@ -97,6 +98,8 @@ const extensionUiEventSchema = z.discriminatedUnion("type", [
 	z.strictObject({ type: z.literal("title"), title: extensionUiTextSchema.nullable() }),
 	z.strictObject({ type: z.literal("editorText"), text: extensionUiTextSchema }),
 	z.strictObject({ type: z.literal("voiceSettings"), requestId: z.uuid() }),
+	z.strictObject({ type: z.literal("mcpSettings"), requestId: z.uuid() }),
+	z.strictObject({ type: z.literal("mcpStatus"), value: mcpStatusSchema.nullable() }),
 	z.strictObject({ type: z.literal("terminalInputListening"), listening: z.boolean() }),
 	z.strictObject({ type: z.literal("toolsExpanded"), expanded: z.boolean() }),
 	z.strictObject({ type: z.literal("hiddenThinkingLabel"), label: extensionUiTextSchema.nullable() }),

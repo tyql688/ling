@@ -1,3 +1,4 @@
+import type { PiResourceReloadMode } from "@ling/contracts/session";
 import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
 import type { SessionRef } from "@ling/contracts/session";
 import { throwAggregateFailures } from "@ling/core/ling-error";
@@ -452,8 +453,8 @@ export function createPiSessionRuntimeHandle(
 		});
 	}
 
-	function reloadResources(): Promise<void> {
-		return ownedResourceReload.reload();
+	function reloadResources(mode?: PiResourceReloadMode): Promise<void> {
+		return ownedResourceReload.reload(mode);
 	}
 
 	function reloadResourcesFromCommand(): Promise<void> {

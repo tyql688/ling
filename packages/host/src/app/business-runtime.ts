@@ -8,6 +8,11 @@ import { createManagedSessionManager } from "@ling/host/domains/sessions/manager
 import { createGitWriteQueue } from "@ling/host/domains/git/git-write-queue";
 import { createPluginOperationRegistry } from "@ling/host/domains/plugins/operations";
 import { createPluginMutationRunner } from "@ling/host/domains/plugins/plugin-mutation";
+import { createMcpSettings } from "../domains/pi-adapters/mcp/mcp-settings";
+import { createMcpTool } from "../domains/pi-adapters/mcp/mcp-tool";
+import { changeBuiltinFeature } from "../domains/companions/builtin-feature-change";
+import { builtinFeaturesProcedures } from "@ling/contracts/builtin-feature-procedures";
+import { mcpProcedures } from "@ling/contracts/mcp-procedures";
 import { createPluginTool } from "@ling/host/domains/plugins/plugin-tool";
 import { createMetadataCleanupHost } from "@ling/host/domains/projects/metadata-cleanup";
 import { createProjectLifecycle } from "@ling/host/domains/projects/project-lifecycle";
@@ -149,6 +154,7 @@ export async function createHostBusinessRuntime(options: HostBusinessRuntimeOpti
 		const piWorker = createPiWorkerClient({
 			extensionUi,
 			runPluginTool: (value, signal) => pluginTool.runPluginTool(value, signal),
+			runMcpTool: (value, signal) => mcpTool.run(value, signal),
 			invokeCompanionTool: (call, signal) => invokeCompanionTool(call, signal),
 			readAdapterPlan: (cwd) => adapterPlan.read(cwd),
 			promptProjectTrust: trustHost.prompt,
@@ -243,6 +249,30 @@ export async function createHostBusinessRuntime(options: HostBusinessRuntimeOpti
 			await projectsRestored;
 			await projectOperations.withKnownOpenProject(cwd, async () => undefined);
 		};
+		const mcpSettings = createMcpSettings({
+			piWorker,
+			resources,
+			assertProject,
+			onChanged: () => options.events.broadcast(mcpProcedures.onChanged.channel, null),
+		});
+		lifetime.onStop("MCP configuration admission", mcpSettings.prepareShutdown);
+		lifetime.defer("mutations", "MCP configuration", mcpSettings.dispose);
+		const mcpTool = createMcpTool({
+			settings: mcpSettings,
+			features,
+			resources,
+			requireManagedSession: manager.registry.requireManagedSession,
+			setFeature: (enabled, expectedRevision, signal) =>
+				changeBuiltinFeature(
+					{
+						features,
+						resources,
+						onChanged: () => options.events.broadcast(builtinFeaturesProcedures.onChanged.channel, null),
+					},
+					{ id: "mcp", enabled, expectedRevision },
+					signal,
+				),
+		});
 		const notify = (ref: SessionRef, attention: boolean, title: string, body: string) =>
 			shellActivity.notify(ref, attention ? "attentionNeeded" : "backgroundCompletion", title, body);
 		const runs = createCompanionRuns({ assertProject, prepareSession: sessions.prepareCompanionSession });
@@ -312,6 +342,7 @@ export async function createHostBusinessRuntime(options: HostBusinessRuntimeOpti
 		lifetime.defer("background", "startup metadata reconciliation", () => metadataRetried);
 		const handlers = await createHostBusinessDomains({
 			features,
+			mcpSettings,
 			diagnostics: options.diagnostics,
 			interactions,
 			questions,

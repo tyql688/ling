@@ -54,9 +54,13 @@ export function createSkillDomain({
 
 	/** Skill switches persist to Pi's global settings.json; disabled skills are not
 	 * loaded, so the mutation must reconcile live Pi resources like path mutations. */
-	async function mutateSkillToggle(mutate: () => Promise<void>): Promise<SkillToggleMutationResponse> {
+	async function mutateSkillToggle(mutate: () => Promise<boolean>): Promise<SkillToggleMutationResponse> {
 		const bothFailedMessage = "Skill toggle and Pi resource reconciliation both failed";
-		const { mutation, reload } = await mutateThenReloadPiResources(bothFailedMessage, mutate);
+		const { mutation, reload } = await mutateThenReloadPiResources(
+			bothFailedMessage,
+			async () => ((await mutate()) ? undefined : []),
+			{ mode: "configuration" },
+		);
 		if (mutation.failed) {
 			const reloadError = piResourceReloadError(
 				reload,

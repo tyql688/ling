@@ -39,8 +39,10 @@ async function fixture() {
 		todo = true,
 		voice: string | null = null,
 		openVoiceSettings?: Parameters<typeof preparePiAdapters>[0]["openVoiceSettings"],
+		mcp: string | null = null,
+		trusted = false,
 	) => {
-		const settingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted: false });
+		const settingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted: trusted });
 		await settingsManager.reload();
 		return preparePiAdapters({
 			cwd,
@@ -55,8 +57,10 @@ async function fixture() {
 					"background-tasks": true,
 					schedules: true,
 					voice: voice !== null,
+					mcp: mcp !== null,
 				},
 				voice,
+				mcp,
 				todo: todo ? bundled.todo : null,
 				permissions: { entry: bundled.permissions, enabled: permissionsEnabled },
 			},
@@ -67,6 +71,18 @@ async function fixture() {
 }
 
 describe("bundled Pi adapters", () => {
+	it("loads bundled MCP only in trusted projects and respects user-installed precedence", async () => {
+		const f = await fixture();
+		const entry = join(f.cwd, "bundled-mcp.ts");
+		expect((await f.prepare(false, false, null, undefined, entry)).paths).not.toContain(entry);
+		expect((await f.prepare(false, false, null, undefined, entry, true)).paths).toContain(entry);
+		await f.install(["pi-mcp-adapter"]);
+		const installed = f.installedEntry("pi-mcp-adapter");
+		expect((await f.prepare(false, false, null, undefined, entry, true)).paths).toEqual([installed]);
+		expect((await f.prepare(false, false, null, undefined, null, true)).paths).toEqual([installed]);
+		expect((await f.prepare(false, false, null, undefined, entry, false)).paths).toEqual([]);
+	});
+
 	it("replaces voice terminal onboarding while preserving the published file tool and shutdown", async () => {
 		const f = await fixture();
 		const entry = fileURLToPath(

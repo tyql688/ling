@@ -26,6 +26,7 @@ minimumReleaseAgeExclude:
   - motion@13.4.1
   - npm@11.20.0
   - undici@8.11.0
+  - pi-mcp-adapter@2.37.0
 overrides:
   "ansi-to-react>linkify-it": 5.0.2
   "minimatch@3.1.5>brace-expansion": 1.1.18

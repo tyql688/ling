@@ -16,8 +16,7 @@ Ling 将 Pi 会话、项目文件、变更审阅和终端放在同一个工作�
 - **文件与变更审阅：** 独立阅读区、Monaco 编辑器、语言服务、Git 历史、差异视图和审阅批注。阅读文件时保留原会话及输入草稿。
 - **终端与任务：** 项目终端、后台命令和定时执行的智能体任务。
 - **Pi 资源：** 管理包、扩展、技能和提示词，并将资源重新加载到已打开的项目和会话。Pi 扩展的提问与状态展示适配到统一界面。
-- **内置功能：** Todo、访问模式、语音输入、提问、后台任务和定时任务均有独立开关。Todo、权限与语音功能适配上游 Pi 包，用户通过 Pi 安装的版本优先于内置版本。
-- **语音输入：** 默认关闭，可在插件页开启。输入框只保留一个语音按钮，在当前设备录音，由 Pi Voice 本地转写。macOS 使用 `Cmd+Option+V`，Windows/Linux 使用 `Ctrl+Alt+V`；加 Shift 或右键按钮可打开设置。首次使用时选择并下载模型，转写语种取决于模型支持范围。识别文字填入草稿，检查后再发送。已安装 `@earendil-works/pi-voice` 时仍使用 Ling 的录音与设置界面。原有 `transcribe_file` 工具继续可用，音频文件解码需要 FFmpeg。
+- **[内置功能](docs/design.md)：** Todo、访问模式、本地语音输入、MCP 服务（全局／项目配置）、提问、后台任务和定时任务。在「设置 → 插件」中分别开关，语音与 MCP 默认关闭；通过 Pi 安装的版本优先于内置版本。
 - **外观与用量：** 明暗主题、内置与自定义声明式皮肤、Token 与费用统计，以及受支持供应商的额度信息。界面支持英语、简体中文、日语和韩语。
 
 ## 从源码运行
@@ -54,7 +53,7 @@ Host 默认只监听本机回环地址。认证、设置和会话文件仍由 Pi
 | 领域 | 技术与库 |
 | --- | --- |
 | 语言与工作区 | TypeScript、pnpm workspaces；TypeScript 7 用于编译与语言服务，另保留 TypeScript 6 兼容依赖供 ESLint 使用 |
-| 智能体运行时 | `@earendil-works/pi-coding-agent`；内置 `@juicesharp/rpiv-todo`、`@gotgenes/pi-permission-system`、`@earendil-works/pi-voice` 适配 |
+| 智能体运行时 | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent)；内置 [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme)、[`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme)、[`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme)、[`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter#readme) 适配 |
 | 桌面端 | Electron、electron-vite、electron-builder、electron-updater、node-mac-permissions |
 | Web 与状态 | React 19、Vite、Jotai、jotai-family |
 | 界面 | Tailwind CSS 4、Radix UI、Floating UI、Motion、cmdk、react-resizable-panels |

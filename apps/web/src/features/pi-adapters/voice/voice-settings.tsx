@@ -12,6 +12,7 @@ import {
 import { FeedbackNotice } from "@renderer/components/ui/feedback";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@renderer/components/ui/select";
 import { ResourceReloadFeedback } from "@renderer/components/resource-reload-feedback";
+import { BuiltinFeatureDocumentation } from "@renderer/features/companions/builtin-feature-documentation";
 import { useDomainApi } from "@renderer/lib/host-api-context";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
@@ -125,7 +126,10 @@ export function VoiceSettings({
 			>
 				<DialogCloseButton aria-label={t("session.cancel")} />
 				<DialogHeader className="shrink-0">
-					<DialogTitle>{t("voice.settings")}</DialogTitle>
+					<div className="flex flex-wrap items-center gap-2 pr-6">
+						<DialogTitle>{t("voice.settings")}</DialogTitle>
+						<BuiltinFeatureDocumentation id="voice" label={t("voice.title")} />
+					</div>
 					<DialogDescription>{t("voice.description")}</DialogDescription>
 				</DialogHeader>
 				<div className="mt-4 flex min-h-0 flex-col gap-4 overflow-y-auto">

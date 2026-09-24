@@ -216,6 +216,19 @@ export interface ModelState {
 	availableThinkingLevels: ThinkingLevel[];
 }
 
+/** Adapter switches refresh catalog metadata; configuration also reloads skills/settings; full reads fresh code. */
+export const piResourceReloadModeSchema = z.enum(["full", "configuration", "adapters"]);
+export type PiResourceReloadMode = z.infer<typeof piResourceReloadModeSchema>;
+
+export function mergePiResourceReloadModes(
+	left: PiResourceReloadMode,
+	right: PiResourceReloadMode,
+): PiResourceReloadMode {
+	if (left === "full" || right === "full") return "full";
+	if (left === "configuration" || right === "configuration") return "configuration";
+	return "adapters";
+}
+
 interface SessionResourceReloadFailure {
 	ref: SessionRef;
 	message: string;

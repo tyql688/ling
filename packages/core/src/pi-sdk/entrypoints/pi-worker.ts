@@ -206,6 +206,8 @@ export function startPiWorkerServer(options: StartPiWorkerServerOptions): PiWork
 					),
 				(call, signal) => callMain("companions.invoke", call, { timeoutMs: null, ...(signal ? { signal } : {}) }),
 				features,
+				(ref, request, signal) =>
+					callMain("mcp.manage", { ref, request }, { timeoutMs: null, ...(signal ? { signal } : {}) }),
 			);
 
 		const extensionUiBridge = createExtensionUiBridge();
@@ -222,6 +224,7 @@ export function startPiWorkerServer(options: StartPiWorkerServerOptions): PiWork
 			loadCatalogResources: options.role === "control",
 			readAdapterPlan: (cwd) => callMain("adapters.read", { cwd }),
 			openVoiceSettings: extensionUi.openVoiceSettings,
+			mcpUi: extensionUi.mcpUi,
 			skillResources,
 			agentDir,
 			modelRuntimes,

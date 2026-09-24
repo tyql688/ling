@@ -380,22 +380,24 @@ export function createPiSkillCatalog({
 	/** Per-skill switch for any non-project skill (user, package, extra-path, built-in).
 	 * Disabling requires a currently known name so the disabled list cannot accumulate
 	 * junk; enabling accepts any name — removing a stale entry is always safe. */
-	async function setSkillEnabled(name: string, enabled: boolean): Promise<void> {
+	async function setSkillEnabled(name: string, enabled: boolean): Promise<boolean> {
 		if (!enabled) {
 			const overview = await readPiSkillsOverview();
 			if (!overview.skills.some((skill) => skill.name === name && skill.scope !== "project")) {
 				throw new Error(`Unknown non-project skill: ${name}`);
 			}
 		}
-		await enqueueGlobalSettingsMutation(async () => {
-			await globalSettingsStore.update((settings) => {
+		return enqueueGlobalSettingsMutation(() =>
+			globalSettingsStore.transact((settings) => {
 				const config = readLingSkillsConfig(settings);
 				const disabled = new Set(config.disabled);
+				if (disabled.has(name) === !enabled) return { commit: false, result: false };
 				if (enabled) disabled.delete(name);
 				else disabled.add(name);
 				writeLingSkillsConfig(settings, { ...config, disabled: [...disabled].sort() });
-			});
-		});
+				return { commit: true, result: true };
+			}),
+		);
 	}
 
 	async function removeGlobalSkillPath(path: string): Promise<void> {
@@ -425,12 +427,15 @@ export function createPiSkillCatalog({
 	}
 
 	/** Master switch for the packaged built-in skills; off means none of them load. */
-	async function setBuiltinSkillsEnabled(enabled: boolean): Promise<void> {
-		await enqueueGlobalSettingsMutation(async () => {
-			await globalSettingsStore.update((settings) => {
-				writeLingSkillsConfig(settings, { ...readLingSkillsConfig(settings), builtinEnabled: enabled });
-			});
-		});
+	async function setBuiltinSkillsEnabled(enabled: boolean): Promise<boolean> {
+		return enqueueGlobalSettingsMutation(() =>
+			globalSettingsStore.transact((settings) => {
+				const config = readLingSkillsConfig(settings);
+				if (config.builtinEnabled === enabled) return { commit: false, result: false };
+				writeLingSkillsConfig(settings, { ...config, builtinEnabled: enabled });
+				return { commit: true, result: true };
+			}),
+		);
 	}
 	return {
 		readPiProjectSkills,

@@ -113,6 +113,10 @@ export const piCallbacks = {
 			z.null().parse(value);
 		},
 	},
+	"mcp.manage": {
+		input: z.unknown(),
+		result: (value: unknown) => outputTextSchema.parse(value),
+	},
 	"plugins.run": {
 		input: z.unknown(),
 		result: (value: unknown) => {

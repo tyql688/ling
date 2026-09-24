@@ -1,4 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
+import type { PiResourceReloadMode, SessionRef } from "@ling/contracts/session";
 import { throwAggregateFailures } from "@ling/core/ling-error";
 import { assertNoBlockingDiagnostics } from "../diagnostics";
 import type { PiAgentSession, PiAgentSessionRuntime } from "../types";
@@ -35,7 +35,7 @@ export interface PiRuntimeResourceReload {
 	readonly active: Promise<void> | null;
 	readonly generationAvailable: boolean;
 	assertAvailable(): void;
-	reload(): Promise<void>;
+	reload(mode?: PiResourceReloadMode): Promise<void>;
 	reloadFromCommand(): Promise<void>;
 	recordExtensionError(error: Error): void;
 	emitDeferredIdleEdge(): void;
@@ -90,7 +90,7 @@ export function createPiRuntimeResourceReload(host: RuntimeResourceReloadHost): 
 			);
 		}
 	};
-	const reloadGeneration = async (session: PiAgentSession): Promise<void> => {
+	const reloadGeneration = async (session: PiAgentSession, mode: PiResourceReloadMode): Promise<void> => {
 		const sessionManager = session.sessionManager;
 		generationAvailable = false;
 		const previousRuntime = host.getRuntime();
@@ -106,7 +106,7 @@ export function createPiRuntimeResourceReload(host: RuntimeResourceReloadHost): 
 					reason: "reload",
 				});
 			}
-			const generation = captureRuntimeGenerationState(session, extensionFlagValues);
+			const generation = { ...captureRuntimeGenerationState(session, extensionFlagValues), mode };
 			invalidated = true;
 			await invalidateGeneration(previousRuntime, session);
 			await previousRuntime.services.settingsManager.reload();
@@ -138,7 +138,11 @@ export function createPiRuntimeResourceReload(host: RuntimeResourceReloadHost): 
 			throw error;
 		}
 	};
-	const start = (permittedRuntimeOperations: number, requireOwningPrompt: boolean): Promise<void> => {
+	const start = (
+		permittedRuntimeOperations: number,
+		requireOwningPrompt: boolean,
+		mode: PiResourceReloadMode = "full",
+	): Promise<void> => {
 		if (active) return active;
 		const lifecycle = host.getLifecycle();
 		if (lifecycle !== "active") {
@@ -164,7 +168,7 @@ export function createPiRuntimeResourceReload(host: RuntimeResourceReloadHost): 
 		// re-enter through ctx.reload().
 		const work = Promise.resolve().then(async () => {
 			activeErrors = [];
-			await reloadGeneration(session);
+			await reloadGeneration(session, mode);
 			const current = host.getRuntime();
 			assertNoBlockingDiagnostics(
 				`Failed to reload session ${current.session.sessionManager.getSessionId()}`,
@@ -199,16 +203,16 @@ export function createPiRuntimeResourceReload(host: RuntimeResourceReloadHost): 
 				`Cannot access session ${runtime.session.sessionManager.getSessionId()} while its resources are reloading`,
 			);
 		},
-		reload() {
+		reload(mode = "full") {
 			// Joining an in-flight ctx.reload could credit a pre-mutation generation
 			// as current, so an external request always schedules a fresh generation.
 			if (active) {
 				return active.then(
-					() => start(0, false),
-					() => start(0, false),
+					() => start(0, false, mode),
+					() => start(0, false, mode),
 				);
 			}
-			return start(0, false);
+			return start(0, false, mode);
 		},
 		reloadFromCommand() {
 			// session_start/session_shutdown hooks run inside the reload they observe.

@@ -1,4 +1,5 @@
 import type { ExtensionUiEditorTextRequest } from "@ling/contracts/session-extension-ui";
+import type { McpCommandRequest } from "@ling/contracts/mcp";
 import type { ExtensionUiBridge } from "@ling/core/pi-protocol/extension-ui";
 import type { SessionRegistry } from "./session-registry";
 import type { SessionTranscriptProjectionCache } from "../transcript-projection-cache-port";
@@ -578,6 +579,12 @@ export function createSessionRuntimeCommands({
 		return result;
 	}
 	return {
+		runMcpCommand(request: McpCommandRequest) {
+			return requireRuntimeRequestInteraction(request).session.runMcpCommand({
+				action: request.action,
+				name: request.name,
+			});
+		},
 		sendMessage,
 		readSessionCommandCatalog,
 		readSessionExtensionUiState,

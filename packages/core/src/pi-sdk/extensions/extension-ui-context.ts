@@ -1,3 +1,4 @@
+import type { McpUi } from "../mcp/mcp-extension";
 import { Theme } from "@earendil-works/pi-coding-agent";
 import { randomUUID } from "node:crypto";
 import {
@@ -74,6 +75,10 @@ export function createPiExtensionUi(bridge: ExtensionUiBridge) {
 	let disposed = false;
 	let disposal: Promise<void> | null = null;
 	// Pi copies UI contexts to wrap prompt methods; non-prompt function identities survive that copy.
+	const mcpContexts = new WeakMap<
+		PiExtensionUiContext["setEditorText"],
+		{ open(): void; status(value: Parameters<McpUi["status"]>[1]): void }
+	>();
 	const voiceSettingsRequests = new WeakMap<PiExtensionUiContext["setEditorText"], () => void>();
 	const {
 		emitExtensionUiState,
@@ -293,6 +298,17 @@ export function createPiExtensionUi(bridge: ExtensionUiBridge) {
 			interactions.signal.throwIfAborted();
 			emitExtensionUiState(ref, { type: "voiceSettings", requestId: randomUUID() });
 		});
+		mcpContexts.set(guarded.setEditorText, {
+			open() {
+				assertActiveExtensionUiCapability(capability);
+				interactions.signal.throwIfAborted();
+				emitExtensionUiState(ref, { type: "mcpSettings", requestId: randomUUID() });
+			},
+			status(value) {
+				assertActiveExtensionUiCapability(capability);
+				emitExtensionUiState(ref, { type: "mcpStatus", value });
+			},
+		});
 		return guarded;
 	}
 
@@ -315,6 +331,18 @@ export function createPiExtensionUi(bridge: ExtensionUiBridge) {
 		return disposal;
 	}
 	return {
+		mcpUi: {
+			open(ui) {
+				const context = mcpContexts.get(ui.setEditorText);
+				if (!context) throw staleExtensionUiContext();
+				context.open();
+			},
+			status(ui, value) {
+				const context = mcpContexts.get(ui.setEditorText);
+				if (!context) throw staleExtensionUiContext();
+				context.status(value);
+			},
+		} satisfies McpUi,
 		openVoiceSettings(ui: PiExtensionUiContext) {
 			const open = voiceSettingsRequests.get(ui.setEditorText);
 			if (!open) throw staleExtensionUiContext();

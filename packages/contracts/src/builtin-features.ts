@@ -7,6 +7,7 @@ export const builtinFeatureIdSchema = z.enum([
 	"background-tasks",
 	"schedules",
 	"voice",
+	"mcp",
 ]);
 export type BuiltinFeatureId = z.infer<typeof builtinFeatureIdSchema>;
 

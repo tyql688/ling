@@ -1,3 +1,5 @@
+import { mergePiResourceReloadModes, type PiResourceReloadMode } from "@ling/contracts/session";
+import type { McpUi } from "../mcp/mcp-extension";
 import type { PiModelRuntimes } from "../models/model-runtime";
 import { createPiToolOriginRecorder } from "../extensions/pi-tool-origin";
 import { readPiExtensionIdentities } from "../extensions/pi-resource-identity";
@@ -144,6 +146,7 @@ type PiProjectServicesStateDependencies = {
 	loadCatalogResources: boolean;
 	readAdapterPlan(cwd: string): Promise<PiAdapterPlan>;
 	openVoiceSettings?: (ui: PiExtensionUiContext) => void;
+	mcpUi?: McpUi;
 	agentDir: string;
 	modelRuntimes: Pick<
 		PiModelRuntimes,
@@ -162,6 +165,7 @@ interface PiProjectServicesState {
 	loadCatalogResources: boolean;
 	readAdapterPlan: PiProjectServicesStateDependencies["readAdapterPlan"];
 	openVoiceSettings: PiProjectServicesStateDependencies["openVoiceSettings"];
+	mcpUi: PiProjectServicesStateDependencies["mcpUi"];
 	agentDir: PiProjectServicesStateDependencies["agentDir"];
 	builtinExtensions: PiProjectServicesStateDependencies["builtinExtensions"];
 	projectTrustResolver: PiProjectServicesStateDependencies["resolveProjectTrust"];
@@ -177,17 +181,20 @@ interface PiProjectServicesState {
 	projectAliases: Map<string, string>;
 	pendingProjectOpens: Set<PendingProjectOpen>;
 	runtimeServiceOwners: WeakMap<PiAgentSessionServices, ProjectSlot>;
+	bundledAdapters: WeakMap<PiAgentSessionServices, ReadonlyMap<string, string>>;
 	projectLifecycleSequence: number;
 	modelCatalogChangedListeners: Set<() => void>;
 	activeReload: Promise<void> | null;
 	queuedReload: Promise<void> | null;
 	queuedReloadProjects: Set<string> | null;
+	queuedReloadMode: PiResourceReloadMode;
 }
 
 export function createPiProjectServices({
 	loadCatalogResources,
 	readAdapterPlan,
 	openVoiceSettings,
+	mcpUi,
 	agentDir,
 	modelRuntimes,
 	turnLifecycle,
@@ -199,6 +206,7 @@ export function createPiProjectServices({
 		loadCatalogResources,
 		readAdapterPlan,
 		openVoiceSettings,
+		mcpUi,
 		agentDir: agentDir,
 		builtinExtensions: builtinExtensions,
 		projectTrustResolver: projectTrustResolver,
@@ -214,11 +222,13 @@ export function createPiProjectServices({
 		projectAliases: new Map<string, string>(),
 		pendingProjectOpens: new Set<PendingProjectOpen>(),
 		runtimeServiceOwners: new WeakMap<PiAgentSessionServices, ProjectSlot>(),
+		bundledAdapters: new WeakMap(),
 		projectLifecycleSequence: 0,
 		modelCatalogChangedListeners: new Set<() => void>(),
 		activeReload: null,
 		queuedReload: null,
 		queuedReloadProjects: new Set(),
+		queuedReloadMode: "adapters",
 	};
 	return {
 		onPiModelCatalogChanged(listener: () => void): () => void {
@@ -239,6 +249,31 @@ export function createPiProjectServices({
 		listOpenProjectPaths(): string[] {
 			return listOpenProjectPaths(owner);
 		},
+		/** A lifecycle transition can still publish an older graph; retain a full reload in that case. */
+		listResourceReloadTargets(
+			usesResource: (services: PiAgentSessionServices) => boolean,
+			bundledSource?: string,
+		): string[] | undefined {
+			if (owner.activeReload || owner.queuedReload || owner.pendingProjectOpens.size) return undefined;
+			const targets: string[] = [];
+			for (const slot of owner.projectSlots.values()) {
+				if (slot.state === "opening" || slot.state === "closing") return undefined;
+				if (
+					slot.state === "open" &&
+					slot.services &&
+					[slot.services, ...slot.runtimeServices].some(
+						(services) =>
+							usesResource(services) ||
+							(bundledSource !== undefined && owner.bundledAdapters.get(services)?.has(bundledSource)),
+					)
+				)
+					targets.push(slot.cwd);
+			}
+			return targets;
+		},
+		getBundledAdapterEntry(services: PiAgentSessionServices, source: string): string | undefined {
+			return owner.bundledAdapters.get(services)?.get(source);
+		},
 		getPiServices(cwd: string): PiAgentSessionServices {
 			return getPiServices(owner, cwd);
 		},
@@ -247,6 +282,7 @@ export function createPiProjectServices({
 			options: {
 				sessionManager: PiSessionManager;
 				extensionFlagValues?: Map<string, boolean | string>;
+				mode?: PiResourceReloadMode;
 			},
 		): Promise<PiAgentSessionServices> {
 			return acquirePiRuntimeServices(owner, cwd, options);
@@ -260,8 +296,8 @@ export function createPiProjectServices({
 		reloadOpenProjectSettingsSnapshots(): Promise<void> {
 			return reloadOpenProjectSettingsSnapshots(owner);
 		},
-		reloadProjectSettings(projectCwds?: readonly string[]): Promise<void> {
-			return reloadProjectSettings(owner, projectCwds);
+		reloadProjectSettings(projectCwds?: readonly string[], mode: PiResourceReloadMode = "full"): Promise<void> {
+			return reloadProjectSettings(owner, projectCwds, mode);
 		},
 		dispose(drain: ProjectCloseDrain): Promise<void> {
 			return dispose(owner, drain);
@@ -345,7 +381,9 @@ async function createBoundedAgentSessionServices(
 			agentDir: options.agentDir,
 			settingsManager: options.settingsManager,
 			plan,
+			loadBundled: includeBuiltinExtensions === true,
 			...(owner.openVoiceSettings ? { openVoiceSettings: owner.openVoiceSettings } : {}),
+			...(owner.mcpUi ? { mcpUi: owner.mcpUi } : {}),
 		});
 		throwIfOperationAborted(signal);
 		const installSkillToggles = owner.createLingSkillToggles(options.settingsManager, options.agentDir);
@@ -361,6 +399,7 @@ async function createBoundedAgentSessionServices(
 			resourceLoaderOptions: {
 				...resourceLoaderOptions,
 				extensionFactories: [
+					...(includeBuiltinExtensions ? adapters.factories : []),
 					...(includeBuiltinExtensions ? owner.builtinExtensions(plan.features) : []),
 					...(includeBuiltinExtensions && plan.features.todo ? [createPiTodoReconciliation()] : []),
 					...(resourceLoaderOptions?.extensionFactories ?? []),
@@ -373,6 +412,7 @@ async function createBoundedAgentSessionServices(
 		});
 		try {
 			adapters.decorate(services.resourceLoader.getExtensions());
+			owner.bundledAdapters.set(services, adapters.bundledEntries);
 			installSkillToggles(services.resourceLoader);
 		} catch (error) {
 			services.resourceLoader.getExtensions().runtime.invalidate("Ling Pi extension setup failed");
@@ -716,6 +756,7 @@ function acquirePiRuntimeServices(
 	options: {
 		sessionManager: PiSessionManager;
 		extensionFlagValues?: Map<string, boolean | string>;
+		mode?: PiResourceReloadMode;
 	},
 ): Promise<PiAgentSessionServices> {
 	let projectServices: PiAgentSessionServices;
@@ -740,7 +781,7 @@ function acquirePiRuntimeServices(
 		// reload() on an already-loaded loader, Pi will otherwise reuse the cwd-scoped
 		// compiled extension factories. Switch through an inert cwd first so ctx.reload()
 		// observes extension file edits even when no main-process project reload ran.
-		if (options.extensionFlagValues) {
+		if (options.extensionFlagValues && (options.mode ?? "full") === "full") {
 			await prepareFreshProjectExtensionGeneration(projectServices.cwd, projectServices.agentDir);
 			if (!isCurrentOpen(slot, generation, projectServices)) {
 				throw projectLifecycleError(projectServices.cwd, slot.state);
@@ -878,8 +919,13 @@ async function reloadOpenProjectSettingsSnapshots(owner: PiProjectServicesState)
 	throwAggregateFailures(failures, `Failed to refresh ${failures.length} Pi settings snapshot(s)`);
 }
 
-function reloadProjectSettings(owner: PiProjectServicesState, projectCwds?: readonly string[]): Promise<void> {
+function reloadProjectSettings(
+	owner: PiProjectServicesState,
+	projectCwds?: readonly string[],
+	mode: PiResourceReloadMode = "full",
+): Promise<void> {
 	if (owner.activeReload || owner.queuedReload) {
+		owner.queuedReloadMode = mergePiResourceReloadModes(owner.queuedReloadMode, mode);
 		if (projectCwds === undefined) owner.queuedReloadProjects = null;
 		else for (const cwd of projectCwds) owner.queuedReloadProjects?.add(cwd);
 	}
@@ -887,19 +933,25 @@ function reloadProjectSettings(owner: PiProjectServicesState, projectCwds?: read
 	if (owner.activeReload) {
 		owner.queuedReload ??= afterSettled(owner.activeReload, () => {
 			const projects = owner.queuedReloadProjects === null ? undefined : [...owner.queuedReloadProjects];
+			const nextMode = owner.queuedReloadMode;
 			owner.queuedReloadProjects = new Set();
+			owner.queuedReloadMode = "adapters";
 			owner.queuedReload = null;
-			return reloadProjectSettings(owner, projects);
+			return reloadProjectSettings(owner, projects, nextMode);
 		});
 		return owner.queuedReload;
 	}
-	owner.activeReload = reloadProjectSettingsNow(owner, projectCwds).finally(() => {
+	owner.activeReload = reloadProjectSettingsNow(owner, projectCwds, mode).finally(() => {
 		owner.activeReload = null;
 	});
 	return owner.activeReload;
 }
 
-async function reloadProjectSettingsNow(owner: PiProjectServicesState, projectCwds?: readonly string[]): Promise<void> {
+async function reloadProjectSettingsNow(
+	owner: PiProjectServicesState,
+	projectCwds: readonly string[] | undefined,
+	mode: PiResourceReloadMode,
+): Promise<void> {
 	const errors: Error[] = [];
 	const details: string[] = [];
 	// Opens/failed closes which began before this pass must settle before target
@@ -945,13 +997,28 @@ async function reloadProjectSettingsNow(owner: PiProjectServicesState, projectCw
 			let candidateServices: PiAgentSessionServices | null = null;
 			try {
 				if (!isCurrentOpen(slot, generation, services)) continue;
+				if (mode === "adapters") {
+					// Ling switches cannot change user extensions, models or skills. Only their
+					// bundled selection changes here; live sessions rebuild below the Host barrier.
+					if (owner.loadCatalogResources) {
+						const adapters = await preparePiAdapters({
+							cwd: services.cwd,
+							agentDir: services.agentDir,
+							settingsManager: services.settingsManager,
+							plan: await owner.readAdapterPlan(services.cwd),
+							loadBundled: false,
+						});
+						if (isCurrentOpen(slot, generation, services)) owner.bundledAdapters.set(services, adapters.bundledEntries);
+					}
+					continue;
+				}
 				// Build a complete project generation beside the live one. Reusing and
 				// mutating the live ResourceLoader first would leave settings, extensions,
 				// and provider overlays from different generations when validation fails.
 				const candidateSettingsManager = createSettingsManager(services.cwd, services.agentDir);
 				await candidateSettingsManager.reload();
 				if (!isCurrentOpen(slot, generation, services)) continue;
-				await prepareFreshProjectExtensionGeneration(services.cwd, services.agentDir);
+				if (mode === "full") await prepareFreshProjectExtensionGeneration(services.cwd, services.agentDir);
 				if (!isCurrentOpen(slot, generation, services)) continue;
 				candidateModelRuntime = await owner.createCwdModelRuntime(services.cwd, services.agentDir);
 				if (!isCurrentOpen(slot, generation, services)) continue;
@@ -983,6 +1050,9 @@ async function reloadProjectSettingsNow(owner: PiProjectServicesState, projectCw
 				services.settingsManager = candidateServices.settingsManager;
 				services.resourceLoader = candidateServices.resourceLoader;
 				services.diagnostics = candidateServices.diagnostics;
+				const adapters = owner.bundledAdapters.get(candidateServices);
+				if (adapters) owner.bundledAdapters.set(services, adapters);
+				else owner.bundledAdapters.delete(services);
 				candidateServices = null;
 				candidateModelRuntime = null;
 				previousExtensionRuntime.invalidate(
@@ -1029,7 +1099,7 @@ async function reloadProjectSettingsNow(owner: PiProjectServicesState, projectCw
 		// Even a profile-only reload (no open projects) changes Models settings.
 		// Partial project reloads can also publish useful catalog changes before an
 		// aggregate error, so renderer readers must reconcile in both cases.
-		emitPiModelCatalogChanged(owner);
+		if (mode !== "adapters") emitPiModelCatalogChanged(owner);
 	}
 }
 

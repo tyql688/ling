@@ -192,6 +192,8 @@ export function createBrowserShell(
 		window: {
 			setZoomFactor: (factor) => {
 				document.documentElement.style.zoom = String(factor);
+				// CSS zoom scales viewport units too; portalled dialogs need the unscaled available size.
+				document.documentElement.style.setProperty("--app-css-zoom", String(factor));
 				return Promise.resolve();
 			},
 			setTheme: () => Promise.resolve(),

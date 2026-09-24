@@ -1,5 +1,6 @@
 import type { OpenProjectInfo } from "@ling/contracts/project";
 import { BuiltinFeatureNotice } from "@renderer/features/companions/builtin-features";
+import { BuiltinFeatureDocumentation } from "@renderer/features/companions/builtin-feature-documentation";
 import { Button } from "@renderer/components/ui/button";
 import { FeedbackNotice } from "@renderer/components/ui/feedback";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@renderer/components/ui/select";
@@ -97,7 +98,11 @@ export function PermissionsSettingsView({
 	};
 	const availability = (item: OpenProjectInfo) => item.availability ?? "ready";
 	return (
-		<SettingsPage title={t("permissions.title")} description={t("permissions.description")}>
+		<SettingsPage
+			title={t("permissions.title")}
+			description={t("permissions.description")}
+			actions={<BuiltinFeatureDocumentation id="permissions" label={t("permissions.title")} />}
+		>
 			<BuiltinFeatureNotice id="permissions" />
 			{state.error && (
 				<FeedbackNotice

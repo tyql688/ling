@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import type { PiAdapterPlan } from "@ling/contracts/companions";
 import { accessEnabled, PERMISSION_PACKAGE } from "@ling/contracts/permissions";
 import { TODO_PACKAGE } from "@ling/contracts/todo";
+import { MCP_PACKAGE } from "@ling/contracts/mcp";
 import { VOICE_PACKAGE } from "@ling/contracts/voice";
 import { createLogger } from "@ling/core/logger";
 import { toError } from "@ling/core/ling-error";
@@ -21,6 +22,7 @@ export function createPiAdapterPlan(activation: AccessActivationStore, features:
 	const todo = entry(TODO_PACKAGE, "index.ts");
 	const permissions = entry(PERMISSION_PACKAGE, "src/index.ts");
 	const voice = entry(VOICE_PACKAGE, "index.ts");
+	const mcp = entry(MCP_PACKAGE, "index.ts");
 	async function permissionsEnabled(cwd: string) {
 		try {
 			return accessEnabled(await activation.read(), resolve(cwd));
@@ -32,10 +34,11 @@ export function createPiAdapterPlan(activation: AccessActivationStore, features:
 	}
 	return {
 		async read(cwd: string): Promise<PiAdapterPlan> {
-			const [todoEntry, permissionEntry, voiceEntry, enabled, state] = await Promise.all([
+			const [todoEntry, permissionEntry, voiceEntry, mcpEntry, enabled, state] = await Promise.all([
 				todo,
 				permissions,
 				voice,
+				mcp,
 				permissionsEnabled(cwd),
 				features.read(),
 			]);
@@ -43,6 +46,7 @@ export function createPiAdapterPlan(activation: AccessActivationStore, features:
 				features: state.enabled,
 				todo: state.enabled.todo ? todoEntry : null,
 				voice: state.enabled.voice ? voiceEntry : null,
+				mcp: state.enabled.mcp ? mcpEntry : null,
 				permissions: permissionEntry ? { entry: permissionEntry, enabled: state.enabled.permissions && enabled } : null,
 			};
 		},

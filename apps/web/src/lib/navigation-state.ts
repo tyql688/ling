@@ -12,6 +12,7 @@ export type SettingsCategory =
 	| "pi"
 	| "models"
 	| "plugins"
+	| "mcp"
 	| "skills"
 	| "permissions"
 	| "usage"

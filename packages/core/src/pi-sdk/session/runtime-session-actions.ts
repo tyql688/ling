@@ -1,5 +1,7 @@
 import type { MessageFileReference } from "@ling/contracts/file-reference-text";
 import type { ImageAttachment } from "@ling/contracts/session";
+import type { McpCommand } from "@ling/contracts/mcp";
+import { runMcpCommand } from "../mcp/mcp-extension";
 import { throwAggregateFailures } from "../../ling-error";
 import { createLogger } from "../../logger";
 import type { PiAgentSession } from "../types";
@@ -60,6 +62,7 @@ function captureAbort(session: PiAgentSession): Promise<AbortOutcome> {
 }
 
 interface PiRuntimeSessionActions {
+	runMcpCommand(input: McpCommand): Promise<void>;
 	sendPrompt(text: string, images?: ImageAttachment[]): Promise<void>;
 	steer(text: string, images?: ImageAttachment[], fileReferences?: MessageFileReference[]): Promise<void>;
 	followUp(text: string, images?: ImageAttachment[], fileReferences?: MessageFileReference[]): Promise<void>;
@@ -163,6 +166,7 @@ async function promoteQueuedPrompt(
 export function createPiRuntimeSessionActions(host: RuntimeSessionActionHost): PiRuntimeSessionActions {
 	let manualCompaction: ManualCompactionState | null = null;
 	return {
+		runMcpCommand: (input) => host.operations.run(() => runMcpCommand(host.getSession(), input)),
 		sendPrompt(text, images) {
 			return host.operations.runPrompt(() =>
 				host.getSession().prompt(text, {

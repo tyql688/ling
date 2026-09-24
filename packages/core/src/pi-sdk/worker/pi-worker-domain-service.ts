@@ -31,6 +31,7 @@ import { readArchivedPiSessionMessages } from "../session/session-archive";
 import { discoverPiSessions, listPiSessions } from "../session/session-discovery";
 import type { PiSettings } from "../settings/settings";
 import type { PiWorkerRuntimeService } from "./pi-worker-runtime-service";
+import { createPiMcp } from "../mcp/pi-mcp";
 import { createPiVoice } from "../voice/pi-voice";
 
 interface PiWorkerDomainService {
@@ -77,6 +78,7 @@ function toSessionDiscovery(
 
 export function createPiWorkerDomainService(options: PiWorkerDomainServiceOptions): PiWorkerDomainService {
 	const voice = createPiVoice(options.projects);
+	const mcp = createPiMcp(options.projects);
 	const {
 		closeProject,
 		getPiServices,
@@ -145,6 +147,7 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 		operationShutdownPromise = (async () => {
 			const results = await Promise.allSettled([
 				voice.dispose(),
+				mcp.dispose(),
 				shutdownModelOperations(),
 				shutdownGlobalSettingsMutations(),
 			]);
@@ -162,11 +165,10 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 	};
 
 	const handlers: PiMethodHandlers<typeof piDomainMethods, AbortSignal> = {
+		"mcp.read": (input, signal) => mcp.read(input.cwd, signal),
+		"mcp.write": (input, signal) => mcp.write(input, signal),
 		"voice.read": (input) => voice.read(input.cwd),
-		"voice.configure": async (input, signal) => {
-			await voice.configure(input, signal);
-			return null;
-		},
+		"voice.configure": (input, signal) => voice.configure(input, signal),
 		"voice.transcribe": (input, signal) => voice.transcribe(input, signal),
 		"agent.getInfo": async () => {
 			return getAgentInfo();
@@ -226,7 +228,7 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 			const params = input;
 			await ensureProjects(params.projectCwds);
 			initHttpProxy();
-			await reloadProjectSettings(params.projectCwds);
+			await reloadProjectSettings(params.projectCwds, params.mode);
 			return null;
 		},
 		"project.refreshSettingsSnapshots": async (input) => {
@@ -414,16 +416,8 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 			await removeGlobalSkillPath(params.path);
 			return null;
 		},
-		"skills.setBuiltinEnabled": async (input) => {
-			const params = input;
-			await setBuiltinSkillsEnabled(params.enabled);
-			return null;
-		},
-		"skills.setSkillEnabled": async (input) => {
-			const params = input;
-			await setSkillEnabled(params.name, params.enabled);
-			return null;
-		},
+		"skills.setBuiltinEnabled": (input) => setBuiltinSkillsEnabled(input.enabled),
+		"skills.setSkillEnabled": (input) => setSkillEnabled(input.name, input.enabled),
 		"skills.readContent": async (input) => {
 			const params = input;
 			return readPiSkillContent(params.filePath);

@@ -5,6 +5,8 @@ import { FeedbackNotice } from "@renderer/components/ui/feedback";
 import { SettingsRow, SettingsSection } from "@renderer/components/ui/settings-list";
 import { Switch } from "@renderer/components/ui/switch";
 import { useBuiltinFeatures } from "@renderer/features/companions/builtin-feature-state";
+import { BuiltinFeatureDocumentation } from "@renderer/features/companions/builtin-feature-documentation";
+import { useAppNavigation } from "@renderer/lib/app-navigation";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { VoiceSettings } from "@renderer/features/pi-adapters/voice/voice-settings";
@@ -17,11 +19,13 @@ const titles = {
 	"background-tasks": "backgroundTasks.title",
 	schedules: "schedules.title",
 	voice: "voice.title",
+	mcp: "mcp.title",
 } as const;
 
 export function BuiltinFeaturesSection({ projectCwd }: { projectCwd: string | null }) {
 	const { t } = useTranslation();
 	const state = useBuiltinFeatures();
+	const navigation = useAppNavigation();
 	const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
 	return (
 		<>
@@ -42,10 +46,25 @@ export function BuiltinFeaturesSection({ projectCwd }: { projectCwd: string | nu
 					? builtinFeatureIdSchema.options.map((id) => (
 							<SettingsRow
 								key={id}
-								label={t(titles[id])}
+								label={
+									<span className="flex flex-wrap items-center gap-1">
+										{t(titles[id])}
+										<BuiltinFeatureDocumentation id={id} label={t(titles[id])} compact />
+									</span>
+								}
 								description={t(`builtinFeatures.${id}`, { shortcut: voiceShortcut })}
 								layout="toggle"
 							>
+								{id === "permissions" && (
+									<Button variant="ghost" size="sm" onClick={() => navigation.openSettings("permissions")}>
+										{t("permissions.title")}
+									</Button>
+								)}
+								{id === "mcp" && (
+									<Button variant="ghost" size="sm" onClick={() => navigation.openSettings("mcp")}>
+										{t("mcp.manage")}
+									</Button>
+								)}
 								{id === "voice" && state.value!.enabled.voice && (
 									<Button
 										variant="ghost"

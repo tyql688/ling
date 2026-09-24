@@ -4,7 +4,13 @@ import { summarizePiResourceReload } from "@renderer/lib/resource-reload";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-export function ResourceReloadFeedback({ summary }: { summary: PiResourceReloadSummary }) {
+export function ResourceReloadFeedback({
+	summary,
+	successMessage,
+}: {
+	summary: PiResourceReloadSummary;
+	successMessage?: string;
+}) {
 	const { t } = useTranslation();
 	const feedback = useAppFeedback();
 	const status = summarizePiResourceReload(summary);
@@ -15,10 +21,10 @@ export function ResourceReloadFeedback({ summary }: { summary: PiResourceReloadS
 		void summary;
 		feedback.show({
 			tone: status === "error" ? "danger" : status === "deferred" ? "warning" : "success",
-			title: t(`resourceReload.${status}`),
+			title: status === "success" && successMessage ? successMessage : t(`resourceReload.${status}`),
 			dedupeKey: "pi-resource-reload",
 		});
-	}, [feedback, status, summary, t]);
+	}, [feedback, status, summary, successMessage, t]);
 
 	return null;
 }

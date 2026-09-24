@@ -9,7 +9,7 @@ import {
 	type BuiltinFeatureUpdate,
 } from "@ling/contracts/builtin-features";
 
-const legacyIds: Record<Exclude<BuiltinFeatureId, "voice">, string> = {
+const legacyIds: Record<Exclude<BuiltinFeatureId, "voice" | "mcp">, string> = {
 	todo: "ling-todo",
 	permissions: "ling-permission-system",
 	questions: "ling-questions",
@@ -35,19 +35,20 @@ export function createBuiltinFeatures(home: string) {
 					...Object.fromEntries(Object.entries(legacyIds).map(([id, legacy]) => [id, !disabled.has(legacy)])),
 					// Microphone input is opt-in; installing a Pi voice package does not opt in to Ling's controls.
 					voice: false,
+					mcp: false,
 				} as BuiltinFeatures["enabled"],
 				schedulesResumedAt: null,
 			};
 		},
 		parse: (source) => {
-			// Existing installations predate voice. Only this new switch has an absence default.
+			// Existing installations predate these opt-in features.
 			const value = z
-				.object({ enabled: z.object({ voice: z.boolean().optional() }).loose() })
+				.object({ enabled: z.object({ voice: z.boolean().optional(), mcp: z.boolean().optional() }).loose() })
 				.loose()
 				.parse(JSON.parse(source));
 			return builtinFeaturesSchema.parse({
 				...value,
-				enabled: { ...value.enabled, voice: value.enabled.voice ?? false },
+				enabled: { ...value.enabled, voice: value.enabled.voice ?? false, mcp: value.enabled.mcp ?? false },
 			});
 		},
 		serialize: (value) => `${JSON.stringify(value, null, 2)}\n`,
@@ -64,15 +65,16 @@ export function createBuiltinFeatures(home: string) {
 				});
 		},
 		write(input: BuiltinFeatureUpdate, signal: AbortSignal) {
-			return store.update(
+			return store.transact(
 				(value) => {
 					signal.throwIfAborted();
 					if (value.revision !== input.expectedRevision)
 						throw new Error("Feature settings changed. Refresh before saving.");
-					if (value.enabled[input.id] === input.enabled) return;
+					if (value.enabled[input.id] === input.enabled) return { commit: false, result: false };
 					value.enabled[input.id] = input.enabled;
 					if (input.id === "schedules" && input.enabled) value.schedulesResumedAt = Date.now();
 					value.revision++;
+					return { commit: true, result: true };
 				},
 				{ signal },
 			);

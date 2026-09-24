@@ -43,4 +43,13 @@ Use the `adapt`, `expose`, `inherited` and `defer` decision rules in the [Pi upg
 | Commands and original tools | Verify native settings from the supported package's commands, including after resource reload. Preserve the original file-transcription tool; do not record from a remote Host's microphone or duplicate the user's separately installed package. |
 | Native libraries and shell permissions | Inspect transcribe-cpp platform assets and native dependency build policy in the staged runtime. Run actual transcription with a downloaded model. Verify Desktop microphone permissions and entitlements separately from synthetic MediaStream acceptance; report hardware and platform gaps. Browser recording must not acquire a new FFmpeg requirement; upstream file decoding retains its own requirements. |
 
+## MCP
+
+| Changed surface | Migration and acceptance evidence |
+| --- | --- |
+| Configuration and precedence | Verify global/shared/project sources against the published public config API, including partial disabled overrides and transport-bound credentials. Preserve comments, unknown options, corrupt files and concurrent edits. Never call an upstream writer that silently replaces a failed read with an empty document. |
+| Runtime and tool use | Use a real stdio or HTTP server and a real model turn with an actual approval. Verify lazy discovery, proxy/direct tools, reconnection, resource reload, resume, shutdown and child cleanup. Keep OAuth and connection ownership upstream. |
+| Native presentation | Audit the versioned status event before widening supported versions. Confirm cached catalogs are distinct from connections, and session replacement rejects old status. Test supported community-installed precedence and native command adaptation. |
+| Published assets | Verify the root extension entry, public config/types exports, MCP SDK closure and optional native keyring assets in fresh standalone staged resources. Record platform and external OAuth gaps. |
+
 Keep the evidence with the update or release task. These rows guide source review and real acceptance; they do not justify architecture tests, DOM snapshots, mocks standing in for SDK interactions, or a new maintenance enforcement framework.

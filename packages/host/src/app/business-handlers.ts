@@ -57,10 +57,13 @@ import type { DiagnosticsStore } from "../runtime/diagnostics-store";
 import type { BuiltinFeatureStore } from "../domains/companions/builtin-features";
 import { createBuiltinFeatureDomain } from "../domains/companions/builtin-feature-handlers";
 import { builtinFeaturesProcedures } from "@ling/contracts/builtin-feature-procedures";
+import type { McpSettings } from "../domains/pi-adapters/mcp/mcp-settings";
+import { createMcpDomain } from "../domains/pi-adapters/mcp/mcp-handlers";
 import { createVoiceDomain } from "../domains/pi-adapters/voice/voice-handlers";
 
 export interface HostBusinessHandlersOptions {
 	features: BuiltinFeatureStore;
+	mcpSettings: McpSettings;
 	diagnostics: DiagnosticsStore | null;
 	interactions: Interactions;
 	questions: Questions;
@@ -102,6 +105,15 @@ export async function createHostBusinessDomains(options: HostBusinessHandlersOpt
 	const domains = createHostDomainRuntime(options.handle);
 	try {
 		const { piWorker, resources, projectOperations, gitWrites, events, projectsRestored, projects, settings } = options;
+		domains.add("mcp", "handlers", () =>
+			createMcpDomain({
+				settings: options.mcpSettings,
+				assertProject: options.assertProject,
+				features: options.features,
+				runCommand: options.sessions.manager.commands.runMcpCommand,
+				claimSession: options.clients.claimSession,
+			}),
+		);
 		const voice = domains.add("voice", "handlers", () =>
 			createVoiceDomain({ features: options.features, piWorker, resources, assertProject: options.assertProject }),
 		);

@@ -7,6 +7,7 @@ interface ConfirmDialogProps {
 	confirmLabel: string;
 	cancelLabel: string;
 	destructive?: boolean;
+	busy?: boolean;
 	onConfirm: () => void;
 	onCancel: () => void;
 }
@@ -17,6 +18,7 @@ export function ConfirmDialog({
 	confirmLabel,
 	cancelLabel,
 	destructive,
+	busy = false,
 	onConfirm,
 	onCancel,
 }: ConfirmDialogProps) {
@@ -24,7 +26,7 @@ export function ConfirmDialog({
 		<Dialog
 			open={open}
 			onOpenChange={(next) => {
-				if (!next) onCancel();
+				if (!next && !busy) onCancel();
 			}}
 		>
 			{open && (
@@ -33,10 +35,10 @@ export function ConfirmDialog({
 						<DialogTitle>{title}</DialogTitle>
 					</DialogHeader>
 					<DialogFooter className="mt-4">
-						<Button variant="outline" onClick={onCancel}>
+						<Button variant="outline" disabled={busy} onClick={onCancel}>
 							{cancelLabel}
 						</Button>
-						<Button variant={destructive ? "danger" : "default"} onClick={onConfirm}>
+						<Button variant={destructive ? "danger" : "default"} disabled={busy} onClick={onConfirm}>
 							{confirmLabel}
 						</Button>
 					</DialogFooter>

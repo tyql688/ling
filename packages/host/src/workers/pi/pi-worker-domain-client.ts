@@ -1,4 +1,4 @@
-import type { SessionMessage } from "@ling/contracts/session";
+import type { PiResourceReloadMode, SessionMessage } from "@ling/contracts/session";
 import type {
 	ModelConfiguration,
 	ModelConfigurationRequest,
@@ -60,7 +60,7 @@ export interface PiWorkerDomainClient extends Omit<
 	listOpenProjectPaths(): string[];
 	resolveProject(cwd: string): string;
 	withProject<Result>(cwd: string, operation: (canonicalCwd: string) => Promise<Result>): Promise<Result>;
-	reloadProjectSettings(projectCwds?: readonly string[]): Promise<void>;
+	reloadProjectSettings(projectCwds?: readonly string[], mode?: PiResourceReloadMode): Promise<void>;
 	refreshSettingsSnapshots(): Promise<void>;
 	listSessions(cwd: string): Promise<SessionCatalogInfo[]>;
 	discoverSessions(
@@ -222,8 +222,8 @@ export function createPiWorkerDomainClient(call: PiCall): PiWorkerDomainClient {
 		listOpenProjectPaths,
 		resolveProject,
 		withProject,
-		reloadProjectSettings: (projectCwds) =>
-			call("project.reloadSettings", { projectCwds: [...(projectCwds ?? listOpenProjectPaths())] }),
+		reloadProjectSettings: (projectCwds, mode) =>
+			call("project.reloadSettings", { projectCwds: [...(projectCwds ?? listOpenProjectPaths())], mode }),
 		refreshSettingsSnapshots: () => call("project.refreshSettingsSnapshots", { projectCwds: listOpenProjectPaths() }),
 		listSessions(cwd) {
 			return withProject(cwd, (canonicalCwd) => call("session.list", { cwd: canonicalCwd }));

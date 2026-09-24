@@ -1,3 +1,4 @@
+import { mergePiResourceReloadModes, type PiResourceReloadMode } from "@ling/contracts/session";
 import { createLogger } from "@ling/core/logger";
 import type { SessionRuntimePort } from "@ling/core/pi-protocol/runtime-port";
 
@@ -17,7 +18,7 @@ interface SessionResourceReloadOptions {
 }
 
 export interface SessionResourceReloadController {
-	requestRevision(revision: number): void;
+	requestRevision(revision: number, mode?: PiResourceReloadMode): void;
 	reconcile(revision: number): Promise<void>;
 	triggerAfterCurrent(): void;
 	hasApplied(revision: number): boolean;
@@ -42,6 +43,8 @@ export function createSessionResourceReloadController(
 	let appliedRevision = options.appliedRevisionAtCreation;
 	let pendingRevision =
 		options.appliedRevisionAtCreation < options.latestRevisionAtCreation ? options.latestRevisionAtCreation : 0;
+	// A full reload admitted while busy must survive later configuration-only changes.
+	let pendingMode: PiResourceReloadMode = pendingRevision > 0 ? "full" : "adapters";
 	let reloadPromise: Promise<void> | null = null;
 	let deferred = false;
 
@@ -56,9 +59,12 @@ export function createSessionResourceReloadController(
 						const runtime = options.runtime();
 						if (deferred && runtime.isBusy()) return;
 						options.suspendExtensionUiEvents();
+						const mode = pendingMode;
+						pendingMode = "adapters";
 						try {
-							await runtime.reloadResources();
+							await runtime.reloadResources(mode);
 						} catch (error) {
+							pendingMode = mergePiResourceReloadModes(pendingMode, mode);
 							options.resumeExtensionUiEvents();
 							if (isResourceReloadBusyError(error)) {
 								deferred = true;
@@ -103,7 +109,9 @@ export function createSessionResourceReloadController(
 	}
 
 	return {
-		requestRevision(revision) {
+		requestRevision(revision, mode = "full") {
+			if (revision <= appliedRevision) return;
+			pendingMode = mergePiResourceReloadModes(pendingMode, mode);
 			pendingRevision = Math.max(pendingRevision, revision);
 		},
 		reconcile,

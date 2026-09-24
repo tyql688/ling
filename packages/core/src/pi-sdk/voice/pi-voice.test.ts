@@ -5,8 +5,12 @@ import { randomUUID } from "node:crypto";
 import { afterEach, expect, it, vi } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { VOICE_PCM_MAX_BYTES, isPiVoiceSource, voiceTranscribeRequestSchema } from "@ling/contracts/voice";
-import { decodeVoicePcm } from "./pi-voice";
+import { createPiVoice, decodeVoicePcm } from "./pi-voice";
 import { loadPiVoiceModules } from "./pi-voice-modules";
+import { createPiProjectServices } from "../projects/services";
+import { createPiModelRuntimes } from "../models/model-runtime";
+import { createPiTurnLifecycle } from "../session/turn-lifecycle";
+import { createLingSkillResources } from "../resources/skill-toggles";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -75,3 +79,81 @@ it("rejects unknown package versions before importing their executable source", 
 	await writeFile(join(root, "package.json"), JSON.stringify({ name: "@earendil-works/pi-voice", version: "9.9.9" }));
 	await expect(loadPiVoiceModules(join(root, "index.ts"))).rejects.toThrow("Supported version: 0.1.0");
 });
+
+it("preserves unchanged voice settings and reloads only projects with a voice consumer", async () => {
+	const root = await temporaryDirectory("voice-reload");
+	roots.push(root);
+	const agentDir = join(root, "agent");
+	const cwd = join(root, "voice-project");
+	const other = join(root, "other-project");
+	for (const path of [agentDir, cwd, other]) await mkdir(path);
+	vi.stubEnv("PI_CODING_AGENT_DIR", agentDir);
+	const entry = fileURLToPath(
+		new URL("../../../../host/node_modules/@earendil-works/pi-voice/index.ts", import.meta.url),
+	);
+	const modelRuntimes = createPiModelRuntimes(agentDir);
+	const turnLifecycle = createPiTurnLifecycle({ start: async () => {}, finish: async () => {} });
+	const projects = createPiProjectServices({
+		loadCatalogResources: true,
+		agentDir,
+		modelRuntimes,
+		turnLifecycle,
+		skillResources: createLingSkillResources(),
+		builtinExtensions: () => [],
+		resolveProjectTrust: async () => true,
+		readAdapterPlan: async (project) => ({
+			features: {
+				todo: false,
+				permissions: false,
+				questions: false,
+				"background-tasks": false,
+				schedules: false,
+				voice: true,
+				mcp: false,
+			},
+			voice: project === cwd ? entry : null,
+			todo: null,
+			permissions: null,
+			mcp: null,
+		}),
+	});
+	const voice = createPiVoice(projects);
+	try {
+		await projects.openProject(cwd);
+		await projects.openProject(other);
+		const modules = await loadPiVoiceModules(entry);
+		const model = modules.catalog.CATALOG_MODELS.find((item) => item.capabilities.languageDetection)!;
+		const cached = modules.models.findCachedCatalogModel(model);
+		const modelPath = cached?.path ?? join(root, "model.gguf");
+		// Configuration only checks existence; this test never opens the native backend.
+		if (!cached) await writeFile(modelPath, "fixture");
+		const settings = modules.settings.settingsForModel(model.id, modelPath, {
+			transcriptionLanguage: "auto",
+			chineseOutput: "simplified",
+		});
+		const path = join(agentDir, "pi-voice.json");
+		const saved = JSON.stringify(settings);
+		await writeFile(path, saved);
+		const configure = (chineseOutput: "simplified" | "traditional-taiwan") =>
+			voice.configure(
+				{
+					cwd,
+					operationId: randomUUID(),
+					download: false,
+					configuration: { modelId: model.id, language: "auto", chineseOutput },
+				},
+				new AbortController().signal,
+			);
+		await expect(configure("simplified")).resolves.toEqual([]);
+		expect(await readFile(path, "utf8")).toBe(saved);
+		await expect(configure("traditional-taiwan")).resolves.toEqual([cwd]);
+	} finally {
+		await voice.dispose();
+		try {
+			await projects.dispose(async () => {});
+		} finally {
+			turnLifecycle.dispose();
+			await modelRuntimes.dispose();
+		}
+	}
+}, 30_000);

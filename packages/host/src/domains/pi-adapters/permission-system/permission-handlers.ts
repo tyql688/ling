@@ -26,6 +26,7 @@ export function createPermissionDomain(options: {
 							.listOpenProjectPaths()
 							.filter((cwd) => accessEnabled(previous, cwd) !== accessEnabled(current, cwd));
 					},
+					{ mode: "adapters" },
 				);
 				options.onChanged();
 				const failure = piResourceReloadError(result.reload);

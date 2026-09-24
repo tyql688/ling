@@ -31,6 +31,7 @@ export interface PiWorkerCreationContext {
 interface PiWorkerMainRpcOptions {
 	extensionUi: ExtensionUiBridge;
 	runPluginTool(value: unknown, signal: AbortSignal): Promise<string>;
+	runMcpTool(value: unknown, signal: AbortSignal): Promise<string>;
 	invokeCompanionTool(call: CompanionToolCall, signal: AbortSignal): Promise<CompanionToolResult>;
 	readAdapterPlan(cwd: string): Promise<PiAdapterPlan>;
 	getRuntime(runtimeId: string): PiWorkerRemoteRuntime | undefined;
@@ -247,6 +248,7 @@ export function createPiWorkerMainRpc(options: PiWorkerMainRpcOptions): PiWorker
 			);
 			return null;
 		},
+		"mcp.manage": (params, { signal }) => options.runMcpTool(params, signal),
 		"plugins.run": async (params, { signal }) => {
 			return options.runPluginTool(params, signal);
 		},

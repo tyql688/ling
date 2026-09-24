@@ -38,6 +38,7 @@ import type { SessionRef } from "@ling/contracts/session-ref";
 import { sessionKey } from "@ling/contracts/session-ref";
 import { useTranslation } from "react-i18next";
 import type { ComposerPendingAction } from "./use-composer-core";
+import { McpSessionControl } from "@renderer/features/pi-adapters/mcp/mcp-session-control";
 import { VoiceInput } from "@renderer/features/pi-adapters/voice/voice-input";
 
 interface ComposerToolbarProps {
@@ -75,6 +76,7 @@ export function ComposerFeatureControls({
 	return (
 		<>
 			<AccessModeControl cwd={projectPath} />
+			{sessionRef && <McpSessionControl sessionRef={sessionRef} />}
 			{sessionRef && <TodoProgress sessionRef={sessionRef} />}
 			{sessionRef && <BackgroundTasksProgress sessionRef={sessionRef} />}
 		</>

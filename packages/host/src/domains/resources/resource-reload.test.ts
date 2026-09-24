@@ -7,6 +7,37 @@ function summary(revision = 1): SessionResourceReloadSummary {
 }
 
 describe("resource reload ownership", () => {
+	it("keeps full reloads when configuration changes join the queued pass", async () => {
+		const release = Promise.withResolvers<void>();
+		const project = vi.fn(async () => {});
+		const sessions = vi.fn(async () => {
+			if (sessions.mock.calls.length === 1) await release.promise;
+			return summary();
+		});
+		const owner = createResourceReloadCoordinator({ reloadProjectSettings: project, reloadSessionResources: sessions });
+		const changed = vi.fn();
+		owner.onPiResourcesReloaded(changed);
+		const first = owner.mutateThenReloadPiResources("failed", async () => ["alpha"], {
+			mode: "configuration",
+			reloadProjectCatalogs: false,
+		});
+		await vi.waitFor(() => expect(sessions).toHaveBeenCalledOnce());
+		const full = owner.reloadPiResources();
+		const second = owner.mutateThenReloadPiResources("failed", async () => ["beta"], {
+			mode: "configuration",
+			reloadProjectCatalogs: false,
+		});
+		await Promise.resolve();
+		expect(project).not.toHaveBeenCalled();
+		release.resolve();
+		await Promise.all([first, full, second]);
+		expect(sessions).toHaveBeenNthCalledWith(1, ["alpha"], "configuration");
+		expect(sessions).toHaveBeenNthCalledWith(2, undefined, "full");
+		expect(project).toHaveBeenCalledExactlyOnceWith(undefined, "full");
+		expect(changed).toHaveBeenCalledOnce();
+		await owner.dispose();
+	});
+
 	it("serializes each project and session pair and coalesces one accepted follow-up", async () => {
 		const release = Promise.withResolvers<void>();
 		const order: string[] = [];
@@ -125,6 +156,31 @@ describe("resource reload ownership", () => {
 		await Promise.all([first, global, project]);
 		expect(scopes).toEqual([["alpha"], undefined]);
 		await owner.dispose();
+	});
+
+	it("completes a no-op mutation without waiting for an unrelated active reload", async () => {
+		const release = Promise.withResolvers<void>();
+		const project = vi.fn(() => release.promise);
+		const changed = vi.fn();
+		const owner = createResourceReloadCoordinator({
+			reloadProjectSettings: project,
+			reloadSessionResources: async () => summary(),
+		});
+		owner.onPiResourcesReloaded(changed);
+		const active = owner.reloadPiResources();
+		try {
+			await expect(owner.mutateThenReloadPiResources("failed", async () => [])).resolves.toMatchObject({
+				mutation: { failed: false },
+				reload: { projectError: null, sessionError: null },
+			});
+			expect(changed).not.toHaveBeenCalled();
+		} finally {
+			release.resolve();
+			await active;
+			await owner.dispose();
+		}
+		expect(project).toHaveBeenCalledOnce();
+		expect(changed).toHaveBeenCalledOnce();
 	});
 
 	it("skips project loaders when effective resources are unchanged but reconciles uncertain failed writes", async () => {

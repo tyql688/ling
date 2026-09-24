@@ -15,6 +15,7 @@ import { interactionProcedures } from "../interaction-procedures";
 import { todoProcedures } from "../todo-procedures";
 import { permissionsProcedures } from "../permissions-procedures";
 import { builtinFeaturesProcedures } from "../builtin-feature-procedures";
+import { mcpProcedures } from "../mcp-procedures";
 import { voiceProcedures } from "../voice-procedures";
 import { questionsProcedures } from "../questions-procedures";
 import { backgroundTasksProcedures } from "../background-tasks-procedures";
@@ -53,6 +54,7 @@ export function createHostProcedures(paths?: ProcedurePaths) {
 		permissions: permissionsProcedures,
 		builtinFeatures: builtinFeaturesProcedures,
 		voice: voiceProcedures,
+		mcp: mcpProcedures,
 		questions: questionsProcedures,
 		backgroundTasks: backgroundTasksProcedures,
 		schedules: schedulesProcedures,

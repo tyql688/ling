@@ -1,6 +1,8 @@
 import { stat } from "node:fs/promises";
+import { isDeepStrictEqual } from "node:util";
 import {
 	isPiVoiceSource,
+	VOICE_BUNDLED_SOURCE,
 	VOICE_PCM_MAX_BYTES,
 	voiceOverviewSchema,
 	voiceTranscriptSchema,
@@ -37,7 +39,9 @@ async function modelExists(settings: PiVoiceSettings): Promise<boolean> {
 }
 
 /** One admitted model operation per control worker; native models are released after every recording. */
-export function createPiVoice(projects: Pick<PiProjectServices, "withOpenProject">) {
+export function createPiVoice(
+	projects: Pick<PiProjectServices, "withOpenProject" | "listResourceReloadTargets" | "getBundledAdapterEntry">,
+) {
 	const shutdown = new AbortController();
 	let active: { cwd: string; controller: AbortController; task: Promise<unknown> } | null = null;
 	const withModules = <T>(cwd: string, task: (modules: PiVoiceModules, source: string) => Promise<T>) =>
@@ -47,11 +51,13 @@ export function createPiVoice(projects: Pick<PiProjectServices, "withOpenProject
 				const extension = services.resourceLoader
 					.getExtensions()
 					.extensions.find((candidate) => isPiVoiceSource(candidate.sourceInfo.source));
-				if (!extension)
+				// The catalog records bundled resources without running their session factories.
+				const entry = extension?.resolvedPath ?? projects.getBundledAdapterEntry(services, VOICE_BUNDLED_SOURCE);
+				if (!entry)
 					throw new Error(
 						"Pi Voice is unavailable in this project. Enable Voice input or its Pi package, then reload resources.",
 					);
-				return task(await loadPiVoiceModules(extension.resolvedPath), extension.sourceInfo.source);
+				return task(await loadPiVoiceModules(entry), extension?.sourceInfo.source ?? VOICE_BUNDLED_SOURCE);
 			})
 			.catch((cause: unknown) => {
 				if (isLingError(cause)) throw cause;
@@ -129,12 +135,25 @@ export function createPiVoice(projects: Pick<PiProjectServices, "withOpenProject
 						path = await modules.models.downloadCatalogModel(model, { signal: operationSignal });
 					}
 					operationSignal.throwIfAborted();
-					await modules.settings.writeSettings(
-						modules.settings.settingsForModel(model.id, path, {
-							...previous.settings,
-							transcriptionLanguage: language,
-							chineseOutput: input.configuration.chineseOutput,
-						}),
+					const next = modules.settings.settingsForModel(model.id, path, {
+						...previous.settings,
+						transcriptionLanguage: language,
+						chineseOutput: input.configuration.chineseOutput,
+					});
+					if (isDeepStrictEqual(previous.settings, next)) return [];
+					await modules.settings.writeSettings(next);
+					// The upstream file-transcription tool caches settings for its runtime.
+					// Refresh every consumer, including independently installed Pi copies.
+					return (
+						projects.listResourceReloadTargets((services) => {
+							const loaded = services.resourceLoader.getExtensions();
+							return (
+								loaded.errors.length > 0 ||
+								loaded.extensions.some(
+									(extension) => isPiVoiceSource(extension.sourceInfo.source) || extension.tools.has("transcribe_file"),
+								)
+							);
+						}, VOICE_BUNDLED_SOURCE) ?? null
 					);
 				}),
 			);

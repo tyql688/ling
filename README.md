@@ -16,8 +16,7 @@ Ling brings Pi conversations, project files, change review and terminals into on
 - **Files and change review:** an independent reading area, Monaco editing, language support, Git history, diffs and review annotations. Reading a file keeps the original conversation and draft in place.
 - **Terminal and tasks:** project terminals, background commands and scheduled agent tasks.
 - **Pi resources:** manage packages, extensions, skills and prompts; reload resources into open projects and sessions. Pi extension prompts and status are adapted to the shared interface.
-- **Built-in features:** Todo, access mode, voice input, questions, background tasks and schedules each have their own switch. Todo, permissions and voice adapt upstream Pi packages; an installed Pi copy takes precedence over the bundled copy.
-- **Voice input:** off by default; enable it in Plugins. One Composer button records and transcribes locally with Pi Voice. Use `Cmd+Option+V` on macOS or `Ctrl+Alt+V` on Windows/Linux; add Shift to open settings, or right-click the button. Choose and download a model on first use; supported transcription languages depend on that model. Review the text in your draft before sending. An installed `@earendil-works/pi-voice` keeps Ling’s recording controls and settings. The original `transcribe_file` tool remains available and requires FFmpeg for audio-file decoding.
+- **[Built-in features](docs/design.md):** Todo, access mode, local voice input, MCP services with global/project configuration, questions, background tasks and schedules. Each has its own switch in Settings → Plugins; voice and MCP are off by default. Pi-installed packages take precedence over bundled copies.
 - **Personalization and usage:** light/dark themes, built-in and custom declarative skins, token/cost statistics and supported provider quota views. Application languages include English, Simplified Chinese, Japanese and Korean.
 
 ## Run from source
@@ -54,7 +53,7 @@ The table lists the main technologies and their actual roles. Exact direct depen
 | Area | Technologies and libraries |
 | --- | --- |
 | Language and workspace | TypeScript, pnpm workspaces; TypeScript 7 for compilation and language services, a separate TypeScript 6 compatibility dependency for ESLint |
-| Agent runtime | `@earendil-works/pi-coding-agent`; bundled `@juicesharp/rpiv-todo`, `@gotgenes/pi-permission-system` and `@earendil-works/pi-voice` adapters |
+| Agent runtime | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent); bundled [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme), [`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme), [`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme) and [`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter#readme) adapters |
 | Desktop | Electron, electron-vite, electron-builder, electron-updater, node-mac-permissions |
 | Web and state | React 19, Vite, Jotai, jotai-family |
 | Interface | Tailwind CSS 4, Radix UI, Floating UI, Motion, cmdk, react-resizable-panels |

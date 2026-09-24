@@ -12,6 +12,7 @@ describe("companion tool callbacks", () => {
 			getRuntime: () => undefined,
 			getCreation: () => undefined,
 			runPluginTool: async () => "",
+			runMcpTool: async () => "",
 			promptProjectTrust: async () => null,
 			turnLifecycleHost: { start: async () => {}, finish: async () => {} },
 			readAdapterPlan: async () => ({
@@ -22,8 +23,10 @@ describe("companion tool callbacks", () => {
 					"background-tasks": true,
 					schedules: true,
 					voice: true,
+					mcp: false,
 				},
 				voice: null,
+				mcp: null,
 				todo: null,
 				permissions: null,
 			}),

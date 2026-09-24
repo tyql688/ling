@@ -4,6 +4,28 @@ import { createPiExtensionUi } from "./extension-ui-context";
 import { createExtensionUiBridge } from "../../pi-protocol/extension-ui";
 
 describe("extension UI interaction cancellation", () => {
+	it("fences native MCP status and navigation to the original UI generation", async () => {
+		const bridge = createExtensionUiBridge();
+		const owner = createPiExtensionUi(bridge);
+		const ref = { cwd: "/project", sessionId: "mcp-session" };
+		try {
+			const copied = { ...owner.createPiExtensionUiContext(ref) };
+			const status = { version: 1 as const, servers: [], totalTools: 3, connectedCount: 1 };
+			owner.mcpUi.status(copied, status);
+			owner.mcpUi.open(copied);
+			expect(bridge.getExtensionUiState(ref).mcpStatus).toEqual(status);
+			expect(bridge.getExtensionUiState(ref).mcpSettingsRequestId).toEqual(expect.any(String));
+			owner.createPiExtensionUiContext(ref);
+			expect(() => owner.mcpUi.status(copied, null)).toThrow(
+				expect.objectContaining({ code: "EXTENSION_UI_CONTEXT_STALE" }),
+			);
+			expect(() => owner.mcpUi.open(copied)).toThrow(expect.objectContaining({ code: "EXTENSION_UI_CONTEXT_STALE" }));
+		} finally {
+			await owner.dispose();
+			bridge.dispose();
+		}
+	});
+
 	it("opens voice settings through Pi's copied UI context and rejects it after replacement", async () => {
 		const bridge = createExtensionUiBridge();
 		const owner = createPiExtensionUi(bridge);

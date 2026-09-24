@@ -1,3 +1,4 @@
+import type { McpStatus } from "./mcp";
 import type { z } from "zod";
 import type * as requestSchemas from "./session-requests";
 type RequestSchemasShape = ReturnType<typeof requestSchemas.createSessionRequestSchemas>;
@@ -26,6 +27,8 @@ export type ExtensionUiStateEvent =
 	| { type: "title"; title: string | null }
 	| { type: "editorText"; text: string }
 	| { type: "voiceSettings"; requestId: string }
+	| { type: "mcpSettings"; requestId: string }
+	| { type: "mcpStatus"; value: McpStatus | null }
 	| { type: "terminalInputListening"; listening: boolean }
 	| { type: "toolsExpanded"; expanded: boolean }
 	| { type: "hiddenThinkingLabel"; label: string | null }
@@ -80,6 +83,8 @@ export interface ExtensionUiStateSnapshot {
 	title: string | null;
 	editorText: string | null;
 	voiceSettingsRequestId: string | null;
+	mcpSettingsRequestId: string | null;
+	mcpStatus: McpStatus | null;
 	terminalInputListening: boolean;
 	toolsExpanded: boolean;
 	hiddenThinkingLabel: string | null;
@@ -102,6 +107,8 @@ export const EMPTY_EXTENSION_UI_STATE: ExtensionUiStateSnapshot = {
 	title: null,
 	editorText: null,
 	voiceSettingsRequestId: null,
+	mcpSettingsRequestId: null,
+	mcpStatus: null,
 	terminalInputListening: false,
 	toolsExpanded: false,
 	hiddenThinkingLabel: null,

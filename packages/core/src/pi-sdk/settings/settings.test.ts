@@ -1,8 +1,54 @@
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { createPiSettings } from "./settings";
+import { createPiSkillCatalog } from "../resources/skills";
+import { createLingSkillResources } from "../resources/skill-toggles";
+
+it("skips unchanged skill switches without rewriting shared Pi settings", async () => {
+	const agentDir = await temporaryDirectory("skill-switches");
+	const settings = createPiSettings(agentDir);
+	const directory = join(agentDir, "builtin", "probe");
+	await mkdir(directory, { recursive: true });
+	await writeFile(
+		join(directory, "SKILL.md"),
+		"---\nname: probe\ndescription: Fixture for skill configuration\n---\nFixture.\n",
+	);
+	vi.stubEnv("LING_BUILTIN_SKILLS_DIR", join(agentDir, "builtin"));
+	const catalog = createPiSkillCatalog({
+		agentDir,
+		settings,
+		skillResources: createLingSkillResources(),
+		projects: {
+			listOpenProjectPaths: () => [],
+			getPiServices: () => {
+				throw new Error("No open project");
+			},
+			withOpenProject: async () => {
+				throw new Error("No open project");
+			},
+		},
+	});
+	const path = join(agentDir, "settings.json");
+	try {
+		expect(await catalog.setBuiltinSkillsEnabled(true)).toBe(false);
+		expect(await catalog.setSkillEnabled("probe", true)).toBe(false);
+		await expect(readFile(path)).rejects.toMatchObject({ code: "ENOENT" });
+		expect(await catalog.setBuiltinSkillsEnabled(false)).toBe(true);
+		expect(await catalog.setSkillEnabled("probe", false)).toBe(true);
+		const saved = JSON.stringify(JSON.parse(await readFile(path, "utf8")));
+		await writeFile(path, saved);
+		expect(await catalog.setBuiltinSkillsEnabled(false)).toBe(false);
+		expect(await catalog.setSkillEnabled("probe", false)).toBe(false);
+		expect(await readFile(path, "utf8")).toBe(saved);
+		expect(await catalog.setSkillEnabled("probe", true)).toBe(true);
+	} finally {
+		vi.unstubAllEnvs();
+		await settings.dispose();
+		await rm(agentDir, { recursive: true, force: true });
+	}
+});
 
 it("updates and resets exact model budgets without erasing canonical settings or unknown sibling fields", async () => {
 	const agentDir = await temporaryDirectory("pi-settings");

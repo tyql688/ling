@@ -18,6 +18,10 @@ import { PROJECT_FILE_REFERENCE_MAX_ITEMS } from "../project";
 describe("Host wire frames", () => {
 	it("keeps established wire channel names stable as capabilities are added", async () => {
 		const additions = new Set([
+			"mcp:changed",
+			"mcp:run",
+			"mcp:read",
+			"mcp:write",
 			"voice:read",
 			"voice:configure",
 			"voice:transcribe",

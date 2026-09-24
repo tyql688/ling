@@ -18,7 +18,7 @@ function fixture() {
 	}));
 	const resources = createResourceReloadCoordinator({ reloadProjectSettings, reloadSessionResources });
 	const transcribeVoice = vi.fn(async (_input: VoiceTranscribeRequest, _signal?: AbortSignal) => ({ text: "hello" }));
-	const configureVoice = vi.fn(async () => {});
+	const configureVoice = vi.fn<() => Promise<string[] | null>>(async () => null);
 	const domain = createVoiceDomain({
 		features: { requireEnabled },
 		resources,
@@ -95,7 +95,7 @@ it("rejects work when disabled and drains a disconnected client's operation befo
 it("reconciles partial configuration writes and preserves mutation and reload failures", async () => {
 	const f = fixture();
 	f.configureVoice.mockRejectedValueOnce(new Error("model settings write failed"));
-	f.reloadProjectSettings.mockRejectedValueOnce(new Error("project reload failed"));
+	f.reloadSessionResources.mockRejectedValueOnce(new Error("session reload failed"));
 	const operation = f.domain.handlers["voice:configure"](f.context, {
 		cwd: "/project",
 		operationId: randomUUID(),
@@ -108,8 +108,27 @@ it("reconciles partial configuration writes and preserves mutation and reload fa
 			expect.objectContaining({ code: "PI_RESOURCE_RELOAD_INCOMPLETE" }),
 		],
 	});
-	expect(f.reloadProjectSettings).toHaveBeenCalledOnce();
+	expect(f.reloadProjectSettings).not.toHaveBeenCalled();
 	expect(f.reloadSessionResources).toHaveBeenCalledOnce();
 	await f.domain.dispose();
 	await f.resources.dispose();
 });
+
+it.each([{ projects: [] }, { projects: ["/voice-project"] }])(
+	"reconciles only the reported voice consumers $projects",
+	async ({ projects }) => {
+		const f = fixture();
+		f.configureVoice.mockResolvedValueOnce(projects);
+		await f.domain.handlers["voice:configure"](f.context, {
+			cwd: "/project",
+			operationId: randomUUID(),
+			download: false,
+			configuration: { modelId: "model", language: "en", chineseOutput: "simplified" },
+		});
+		expect(f.reloadProjectSettings).not.toHaveBeenCalled();
+		if (projects.length) expect(f.reloadSessionResources).toHaveBeenCalledWith(projects, "configuration");
+		else expect(f.reloadSessionResources).toHaveBeenCalledWith([]);
+		await f.domain.dispose();
+		await f.resources.dispose();
+	},
+);

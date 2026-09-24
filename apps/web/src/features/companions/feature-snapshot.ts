@@ -8,6 +8,7 @@ interface FeatureSnapshot<Value> {
 export function createFeatureSnapshot<Value>(load: () => Promise<Value>) {
 	let snapshot: FeatureSnapshot<Value> = { value: null, error: null, busy: false };
 	let active = false;
+	let mutating = false;
 	let generation = 0;
 	let sequence = 0;
 	const listeners = new Set<() => void>();
@@ -15,15 +16,25 @@ export function createFeatureSnapshot<Value>(load: () => Promise<Value>) {
 		snapshot = { ...snapshot, ...update };
 		for (const listener of listeners) listener();
 	}
-	async function refresh() {
+	async function loadSnapshot(preserveError = false) {
 		if (!active) return;
 		const version = ++sequence;
 		try {
 			const value = await load();
-			if (active && version === sequence) publish({ value, error: null });
+			if (active && version === sequence) publish({ value, ...(!preserveError && { error: null }) });
 		} catch (error) {
-			if (active && version === sequence) publish({ error });
+			if (active && version === sequence)
+				publish({
+					error:
+						preserveError && snapshot.error !== null
+							? new AggregateError([snapshot.error, error], "Feature change and refresh failed")
+							: error,
+				});
 		}
+	}
+	async function refresh() {
+		// Change events emitted by an action are reconciled once after it settles.
+		if (!mutating) await loadSnapshot(snapshot.busy && snapshot.error !== null);
 	}
 	return {
 		getSnapshot: () => snapshot,
@@ -33,6 +44,7 @@ export function createFeatureSnapshot<Value>(load: () => Promise<Value>) {
 		},
 		start() {
 			active = true;
+			mutating = false;
 			publish({ busy: false });
 			return () => {
 				active = false;
@@ -45,19 +57,27 @@ export function createFeatureSnapshot<Value>(load: () => Promise<Value>) {
 			if (!active || snapshot.busy) return false;
 			const started = generation;
 			const current = () => active && started === generation;
+			mutating = true;
+			// A pre-mutation read cannot replace the action's result or failure.
+			sequence++;
 			publish({ busy: true, error: null });
+			let succeeded = false;
 			try {
 				const result = await operation();
 				if (!current()) return false;
 				onSuccess?.(result);
-				await refresh();
-				return current();
+				succeeded = true;
 			} catch (error) {
 				if (current()) publish({ error });
-				return false;
 			} finally {
-				if (current()) publish({ busy: false });
+				if (current()) {
+					mutating = false;
+					// Failed mutations may have persisted part of their change.
+					await loadSnapshot(!succeeded);
+					if (current()) publish({ busy: false });
+				}
 			}
+			return succeeded && current();
 		},
 	};
 }

@@ -1,3 +1,4 @@
+import type { PiResourceReloadMode } from "@ling/contracts/session";
 import type { PiModelProjection } from "../models/model-projection";
 import {
 	createAgentSessionFromServices,
@@ -27,6 +28,7 @@ interface PiRuntimeServiceAccess {
 		options: {
 			sessionManager: PiSessionManager;
 			extensionFlagValues?: Map<string, boolean | string>;
+			mode?: PiResourceReloadMode;
 		},
 	): Promise<PiAgentSessionServices>;
 	releasePiRuntimeServices(services: PiAgentSessionServices): void;
@@ -37,6 +39,7 @@ export interface PiSessionProjectAccess extends PiRuntimeServiceAccess {
 }
 
 export interface RuntimeGenerationState {
+	mode?: PiResourceReloadMode;
 	model: { provider: string; id: string } | null;
 	thinkingLevel: PiAgentSession["thinkingLevel"];
 	scopedModels: { provider: string; id: string; thinkingLevel?: PiAgentSession["thinkingLevel"] }[];
@@ -206,7 +209,7 @@ export function createPiRuntimeFactory({
 			pendingSelection = null;
 			const services = await acquirePiRuntimeServices(cwd, {
 				sessionManager,
-				...(generation ? { extensionFlagValues: new Map(generation.extensionFlagValues) } : {}),
+				...(generation ? { extensionFlagValues: new Map(generation.extensionFlagValues), mode: generation.mode } : {}),
 			});
 			try {
 				const availableModelKeys = new Set(

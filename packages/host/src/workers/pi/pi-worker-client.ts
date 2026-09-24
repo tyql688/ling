@@ -49,6 +49,7 @@ export interface PiWorkerClient extends SessionRuntimeProvider, PiWorkerDomainCl
 interface PiWorkerClientOptions {
 	extensionUi: ExtensionUiBridge;
 	runPluginTool(value: unknown, signal: AbortSignal): Promise<string>;
+	runMcpTool(value: unknown, signal: AbortSignal): Promise<string>;
 	invokeCompanionTool(call: CompanionToolCall, signal: AbortSignal): Promise<CompanionToolResult>;
 	readAdapterPlan(cwd: string): Promise<PiAdapterPlan>;
 	promptProjectTrust(cwd: string, signal?: AbortSignal): Promise<ProjectTrustChoice | null>;
@@ -88,6 +89,7 @@ export function createPiWorkerClient(options: PiWorkerClientOptions): PiWorkerCl
 	const mainRpc = createPiWorkerMainRpc({
 		extensionUi: options.extensionUi,
 		runPluginTool: options.runPluginTool,
+		runMcpTool: options.runMcpTool,
 		invokeCompanionTool: options.invokeCompanionTool,
 		readAdapterPlan: options.readAdapterPlan,
 		getRuntime: (runtimeId) => workersByRuntime.get(runtimeId)?.runtime ?? undefined,
@@ -324,12 +326,12 @@ export function createPiWorkerClient(options: PiWorkerClientOptions): PiWorkerCl
 				),
 			]);
 		},
-		reloadProjectSettings: async (projectCwds) => {
+		reloadProjectSettings: async (projectCwds, mode) => {
 			const cwds = [...(projectCwds ?? domainClient.listOpenProjectPaths())];
 			await Promise.all([
-				domainClient.reloadProjectSettings(cwds),
+				domainClient.reloadProjectSettings(cwds, mode),
 				fanOut(attachedSessionWorkers(cwds), (worker) =>
-					call("project.reloadSettings", { projectCwds: [worker.cwd] }, { host: worker.host.readyPromise }),
+					call("project.reloadSettings", { projectCwds: [worker.cwd], mode }, { host: worker.host.readyPromise }),
 				),
 			]);
 		},

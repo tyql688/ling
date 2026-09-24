@@ -25,6 +25,7 @@
 		"node-pty": "1.2.0-beta.14",
 		"npm": "11.20.0",
 		"p-limit": "^7.3.3",
+		"pi-mcp-adapter": "2.37.0",
 		"simple-git": "^3.36.0",
 		"vscode-jsonrpc": "9.0.2",
 		"vscode-languageserver-protocol": "3.18.3",

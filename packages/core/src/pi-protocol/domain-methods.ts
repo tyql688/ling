@@ -1,3 +1,9 @@
+import {
+	mcpReadRequestSchema,
+	mcpWriteRequestSchema,
+	mcpWriteResultSchema,
+	mcpOverviewSchema,
+} from "@ling/contracts/mcp";
 import { domainMethod } from "./method";
 import {
 	voiceProjectSchema,
@@ -32,6 +38,7 @@ import {
 	SKILL_RESOURCE_RELATIVE_PATH_MAX_CHARS,
 } from "@ling/contracts/skill";
 import type { SessionMessage } from "@ling/contracts/session";
+import { piResourceReloadModeSchema } from "@ling/contracts/session";
 import { z } from "zod";
 import * as outputs from "./domain-payload-schemas";
 import { sessionMessagesSchema } from "./runtime-payload-schemas";
@@ -57,6 +64,26 @@ const fingerprintSchema = z.strictObject({
 	modifiedAtMs: z.number().nonnegative().max(Number.MAX_SAFE_INTEGER),
 });
 export const piDomainMethods = {
+	"mcp.read": domainMethod(
+		piMethod(
+			mcpReadRequestSchema,
+			(value: unknown) => mcpOverviewSchema.parse(value),
+			recoverableQuery({ timeoutMs: IO_REQUEST_TIMEOUT_MS }),
+		),
+		"readMcp",
+		["cwd"],
+		{ signal: true },
+	),
+	"mcp.write": domainMethod(
+		piMethod(
+			mcpWriteRequestSchema,
+			(value: unknown) => mcpWriteResultSchema.parse(value),
+			command({ timeoutMs: IO_REQUEST_TIMEOUT_MS }),
+		),
+		"writeMcp",
+		null,
+		{ signal: true },
+	),
 	"voice.read": domainMethod(
 		piMethod(
 			voiceProjectSchema,
@@ -68,7 +95,11 @@ export const piDomainMethods = {
 		{ signal: true },
 	),
 	"voice.configure": domainMethod(
-		piVoidMethod(voiceConfigureRequestSchema, command({ timeoutMs: LONG_REQUEST_TIMEOUT_MS })),
+		piMethod(
+			voiceConfigureRequestSchema,
+			(value: unknown) => projectPathsSchema.nullable().parse(value),
+			command({ timeoutMs: LONG_REQUEST_TIMEOUT_MS }),
+		),
 		"configureVoice",
 		null,
 		{ signal: true },
@@ -145,11 +176,11 @@ export const piDomainMethods = {
 	),
 	"project.reloadSettings": domainMethod(
 		piVoidMethod(
-			z.strictObject({ projectCwds: projectPathsSchema }),
+			z.strictObject({ projectCwds: projectPathsSchema, mode: piResourceReloadModeSchema.optional() }),
 			command({ timeoutMs: LIFECYCLE_REQUEST_TIMEOUT_MS, deferHeartbeat: true }),
 		),
 		"reloadProjectSettings",
-		["projectCwds"],
+		["projectCwds", "mode"],
 		{},
 	),
 	"project.refreshSettingsSnapshots": domainMethod(
@@ -450,13 +481,17 @@ export const piDomainMethods = {
 		{},
 	),
 	"skills.setBuiltinEnabled": domainMethod(
-		piVoidMethod(z.strictObject({ enabled: z.boolean() }), command()),
+		piMethod(z.strictObject({ enabled: z.boolean() }), (value: unknown) => z.boolean().parse(value), command()),
 		"setBuiltinSkillsEnabled",
 		["enabled"],
 		{},
 	),
 	"skills.setSkillEnabled": domainMethod(
-		piVoidMethod(z.strictObject({ name: z.string().min(1).max(64), enabled: z.boolean() }), command()),
+		piMethod(
+			z.strictObject({ name: z.string().min(1).max(64), enabled: z.boolean() }),
+			(value: unknown) => z.boolean().parse(value),
+			command(),
+		),
 		"setSkillEnabled",
 		["name", "enabled"],
 		{},

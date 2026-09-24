@@ -1,5 +1,7 @@
 import {
 	type PiResourceReloadSummary,
+	type PiResourceReloadMode,
+	mergePiResourceReloadModes,
 	SESSION_RESOURCE_RELOAD_FAILURE_MAX_CHARS,
 	type SessionResourceReloadSummary,
 } from "@ling/contracts/session";
@@ -37,14 +39,23 @@ export function piResourceReloadError(
 	});
 }
 
+interface ResourceReloadOptions {
+	mode?: PiResourceReloadMode;
+	/** Host-only switches and adapter configuration do not change the project catalog. */
+	reloadProjectCatalogs?: boolean;
+}
+
 type PiMutationOutcome = { failed: false } | { failed: true; error: unknown };
 
 export function createResourceReloadCoordinator({
 	reloadProjectSettings,
 	reloadSessionResources,
 }: {
-	reloadProjectSettings(projectCwds?: readonly string[]): Promise<void>;
-	reloadSessionResources(projectCwds?: readonly string[]): Promise<SessionResourceReloadSummary>;
+	reloadProjectSettings(projectCwds?: readonly string[], mode?: PiResourceReloadMode): Promise<void>;
+	reloadSessionResources(
+		projectCwds?: readonly string[],
+		mode?: PiResourceReloadMode,
+	): Promise<SessionResourceReloadSummary>;
 }) {
 	let stopping = false;
 	let disposal: Promise<void> | null = null;
@@ -53,6 +64,8 @@ export function createResourceReloadCoordinator({
 	let queuedReload: Promise<PiResourceReloadSummary> | null = null;
 	// null means all projects; a queued pass accumulates every admitted mutation's targets.
 	let queuedProjects: Set<string> | null = new Set();
+	let queuedMode: PiResourceReloadMode = "adapters";
+	let queuedProjectCatalogs = false;
 	const reloadListeners = new Set<() => void>();
 	const pendingMutations = new Set<Promise<{ mutation: PiMutationOutcome; reload: PiResourceReloadSummary }>>();
 
@@ -65,10 +78,15 @@ export function createResourceReloadCoordinator({
 
 	/** Reconcile one coherent project-catalog → live-session generation. Each half is
 	 * best-effort: one failure never prevents the other from reconciling. */
-	async function reloadPiResourcesNow(projectCwds?: readonly string[]): Promise<PiResourceReloadSummary> {
+	async function reloadPiResourcesNow(
+		projectCwds?: readonly string[],
+		options: ResourceReloadOptions = {},
+	): Promise<PiResourceReloadSummary> {
 		let projectError: string | null = null;
 		const projectReloads = await Promise.allSettled(
-			projectCwds?.length === 0 ? [] : [reloadProjectSettings(projectCwds)],
+			projectCwds?.length === 0 || options.reloadProjectCatalogs === false
+				? []
+				: [options.mode ? reloadProjectSettings(projectCwds, options.mode) : reloadProjectSettings(projectCwds)],
 		);
 		const projectFailures = projectReloads.flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
 		if (projectFailures.length === 1) {
@@ -82,7 +100,9 @@ export function createResourceReloadCoordinator({
 		try {
 			return {
 				projectError,
-				sessions: await reloadSessionResources(projectCwds),
+				sessions: await (options.mode
+					? reloadSessionResources(projectCwds, options.mode)
+					: reloadSessionResources(projectCwds)),
 				sessionError: null,
 			};
 		} catch (error) {
@@ -101,8 +121,15 @@ export function createResourceReloadCoordinator({
 	 * active pass share at most one queued follow-up, whose result includes those later
 	 * mutations instead of being swallowed by the earlier pass.
 	 */
-	function scheduleReload(projectCwds?: readonly string[]): Promise<PiResourceReloadSummary> {
+	function scheduleReload(
+		projectCwds?: readonly string[],
+		options: ResourceReloadOptions = {},
+	): Promise<PiResourceReloadSummary> {
+		// A no-op mutation must not wait for, or enqueue a pass behind, an unrelated reload.
+		if (projectCwds?.length === 0) return reloadPiResourcesNow([]);
 		if (activeReload || queuedReload) {
+			queuedMode = mergePiResourceReloadModes(queuedMode, options.mode ?? "full");
+			if (options.reloadProjectCatalogs !== false) queuedProjectCatalogs = true;
 			if (projectCwds === undefined) queuedProjects = null;
 			else for (const cwd of projectCwds) queuedProjects?.add(cwd);
 		}
@@ -111,26 +138,23 @@ export function createResourceReloadCoordinator({
 		// already-promised follow-up instead of starting a redundant pass first.
 		if (!activeReload && queuedReload) return queuedReload;
 		if (activeReload) {
-			queuedReload ??= activeReload.then(
-				() => {
-					const projects = queuedProjects === null ? undefined : [...queuedProjects];
-					queuedProjects = new Set();
-					queuedReload = null;
-					return scheduleReload(projects);
-				},
-				() => {
-					const projects = queuedProjects === null ? undefined : [...queuedProjects];
-					queuedProjects = new Set();
-					queuedReload = null;
-					return scheduleReload(projects);
-				},
-			);
+			const next = () => {
+				const projects = queuedProjects === null ? undefined : [...queuedProjects];
+				const options: ResourceReloadOptions = { mode: queuedMode, reloadProjectCatalogs: queuedProjectCatalogs };
+				queuedProjects = new Set();
+				queuedMode = "adapters";
+				queuedProjectCatalogs = false;
+				queuedReload = null;
+				return scheduleReload(projects, options);
+			};
+			queuedReload ??= activeReload.then(next, next);
 			return queuedReload;
 		}
 
-		const tracked: Promise<PiResourceReloadSummary> = reloadPiResourcesNow(projectCwds).finally(() => {
+		const tracked: Promise<PiResourceReloadSummary> = reloadPiResourcesNow(projectCwds, options).finally(() => {
 			if (activeReload === tracked) activeReload = null;
-			if (projectCwds?.length !== 0) for (const listener of reloadListeners) listener();
+			if (projectCwds?.length !== 0 && options.reloadProjectCatalogs !== false && options.mode !== "adapters")
+				for (const listener of reloadListeners) listener();
 		});
 		activeReload = tracked;
 		return tracked;
@@ -145,6 +169,7 @@ export function createResourceReloadCoordinator({
 		bothFailedMessage: string,
 		// A successful mutation may return exactly the projects whose effective resources changed.
 		mutate: () => Promise<void | readonly string[]>,
+		options: ResourceReloadOptions = {},
 	): Promise<{ mutation: PiMutationOutcome; reload: PiResourceReloadSummary }> {
 		let mutation: PiMutationOutcome = { failed: false };
 		let projectCwds: readonly string[] | undefined;
@@ -154,7 +179,7 @@ export function createResourceReloadCoordinator({
 			mutation = { failed: true, error };
 		}
 		try {
-			return { mutation, reload: await scheduleReload(projectCwds) };
+			return { mutation, reload: await scheduleReload(projectCwds, options) };
 		} catch (reloadError) {
 			if (mutation.failed) throw new AggregateError([mutation.error, reloadError], bothFailedMessage);
 			throw reloadError;

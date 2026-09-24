@@ -47,9 +47,9 @@ const handlers: PiMethodHandlers<Pick<typeof piRuntimeMethods, RuntimeCallMethod
 		await runtime.refreshFromDisk();
 		return null;
 	},
-	"runtime.reloadResources": async (_args, options) => {
+	"runtime.reloadResources": async (args, options) => {
 		const { runtime } = options;
-		await runtime.reloadResources();
+		await runtime.reloadResources(args.mode);
 		return null;
 	},
 	"runtime.readToolResult": async (args, options) => {
@@ -67,6 +67,10 @@ const handlers: PiMethodHandlers<Pick<typeof piRuntimeMethods, RuntimeCallMethod
 		const parsed = args;
 		const images = parsed.images;
 		await runtime.sendPrompt(parsed.text, images);
+		return null;
+	},
+	"runtime.runMcpCommand": async (args, { runtime }) => {
+		await runtime.runMcpCommand(args.input);
 		return null;
 	},
 	"runtime.steer": async (args, options) => {

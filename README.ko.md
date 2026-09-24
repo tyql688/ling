@@ -16,8 +16,7 @@ Ling은 Pi 대화, 프로젝트 파일, 변경 사항 검토, 터미널을 하�
 - **파일과 변경 사항 검토:** 독립된 읽기 영역, Monaco 편집기, 언어 서비스, Git 기록, 차이 보기, 검토 주석을 제공합니다. 파일을 열어도 원래 대화와 작성 중인 초안이 유지됩니다.
 - **터미널과 작업:** 프로젝트 터미널, 백그라운드 명령, 예약된 에이전트 작업을 실행합니다.
 - **Pi 리소스:** 패키지, 확장, 스킬, 프롬프트를 관리하고 열린 프로젝트와 세션에 다시 불러옵니다. Pi 확장의 질문과 상태 표시도 공통 UI에 통합됩니다.
-- **내장 기능:** Todo, 접근 모드, 음성 입력, 질문, 백그라운드 작업, 예약 작업을 각각 켜거나 끌 수 있습니다. Todo, 권한, 음성 기능은 상위 Pi 패키지를 사용하며, 사용자가 Pi를 통해 설치한 버전이 내장 버전보다 우선합니다.
-- **음성 입력:** 기본적으로 꺼져 있으며 플러그인 화면에서 켤 수 있습니다. 입력창의 음성 버튼 하나로 녹음하고 Pi Voice로 로컬에서 텍스트로 변환합니다. macOS에서는 `Cmd+Option+V`, Windows/Linux에서는 `Ctrl+Alt+V`를 사용합니다. Shift를 추가하거나 버튼을 오른쪽 클릭하면 설정이 열립니다. 처음 사용할 때 모델을 선택해 다운로드하며, 변환 가능한 언어는 모델에 따라 다릅니다. 초안의 텍스트를 확인한 뒤 전송합니다. `@earendil-works/pi-voice`가 설치되어 있어도 Ling의 녹음 및 설정 화면을 사용합니다. 기존 `transcribe_file` 도구도 유지되며 오디오 파일 디코딩에는 FFmpeg가 필요합니다.
+- **[내장 기능](docs/design.md):** Todo, 접근 모드, 로컬 음성 입력, 전역·프로젝트 설정을 지원하는 MCP 서비스, 질문, 백그라운드 작업, 예약 작업을 제공합니다. 설정 → 플러그인에서 각각 켜거나 끌 수 있으며 음성과 MCP는 기본적으로 꺼져 있습니다. Pi로 설치한 패키지가 내장 버전보다 우선합니다.
 - **외관과 사용량:** 밝은 테마와 어두운 테마, 내장 및 사용자 지정 선언형 스킨, 토큰·비용 통계, 지원되는 공급자의 이용 한도 정보를 제공합니다. UI는 영어, 중국어 간체, 일본어, 한국어를 지원합니다.
 
 ## 소스에서 실행
@@ -54,7 +53,7 @@ Host는 기본적으로 루프백 주소에서만 수신합니다. Pi의 인증 
 | 영역 | 기술과 라이브러리 |
 | --- | --- |
 | 언어와 작업 공간 | TypeScript, pnpm workspaces. 컴파일과 언어 서비스에는 TypeScript 7, ESLint 호환성 유지에는 별도의 TypeScript 6 의존성 사용 |
-| 에이전트 실행 환경 | `@earendil-works/pi-coding-agent`, 내장 `@juicesharp/rpiv-todo`, `@gotgenes/pi-permission-system`, `@earendil-works/pi-voice` 어댑터 |
+| 에이전트 실행 환경 | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent), 내장 [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme), [`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme), [`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme), [`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter#readme) 어댑터 |
 | 데스크톱 | Electron, electron-vite, electron-builder, electron-updater, node-mac-permissions |
 | Web과 상태 관리 | React 19, Vite, Jotai, jotai-family |
 | UI | Tailwind CSS 4, Radix UI, Floating UI, Motion, cmdk, react-resizable-panels |

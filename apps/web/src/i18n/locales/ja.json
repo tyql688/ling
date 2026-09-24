@@ -1854,7 +1854,8 @@
 		"permissionsDisabled": "権限システムはオフです。リソースの再読み込み後、新しいターンはフルアクセスになります。再度有効にすると保存済みのモードとルールが適用されます。",
 		"permissionsOff": "権限はオフ",
 		"disabledError": "この機能はオフです。新しい作業を開始するには「設定 → プラグイン」で有効にしてください。",
-		"schedulesPaused": "起動を一時停止中"
+		"schedulesPaused": "起動を一時停止中",
+		"voice": "初期状態ではオフです。入力欄で {{shortcut}} を押すと、音声を下書きに変換できます。"
 	},
 	"completion": {
 		"title": {
@@ -1880,5 +1881,58 @@
 		"insert": "補完",
 		"close": "閉じる",
 		"nameArgument": "<新しいタイトル>"
+	},
+	"voice": {
+		"title": "音声入力",
+		"settings": "音声設定",
+		"description": "このデバイスで録音し、Pi Voice でローカルに文字起こしします。送信前に確認できるよう下書きに追加します。",
+		"loading": "音声モデルを読み込み中…",
+		"model": "ローカルモデル",
+		"chooseModel": "モデルを選択",
+		"downloaded": "ダウンロード済み",
+		"language": "音声の言語",
+		"autoLanguage": "自動検出",
+		"chineseOutput": "中国語の表記",
+		"simplified": "簡体字",
+		"traditional-taiwan": "繁体字（台湾）",
+		"traditional-hong-kong": "繁体字（香港）",
+		"downloadNotice": "Hugging Face から {{size}} MB をダウンロードし、Ling が動作するコンピューターに保存します。",
+		"saving": "保存中…",
+		"downloading": "モデルをダウンロード中…",
+		"useModel": "モデルを使用",
+		"downloadModel": "ダウンロードして使用",
+		"start": "音声入力を開始",
+		"stop": "録音を停止して文字起こし",
+		"starting": "マイクを起動中…",
+		"transcribing": "文字起こし中…",
+		"discard": "録音を破棄",
+		"retry": "文字起こしを再試行",
+		"noSpeech": "音声を検出できませんでした。もう一度録音してください。",
+		"draftFull": "下書きがいっぱいです。下の文字起こしを保持しています。下書きを短くして挿入してください。",
+		"insert": "文字起こしを挿入",
+		"done": "完了",
+		"cancelOperation": "音声入力をキャンセル",
+		"recording": "録音中です。停止すると文字起こしを開始します。Esc で破棄できます。",
+		"cancelled": "音声入力をキャンセルしました。",
+		"inserted": "文字起こしを下書きに追加しました。",
+		"menuHint": "右クリックまたは長押しで音声メニューを開く",
+		"openProject": "プロジェクトを開いて音声入力を設定してください。",
+		"shortcutHint": "入力欄では {{shortcut}} で録音の開始・停止、Esc でキャンセル、{{settingsShortcut}} で設定を開けます。",
+		"modelLanguageHint": "表示言語に対応するモデルを優先して表示します。対応言語はモデルによって異なります。",
+		"supportedLanguages": "対応言語（{{count}}）",
+		"mandarin": "標準中国語",
+		"cantonese": "広東語",
+		"operationFailed": "音声処理を完了できませんでした。再試行するか、音声設定を確認してください。",
+		"errorDetails": "エラーの詳細を表示",
+		"captureError": {
+			"unsupported": "デスクトップアプリまたは安全なブラウザー接続で録音してください。",
+			"permission": "Ling またはブラウザーのマイクへのアクセスを許可してから再試行してください。",
+			"missing": "マイクを接続してから再試行してください。",
+			"busy": "マイクを利用できません。接続や他のアプリでの使用状況を確認してください。",
+			"disconnected": "マイクが切断されました。再接続して録音してください。",
+			"limit": "録音のサイズ制限を超えました。短く録音し直してください。",
+			"recording": "録音に失敗しました。マイクを確認して再試行してください。",
+			"decode": "録音をデコードできませんでした。録音し直してください。"
+		}
 	}
 }

@@ -18,6 +18,10 @@ import { PROJECT_FILE_REFERENCE_MAX_ITEMS } from "../project";
 describe("Host wire frames", () => {
 	it("keeps established wire channel names stable as capabilities are added", async () => {
 		const additions = new Set([
+			"voice:read",
+			"voice:configure",
+			"voice:transcribe",
+			"voice:cancel",
 			"builtinFeatures:changed",
 			"builtinFeatures:read",
 			"builtinFeatures:write",

@@ -96,6 +96,7 @@ const extensionUiEventSchema = z.discriminatedUnion("type", [
 	z.strictObject({ type: z.literal("customVisibility"), hidden: z.boolean(), focused: z.boolean() }),
 	z.strictObject({ type: z.literal("title"), title: extensionUiTextSchema.nullable() }),
 	z.strictObject({ type: z.literal("editorText"), text: extensionUiTextSchema }),
+	z.strictObject({ type: z.literal("voiceSettings"), requestId: z.uuid() }),
 	z.strictObject({ type: z.literal("terminalInputListening"), listening: z.boolean() }),
 	z.strictObject({ type: z.literal("toolsExpanded"), expanded: z.boolean() }),
 	z.strictObject({ type: z.literal("hiddenThinkingLabel"), label: extensionUiTextSchema.nullable() }),

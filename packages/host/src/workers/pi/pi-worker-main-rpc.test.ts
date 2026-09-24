@@ -15,7 +15,15 @@ describe("companion tool callbacks", () => {
 			promptProjectTrust: async () => null,
 			turnLifecycleHost: { start: async () => {}, finish: async () => {} },
 			readAdapterPlan: async () => ({
-				features: { todo: true, permissions: true, questions: true, "background-tasks": true, schedules: true },
+				features: {
+					todo: true,
+					permissions: true,
+					questions: true,
+					"background-tasks": true,
+					schedules: true,
+					voice: true,
+				},
+				voice: null,
 				todo: null,
 				permissions: null,
 			}),

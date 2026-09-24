@@ -31,6 +31,7 @@ it("retains old disabled built-ins without altering retired plugin data or unkno
 		questions: true,
 		"background-tasks": true,
 		schedules: false,
+		voice: false,
 	});
 	await f.owner.write({ id: "questions", enabled: false, expectedRevision: 0 }, f.signal);
 	expect((await createBuiltinFeatures(f.home).read()).enabled.questions).toBe(false);
@@ -39,6 +40,7 @@ it("retains old disabled built-ins without altering retired plugin data or unkno
 
 it("rejects stale writes and cannot turn a disabled feature into an empty success", async () => {
 	const f = await fixture();
+	expect((await f.owner.read()).enabled.voice).toBe(false);
 	const second = createBuiltinFeatures(f.home);
 	await f.owner.write({ id: "schedules", enabled: false, expectedRevision: 0 }, f.signal);
 	await expect(second.write({ id: "todo", enabled: false, expectedRevision: 0 }, f.signal)).rejects.toThrow("changed");
@@ -49,6 +51,27 @@ it("rejects stale writes and cannot turn a disabled feature into an empty succes
 	await second.write({ id: "schedules", enabled: true, expectedRevision: 1 }, f.signal);
 	expect((await f.owner.read()).schedulesResumedAt).toBeGreaterThan(0);
 	await expect(f.owner.requireEnabled("schedules")).resolves.toBeUndefined();
+});
+
+it("adds voice to existing feature settings while preserving disabled choices and revisions", async () => {
+	const f = await fixture();
+	const path = join(f.home, "plugin-state", "builtin-features.json");
+	const old = {
+		revision: 7,
+		enabled: { todo: false, permissions: true, questions: false, "background-tasks": true, schedules: false },
+		schedulesResumedAt: 123,
+	};
+	await writeFile(path, JSON.stringify(old));
+	const value = await f.owner.read();
+	expect(value).toEqual({ ...old, enabled: { ...old.enabled, voice: false } });
+	await f.owner.write({ id: "voice", enabled: true, expectedRevision: 7 }, f.signal);
+	expect(await createBuiltinFeatures(f.home).read()).toEqual({
+		...old,
+		revision: 8,
+		enabled: { ...old.enabled, voice: true },
+	});
+	await writeFile(path, JSON.stringify({ ...old, enabled: { ...old.enabled, voice: null } }));
+	await expect(createBuiltinFeatures(f.home).read()).rejects.toThrow();
 });
 
 it("surfaces corrupt old and new settings instead of enabling features by default", async () => {

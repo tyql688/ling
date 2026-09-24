@@ -3,11 +3,12 @@ import type { HostDomain } from "../../transport/host-domain";
 import type { ResourceReloadCoordinator } from "../resources/resource-reload";
 import { piResourceReloadError } from "../resources/resource-reload";
 import type { BuiltinFeatureStore } from "./builtin-features";
+import type { BuiltinFeatureId } from "@ling/contracts/builtin-features";
 
 export function createBuiltinFeatureDomain(options: {
 	features: BuiltinFeatureStore;
 	resources: ResourceReloadCoordinator;
-	onChanged(): void;
+	onChanged(id: BuiltinFeatureId, enabled: boolean): void;
 }): HostDomain {
 	return {
 		handlers: {
@@ -17,7 +18,7 @@ export function createBuiltinFeatureDomain(options: {
 					"Feature change and resource reload failed",
 					async () => {
 						await options.features.write(input, context.signal);
-						options.onChanged();
+						options.onChanged(input.id, input.enabled);
 					},
 				);
 				if (result.mutation.failed) {

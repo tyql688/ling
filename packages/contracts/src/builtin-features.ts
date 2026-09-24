@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-export const builtinFeatureIdSchema = z.enum(["todo", "permissions", "questions", "background-tasks", "schedules"]);
+export const builtinFeatureIdSchema = z.enum([
+	"todo",
+	"permissions",
+	"questions",
+	"background-tasks",
+	"schedules",
+	"voice",
+]);
 export type BuiltinFeatureId = z.infer<typeof builtinFeatureIdSchema>;
 
 export const builtinFeatureFlagsSchema = z.record(builtinFeatureIdSchema, z.boolean());

@@ -1,3 +1,4 @@
+import { ProjectVoiceInput } from "@renderer/features/pi-adapters/voice/voice-input";
 import { ComposerAttachments } from "@renderer/features/chat/composer/composer-attachments";
 import { ModelConnectionPrompt } from "@renderer/features/models/model-connection-prompt";
 import { SettingsRetryAction } from "@renderer/components/ui/settings-state";
@@ -47,6 +48,7 @@ export function QuickStartComposer(props: QuickStartComposerProps) {
 		retrySetup,
 		draft,
 		changeDraft,
+		appendVoiceTranscript,
 		openFile,
 		selectModel,
 		selectThinking,
@@ -168,12 +170,17 @@ export function QuickStartComposer(props: QuickStartComposerProps) {
 						</DropdownMenu>
 					}
 					actions={
-						<ComposerActionButton
-							pending={submitting}
-							label={t(submitting ? "session.sending" : "session.send")}
-							disabled={submitting || !core.hasSendableContent || !readyToSubmit}
-							onClick={() => core.requestSubmit()}
-						/>
+						<>
+							{targetProject && (
+								<ProjectVoiceInput cwd={targetProject.cwd} disabled={submitting} onTranscript={appendVoiceTranscript} />
+							)}
+							<ComposerActionButton
+								pending={submitting}
+								label={t(submitting ? "session.sending" : "session.send")}
+								disabled={submitting || !core.hasSendableContent || !readyToSubmit}
+								onClick={() => core.requestSubmit()}
+							/>
+						</>
 					}
 				>
 					{!modelsLoaded && !setupError && (

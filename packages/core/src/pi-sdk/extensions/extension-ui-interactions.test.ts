@@ -1,7 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { createExtensionUiInteractions } from "./extension-ui-interactions";
+import { createPiExtensionUi } from "./extension-ui-context";
+import { createExtensionUiBridge } from "../../pi-protocol/extension-ui";
 
 describe("extension UI interaction cancellation", () => {
+	it("opens voice settings through Pi's copied UI context and rejects it after replacement", async () => {
+		const bridge = createExtensionUiBridge();
+		const owner = createPiExtensionUi(bridge);
+		const ref = { cwd: "/project", sessionId: "voice-session" };
+		try {
+			const copied = { ...owner.createPiExtensionUiContext(ref) };
+			owner.openVoiceSettings(copied);
+			const request = bridge.getExtensionUiState(ref).voiceSettingsRequestId;
+			expect(request).toEqual(expect.any(String));
+			owner.createPiExtensionUiContext(ref);
+			expect(() => owner.openVoiceSettings(copied)).toThrow(
+				expect.objectContaining({ code: "EXTENSION_UI_CONTEXT_STALE" }),
+			);
+			expect(bridge.getExtensionUiState(ref).voiceSettingsRequestId).toBe(request);
+		} finally {
+			await owner.dispose();
+			bridge.dispose();
+		}
+	});
 	it("cancels current waits and admits fresh interactions only after the stopped work settles", async () => {
 		const owner = createExtensionUiInteractions();
 		const original = owner.signal;

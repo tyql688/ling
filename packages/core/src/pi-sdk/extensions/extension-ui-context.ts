@@ -1,4 +1,5 @@
 import { Theme } from "@earendil-works/pi-coding-agent";
+import { randomUUID } from "node:crypto";
 import {
 	EXTENSION_UI_TEXT_MAX_CHARS,
 	EXTENSION_UI_WORKING_FRAME_MAX_ITEMS,
@@ -72,6 +73,8 @@ export function createPiExtensionUi(bridge: ExtensionUiBridge) {
 	>();
 	let disposed = false;
 	let disposal: Promise<void> | null = null;
+	// Pi copies UI contexts to wrap prompt methods; non-prompt function identities survive that copy.
+	const voiceSettingsRequests = new WeakMap<PiExtensionUiContext["setEditorText"], () => void>();
 	const {
 		emitExtensionUiState,
 		getApprovalRequester,
@@ -285,6 +288,11 @@ export function createPiExtensionUi(bridge: ExtensionUiBridge) {
 		};
 		const guarded = guardExtensionUiContext(context, capability);
 		assertActiveExtensionUiCapability(capability);
+		voiceSettingsRequests.set(guarded.setEditorText, () => {
+			assertActiveExtensionUiCapability(capability);
+			interactions.signal.throwIfAborted();
+			emitExtensionUiState(ref, { type: "voiceSettings", requestId: randomUUID() });
+		});
 		return guarded;
 	}
 
@@ -307,6 +315,11 @@ export function createPiExtensionUi(bridge: ExtensionUiBridge) {
 		return disposal;
 	}
 	return {
+		openVoiceSettings(ui: PiExtensionUiContext) {
+			const open = voiceSettingsRequests.get(ui.setEditorText);
+			if (!open) throw staleExtensionUiContext();
+			open();
+		},
 		createPiExtensionUiContext,
 		preparePiExtensionUiShutdown,
 		cancelPiExtensionUiInteractions,

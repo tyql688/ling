@@ -1847,7 +1847,8 @@
 		"permissionsDisabled": "权限系统已关闭。资源重载后，新一轮使用完全访问；重新启用后恢复已保存的访问模式和规则。",
 		"permissionsOff": "权限已关闭",
 		"disabledError": "此功能已关闭，请在“设置 → 插件”中启用后再开始新任务。",
-		"schedulesPaused": "已暂停触发"
+		"schedulesPaused": "已暂停触发",
+		"voice": "默认关闭。在输入框内按 {{shortcut}}，将语音转写为草稿。"
 	},
 	"completion": {
 		"title": {
@@ -1873,5 +1874,58 @@
 		"insert": "补全",
 		"close": "收起",
 		"nameArgument": "<新标题>"
+	},
+	"voice": {
+		"title": "语音输入",
+		"settings": "语音设置",
+		"description": "使用当前设备录音，由 Pi Voice 在本地转写。文字会填入草稿，供你检查后发送。",
+		"loading": "正在加载语音模型…",
+		"model": "本地模型",
+		"chooseModel": "选择模型",
+		"downloaded": "已下载",
+		"language": "口述语言",
+		"autoLanguage": "自动识别",
+		"chineseOutput": "中文输出",
+		"simplified": "简体中文",
+		"traditional-taiwan": "繁体中文（台湾）",
+		"traditional-hong-kong": "繁体中文（香港）",
+		"downloadNotice": "将从 Hugging Face 下载 {{size}} MB，模型保存在运行 Ling 的计算机上。",
+		"saving": "正在保存…",
+		"downloading": "正在下载模型…",
+		"useModel": "使用模型",
+		"downloadModel": "下载并使用",
+		"start": "开始语音输入",
+		"stop": "结束录音并转写",
+		"starting": "正在启动麦克风…",
+		"transcribing": "正在转写…",
+		"discard": "放弃录音",
+		"retry": "重试转写",
+		"noSpeech": "未识别到语音，请重新录音。",
+		"draftFull": "草稿已满。转写文字保留在下方，请缩短草稿后重新插入。",
+		"insert": "插入转写文字",
+		"done": "完成",
+		"cancelOperation": "取消语音输入",
+		"recording": "正在录音。结束后转写，按 Esc 放弃录音。",
+		"cancelled": "已取消语音输入。",
+		"inserted": "转写文字已加入草稿。",
+		"menuHint": "右键或长按打开语音菜单",
+		"openProject": "打开项目后可配置语音输入。",
+		"shortcutHint": "在输入框内，{{shortcut}} 开始或结束录音，Esc 取消，{{settingsShortcut}} 打开设置。",
+		"modelLanguageHint": "优先展示支持当前界面语言的模型，具体语言支持以模型为准。",
+		"supportedLanguages": "支持的语言（{{count}}）",
+		"mandarin": "普通话（中文）",
+		"cantonese": "粤语",
+		"operationFailed": "语音操作未完成。请重试或检查语音设置。",
+		"errorDetails": "查看错误详情",
+		"captureError": {
+			"unsupported": "请使用桌面版或安全的浏览器连接进行录音。",
+			"permission": "请允许 Ling 或浏览器访问麦克风，然后重试。",
+			"missing": "请连接麦克风后重试。",
+			"busy": "暂时无法使用麦克风。请检查设备连接及其他应用的占用情况后重试。",
+			"disconnected": "麦克风已断开，请重新连接后录音。",
+			"limit": "录音超过大小限制，请缩短内容后重新录制。",
+			"recording": "录音失败，请检查麦克风后重试。",
+			"decode": "无法解码这段录音，请重新录制。"
+		}
 	}
 }

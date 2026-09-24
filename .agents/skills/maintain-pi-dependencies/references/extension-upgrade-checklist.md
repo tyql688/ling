@@ -33,4 +33,14 @@ Use the `adapt`, `expose`, `inherited` and `defer` decision rules in the [Pi upg
 | Files and inheritance | Test missing/global/project rule files according to upstream semantics, malformed configuration and partial write failures. Keep failures visible and existing contents intact. Verify the exact file opened by Ling matches the one upstream reads. |
 | Parser and native assets | Inspect published WASM files, `tree-sitter-bash` requirements, build policy and executable asset resolution. Run a representative shell command through the staged extension on the available target; document untested platforms and changed package size. |
 
+## Voice
+
+| Changed surface | Migration and acceptance evidence |
+| --- | --- |
+| Published source and SDK resolution | Audit the version-specific source adapter before widening supported versions. Resolve the real package directory and embedded public SDK for both the bundled copy and a Pi-installed copy without its own SDK peers. Unknown versions must retain original commands and report unsupported native adaptation visibly. |
+| Settings, catalogs and models | Reuse upstream configuration and model caches. Verify explicit model download, cancellation, language and Chinese-output settings, and preserved shortcut/device preferences. Opening Ling must not trigger migration or deletion of another extension's legacy configuration. |
+| Recording and draft ownership | Exercise client recording, transcription, retry, cancellation, duration and size bounds, new-conversation drafts and existing-session drafts. Switching sessions, disabling the feature, replacing the runtime or disconnecting must stop owned work and prevent late text from entering another draft. Transcription never sends automatically. |
+| Commands and original tools | Verify native settings from the supported package's commands, including after resource reload. Preserve the original file-transcription tool; do not record from a remote Host's microphone or duplicate the user's separately installed package. |
+| Native libraries and shell permissions | Inspect transcribe-cpp platform assets and native dependency build policy in the staged runtime. Run actual transcription with a downloaded model. Verify Desktop microphone permissions and entitlements separately from synthetic MediaStream acceptance; report hardware and platform gaps. Browser recording must not acquire a new FFmpeg requirement; upstream file decoding retains its own requirements. |
+
 Keep the evidence with the update or release task. These rows guide source review and real acceptance; they do not justify architecture tests, DOM snapshots, mocks standing in for SDK interactions, or a new maintenance enforcement framework.

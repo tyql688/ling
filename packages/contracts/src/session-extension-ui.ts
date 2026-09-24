@@ -25,6 +25,7 @@ export type ExtensionUiStateEvent =
 	| { type: "customVisibility"; hidden: boolean; focused: boolean }
 	| { type: "title"; title: string | null }
 	| { type: "editorText"; text: string }
+	| { type: "voiceSettings"; requestId: string }
 	| { type: "terminalInputListening"; listening: boolean }
 	| { type: "toolsExpanded"; expanded: boolean }
 	| { type: "hiddenThinkingLabel"; label: string | null }
@@ -78,6 +79,7 @@ export interface ExtensionUiStateSnapshot {
 	notifications: { id: string; level: "info" | "warning" | "error"; message: string; createdAt: number }[];
 	title: string | null;
 	editorText: string | null;
+	voiceSettingsRequestId: string | null;
 	terminalInputListening: boolean;
 	toolsExpanded: boolean;
 	hiddenThinkingLabel: string | null;
@@ -99,6 +101,7 @@ export const EMPTY_EXTENSION_UI_STATE: ExtensionUiStateSnapshot = {
 	notifications: [],
 	title: null,
 	editorText: null,
+	voiceSettingsRequestId: null,
 	terminalInputListening: false,
 	toolsExpanded: false,
 	hiddenThinkingLabel: null,

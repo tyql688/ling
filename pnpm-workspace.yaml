@@ -10,7 +10,9 @@ allowBuilds:
   "@parcel/watcher": false # prebuilt win32/darwin/linux binaries ship as optionalDeps; install script is source-build fallback only
   electron-winstaller: false # packaging-time only; build script never ran under pnpm 10 either
   tree-sitter-bash: false # permission parsing uses the shipped WASM grammar, not the native Node binding
+  koffi: false # native voice uses the shipped platform package; the install script is a source-build fallback
 minimumReleaseAgeExclude:
+  - "@earendil-works/pi-voice@0.1.0"
   - "@earendil-works/chord@0.87.1"
   - "@earendil-works/pi-agent-core@0.87.1"
   - "@earendil-works/pi-ai@0.87.1"

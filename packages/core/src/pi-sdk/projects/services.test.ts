@@ -42,7 +42,15 @@ export default function(pi) {
 				builtinExtensions: () => [],
 				resolveProjectTrust: async () => true,
 				readAdapterPlan: async () => ({
-					features: { todo: false, permissions: false, questions: false, "background-tasks": false, schedules: false },
+					features: {
+						todo: false,
+						permissions: false,
+						questions: false,
+						"background-tasks": false,
+						schedules: false,
+						voice: false,
+					},
+					voice: null,
 					todo: null,
 					permissions: null,
 				}),

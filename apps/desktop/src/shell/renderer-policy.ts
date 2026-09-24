@@ -36,10 +36,20 @@ export function createRendererPolicy(options: RendererPolicyOptions) {
 	function installPermissionPolicy(): void {
 		installed = true;
 		session.defaultSession.setPermissionCheckHandler((webContents, permission, _origin, details) =>
-			isAllowedRendererPermission(webContents, permission, details.requestingUrl, details.isMainFrame),
+			permission === "media"
+				? details.mediaType === "audio" &&
+					isTrustedRendererRequest(webContents, details.requestingUrl, details.isMainFrame)
+				: isAllowedRendererPermission(webContents, permission, details.requestingUrl, details.isMainFrame),
 		);
 		session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
-			callback(isAllowedRendererPermission(webContents, permission, details.requestingUrl, details.isMainFrame));
+			callback(
+				permission === "media"
+					? "mediaTypes" in details &&
+							details.mediaTypes?.length === 1 &&
+							details.mediaTypes[0] === "audio" &&
+							isTrustedRendererRequest(webContents, details.requestingUrl, details.isMainFrame)
+					: isAllowedRendererPermission(webContents, permission, details.requestingUrl, details.isMainFrame),
+			);
 		});
 	}
 

@@ -12,6 +12,7 @@
 		"@ling/contracts": "workspace:*",
 		"@ling/node-runtime": "workspace:*",
 		"diff": "9.0.0",
+		"jiti": "2.7.0",
 		"p-limit": "^7.3.3",
 		"proper-lockfile": "4.1.2",
 		"undici": "8.11.0",

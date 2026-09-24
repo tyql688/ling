@@ -1856,7 +1856,8 @@
 		"permissionsDisabled": "The permission system is off. New turns use full access after resources reload. Saved access choices and rules apply again when enabled.",
 		"permissionsOff": "Permissions off",
 		"disabledError": "This feature is off. Enable it in Settings → Plugins before starting new work.",
-		"schedulesPaused": "Triggers suspended"
+		"schedulesPaused": "Triggers suspended",
+		"voice": "Off by default. Dictate into the draft with {{shortcut}} while the composer is focused."
 	},
 	"completion": {
 		"title": {
@@ -1882,5 +1883,58 @@
 		"insert": "Complete",
 		"close": "Dismiss",
 		"nameArgument": "<new title>"
+	},
+	"voice": {
+		"title": "Voice input",
+		"settings": "Voice settings",
+		"description": "Record on this device and transcribe locally with Pi Voice. Text is added to your draft for review.",
+		"loading": "Loading voice models…",
+		"model": "Local model",
+		"chooseModel": "Choose a model",
+		"downloaded": "Downloaded",
+		"language": "Spoken language",
+		"autoLanguage": "Detect automatically",
+		"chineseOutput": "Chinese script",
+		"simplified": "Simplified",
+		"traditional-taiwan": "Traditional (Taiwan)",
+		"traditional-hong-kong": "Traditional (Hong Kong)",
+		"downloadNotice": "Download {{size}} MB from Hugging Face. The model is stored on the computer running Ling.",
+		"saving": "Saving…",
+		"downloading": "Downloading model…",
+		"useModel": "Use model",
+		"downloadModel": "Download and use",
+		"start": "Start voice input",
+		"stop": "Stop and transcribe",
+		"starting": "Starting microphone…",
+		"transcribing": "Transcribing…",
+		"discard": "Discard recording",
+		"retry": "Retry transcription",
+		"noSpeech": "No speech was detected. Try recording again.",
+		"draftFull": "Your draft is full. The transcript is kept below; shorten the draft and insert it again.",
+		"insert": "Insert transcript",
+		"done": "Done",
+		"cancelOperation": "Cancel voice input",
+		"recording": "Recording. Stop to transcribe, or press Escape to discard.",
+		"cancelled": "Voice input cancelled.",
+		"inserted": "Transcription added to the draft.",
+		"menuHint": "Right-click or press and hold for voice options",
+		"openProject": "Open a project to configure voice input.",
+		"shortcutHint": "In the composer, {{shortcut}} starts or stops recording, Esc cancels, and {{settingsShortcut}} opens settings.",
+		"modelLanguageHint": "Models supporting your interface language appear first. Language support varies by model.",
+		"supportedLanguages": "Supported languages ({{count}})",
+		"mandarin": "Mandarin (Chinese)",
+		"cantonese": "Cantonese",
+		"operationFailed": "Voice input could not complete. Retry or check voice settings.",
+		"errorDetails": "Show error details",
+		"captureError": {
+			"unsupported": "Use the desktop app or a secure browser connection to record audio.",
+			"permission": "Allow microphone access for Ling or your browser, then try again.",
+			"missing": "Connect a microphone, then try again.",
+			"busy": "The microphone is unavailable. Check its connection and other apps using it, then try again.",
+			"disconnected": "The microphone disconnected. Reconnect it and record again.",
+			"limit": "The recording exceeded its size limit. Make a shorter recording.",
+			"recording": "Recording failed. Check your microphone and try again.",
+			"decode": "The recording could not be decoded. Record it again."
+		}
 	}
 }

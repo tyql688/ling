@@ -57,6 +57,7 @@ import type { DiagnosticsStore } from "../runtime/diagnostics-store";
 import type { BuiltinFeatureStore } from "../domains/companions/builtin-features";
 import { createBuiltinFeatureDomain } from "../domains/companions/builtin-feature-handlers";
 import { builtinFeaturesProcedures } from "@ling/contracts/builtin-feature-procedures";
+import { createVoiceDomain } from "../domains/pi-adapters/voice/voice-handlers";
 
 export interface HostBusinessHandlersOptions {
 	features: BuiltinFeatureStore;
@@ -101,11 +102,17 @@ export async function createHostBusinessDomains(options: HostBusinessHandlersOpt
 	const domains = createHostDomainRuntime(options.handle);
 	try {
 		const { piWorker, resources, projectOperations, gitWrites, events, projectsRestored, projects, settings } = options;
+		const voice = domains.add("voice", "handlers", () =>
+			createVoiceDomain({ features: options.features, piWorker, resources, assertProject: options.assertProject }),
+		);
 		domains.add("built-in features", "handlers", () =>
 			createBuiltinFeatureDomain({
 				features: options.features,
 				resources,
-				onChanged: () => events.broadcast(builtinFeaturesProcedures.onChanged.channel, null),
+				onChanged: (id, enabled) => {
+					if (id === "voice" && !enabled) voice.cancel();
+					events.broadcast(builtinFeaturesProcedures.onChanged.channel, null);
+				},
 			}),
 		);
 		domains.add("interactions", "handlers", () => createInteractionDomain(options.interactions));
@@ -220,7 +227,10 @@ export async function createHostBusinessDomains(options: HostBusinessHandlersOpt
 		return {
 			prepareShutdown: domains.prepareShutdown,
 			dispose: domains.dispose,
-			disconnectClient: editor.releaseClient,
+			disconnectClient: async (clientId) => {
+				voice.disconnectClient(clientId);
+				await editor.releaseClient(clientId);
+			},
 		};
 	} catch (error) {
 		return domains.fail(error);

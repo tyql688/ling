@@ -86,6 +86,7 @@ export type CompanionToolResult = z.infer<typeof companionToolResultSchema>;
 export const piAdapterPlanSchema = z.strictObject({
 	features: builtinFeatureFlagsSchema,
 	todo: z.string().min(1).nullable(),
+	voice: z.string().min(1).nullable(),
 	permissions: z.strictObject({ entry: z.string().min(1), enabled: z.boolean() }).nullable(),
 });
 export type PiAdapterPlan = z.infer<typeof piAdapterPlanSchema>;

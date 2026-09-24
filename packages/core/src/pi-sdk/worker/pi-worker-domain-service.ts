@@ -31,6 +31,7 @@ import { readArchivedPiSessionMessages } from "../session/session-archive";
 import { discoverPiSessions, listPiSessions } from "../session/session-discovery";
 import type { PiSettings } from "../settings/settings";
 import type { PiWorkerRuntimeService } from "./pi-worker-runtime-service";
+import { createPiVoice } from "../voice/pi-voice";
 
 interface PiWorkerDomainService {
 	handle(request: PiWorkerRequest, signal: AbortSignal): Promise<unknown>;
@@ -75,6 +76,7 @@ function toSessionDiscovery(
 }
 
 export function createPiWorkerDomainService(options: PiWorkerDomainServiceOptions): PiWorkerDomainService {
+	const voice = createPiVoice(options.projects);
 	const {
 		closeProject,
 		getPiServices,
@@ -141,7 +143,11 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 	const shutdownOperations = (): Promise<void> => {
 		if (operationShutdownPromise) return operationShutdownPromise;
 		operationShutdownPromise = (async () => {
-			const results = await Promise.allSettled([shutdownModelOperations(), shutdownGlobalSettingsMutations()]);
+			const results = await Promise.allSettled([
+				voice.dispose(),
+				shutdownModelOperations(),
+				shutdownGlobalSettingsMutations(),
+			]);
 			throwAggregateFailures(
 				results.flatMap((result) => (result.status === "rejected" ? [result.reason] : [])),
 				"Failed to stop Pi worker domain operations",
@@ -156,6 +162,12 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 	};
 
 	const handlers: PiMethodHandlers<typeof piDomainMethods, AbortSignal> = {
+		"voice.read": (input) => voice.read(input.cwd),
+		"voice.configure": async (input, signal) => {
+			await voice.configure(input, signal);
+			return null;
+		},
+		"voice.transcribe": (input, signal) => voice.transcribe(input, signal),
 		"agent.getInfo": async () => {
 			return getAgentInfo();
 		},
@@ -203,6 +215,7 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 			});
 		},
 		"project.close": async (input) => {
+			voice.cancelProject(input.cwd);
 			const params = input;
 			const cwd = parsePiWorkerAbsolutePath(params.cwd);
 			if (!listOpenProjectPaths().includes(cwd)) return null;

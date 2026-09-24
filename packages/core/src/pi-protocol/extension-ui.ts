@@ -115,6 +115,9 @@ function assertExtensionUiStateEvent(state: ExtensionUiStateSnapshot, event: Ext
 		case "editorText":
 			assertExtensionText(event.text, "setEditorText.text");
 			return;
+		case "voiceSettings":
+			assertExtensionText(event.requestId, "voiceSettings.requestId", EXTENSION_UI_KEY_MAX_CHARS);
+			return;
 		case "hiddenThinkingLabel":
 			if (event.label !== null) assertExtensionText(event.label, "setHiddenThinkingLabel.label");
 			return;
@@ -132,6 +135,8 @@ function assertExtensionUiStateEvent(state: ExtensionUiStateSnapshot, event: Ext
 
 function applyStateEvent(state: ExtensionUiStateSnapshot, event: ExtensionUiStateEvent): ExtensionUiStateSnapshot {
 	switch (event.type) {
+		case "voiceSettings":
+			return { ...state, voiceSettingsRequestId: event.requestId };
 		case "status":
 			return {
 				...state,

@@ -1,4 +1,5 @@
-import { SettingsManager } from "@earendil-works/pi-coding-agent";
+import { discoverAndLoadExtensions, SettingsManager } from "@earendil-works/pi-coding-agent";
+import { fileURLToPath } from "node:url";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -33,25 +34,70 @@ async function fixture() {
 		}
 		await writeFile(join(agentDir, "settings.json"), JSON.stringify({ packages: names.map((name) => `npm:${name}`) }));
 	};
-	const prepare = async (permissionsEnabled: boolean, todo = true) => {
+	const prepare = async (
+		permissionsEnabled: boolean,
+		todo = true,
+		voice: string | null = null,
+		openVoiceSettings?: Parameters<typeof preparePiAdapters>[0]["openVoiceSettings"],
+	) => {
 		const settingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted: false });
 		await settingsManager.reload();
 		return preparePiAdapters({
 			cwd,
 			agentDir,
 			settingsManager,
+			...(openVoiceSettings ? { openVoiceSettings } : {}),
 			plan: {
-				features: { todo, permissions: true, questions: true, "background-tasks": true, schedules: true },
+				features: {
+					todo,
+					permissions: true,
+					questions: true,
+					"background-tasks": true,
+					schedules: true,
+					voice: voice !== null,
+				},
+				voice,
 				todo: todo ? bundled.todo : null,
 				permissions: { entry: bundled.permissions, enabled: permissionsEnabled },
 			},
 		});
 	};
 	const installedEntry = (name: string) => join(agentDir, "npm", "node_modules", name, "index.ts");
-	return { bundled, install, prepare, installedEntry };
+	return { bundled, install, prepare, installedEntry, cwd, agentDir };
 }
 
 describe("bundled Pi adapters", () => {
+	it("replaces voice terminal onboarding while preserving the published file tool and shutdown", async () => {
+		const f = await fixture();
+		const entry = fileURLToPath(
+			new URL("../../../../host/node_modules/@earendil-works/pi-voice/index.ts", import.meta.url),
+		);
+		const loaded = await discoverAndLoadExtensions([entry], f.cwd, f.agentDir);
+		expect(loaded.errors).toEqual([]);
+		const voice = loaded.extensions[0]!;
+		const fileTool = voice.tools.get("transcribe_file");
+		const shutdown = voice.handlers.get("session_shutdown");
+		expect(fileTool).toBeDefined();
+		expect(shutdown).toHaveLength(1);
+		expect(voice.handlers.get("session_start")).toHaveLength(1);
+		const settings = voice.commands.get("voice-settings")!.handler;
+		const adapter = await f.prepare(false, false, entry, () => {});
+		adapter.overrides(loaded);
+		expect(voice.handlers.has("session_start")).toBe(false);
+		expect(voice.shortcuts.size).toBe(0);
+		expect(voice.commands.get("voice-settings")!.handler).not.toBe(settings);
+		expect(voice.tools.get("transcribe_file")).toBe(fileTool);
+		expect(voice.handlers.get("session_shutdown")).toBe(shutdown);
+	}, 30_000);
+	it("prefers the user's voice package and preserves it when Ling voice is disabled", async () => {
+		const f = await fixture();
+		const voice = join(f.bundled.todo, "..", "voice.ts");
+		expect((await f.prepare(false, false, voice)).paths).toEqual([voice]);
+		await f.install(["@earendil-works/pi-voice"]);
+		const installed = f.installedEntry("@earendil-works/pi-voice");
+		expect((await f.prepare(false, false, voice)).paths).toEqual([installed]);
+		expect((await f.prepare(false, false)).paths).toEqual([installed]);
+	});
 	it("loads the bundled todo and loads the bundled permission system only where it is enabled", async () => {
 		const f = await fixture();
 		const full = await f.prepare(false);

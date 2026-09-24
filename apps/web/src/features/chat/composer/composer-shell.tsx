@@ -1,4 +1,5 @@
 import { FeedbackNotice } from "@renderer/components/ui/feedback";
+import { ComposerFeedbackArea } from "@renderer/components/workbench/composer-feedback";
 import { cn } from "@renderer/lib/utils";
 import { Paperclip } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -80,7 +81,7 @@ export function ComposerCard({
 		>
 			{variant === "session" && <span className="composer-working-edge" aria-hidden="true" />}
 			<ComposerDropOverlay active={dropActive} />
-			{children}
+			<ComposerFeedbackArea>{children}</ComposerFeedbackArea>
 		</div>
 	);
 }

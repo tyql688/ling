@@ -57,6 +57,7 @@ export function emptySessionTranscriptState(epoch = 0): SessionTranscriptState {
 
 /** One record owns all state for a runtime view. Field selectors preserve narrow subscriptions. */
 export interface SessionView {
+	dismissedVoiceSettingsRequest: string | null;
 	messages: SessionMessage[];
 	transcript: SessionTranscriptState;
 	toolExecutions: readonly ToolExecutionProgress[];
@@ -72,6 +73,7 @@ export interface SessionView {
 
 export function emptySessionView(epoch = 0): SessionView {
 	return {
+		dismissedVoiceSettingsRequest: null,
 		messages: [],
 		transcript: emptySessionTranscriptState(epoch),
 		toolExecutions: [],
@@ -113,6 +115,7 @@ function sessionField<Key extends keyof SessionView>(field: Key) {
 
 export const sessionMessagesFamily = sessionField("messages");
 export const sessionTranscriptStateFamily = sessionField("transcript");
+export const dismissedVoiceSettingsRequestFamily = sessionField("dismissedVoiceSettingsRequest");
 export const sessionToolExecutionsFamily = sessionField("toolExecutions");
 export const sessionBusyFamily = sessionField("busy");
 export const sessionSummarizationRetryFamily = sessionField("summarizationRetry");

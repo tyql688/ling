@@ -327,6 +327,10 @@ export function useQuickStartComposer({ projects, preferredCwd, onAddProject, on
 		retrySetup,
 		draft,
 		changeDraft,
+		appendVoiceTranscript: (transcript: string) => {
+			const current = snapshotDraft().text;
+			return setText(`${current}${current && !/\s$/.test(current) ? "\n" : ""}${transcript}`);
+		},
 		openFile,
 		selectModel,
 		selectThinking,

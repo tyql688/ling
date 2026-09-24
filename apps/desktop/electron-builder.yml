@@ -52,6 +52,10 @@ electronLanguages:
   - ja
   - ko
 mac:
+  entitlements: ../../resources/entitlements.mac.plist
+  entitlementsInherit: ../../resources/entitlements.mac.plist
+  extendInfo:
+    NSMicrophoneUsageDescription: Ling uses the microphone to turn your speech into a message draft.
   minimumSystemVersion: "13.0"
   icon: ../../resources/icon.icns
   target:

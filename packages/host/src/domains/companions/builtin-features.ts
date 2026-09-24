@@ -9,7 +9,7 @@ import {
 	type BuiltinFeatureUpdate,
 } from "@ling/contracts/builtin-features";
 
-const legacyIds: Record<BuiltinFeatureId, string> = {
+const legacyIds: Record<Exclude<BuiltinFeatureId, "voice">, string> = {
 	todo: "ling-todo",
 	permissions: "ling-permission-system",
 	questions: "ling-questions",
@@ -31,13 +31,25 @@ export function createBuiltinFeatures(home: string) {
 			const disabled = new Set(source === undefined ? [] : legacySchema.parse(JSON.parse(source)).disabled);
 			return {
 				revision: 0,
-				enabled: Object.fromEntries(
-					Object.entries(legacyIds).map(([id, legacy]) => [id, !disabled.has(legacy)]),
-				) as BuiltinFeatures["enabled"],
+				enabled: {
+					...Object.fromEntries(Object.entries(legacyIds).map(([id, legacy]) => [id, !disabled.has(legacy)])),
+					// Microphone input is opt-in; installing a Pi voice package does not opt in to Ling's controls.
+					voice: false,
+				} as BuiltinFeatures["enabled"],
 				schedulesResumedAt: null,
 			};
 		},
-		parse: (source) => builtinFeaturesSchema.parse(JSON.parse(source)),
+		parse: (source) => {
+			// Existing installations predate voice. Only this new switch has an absence default.
+			const value = z
+				.object({ enabled: z.object({ voice: z.boolean().optional() }).loose() })
+				.loose()
+				.parse(JSON.parse(source));
+			return builtinFeaturesSchema.parse({
+				...value,
+				enabled: { ...value.enabled, voice: value.enabled.voice ?? false },
+			});
+		},
 		serialize: (value) => `${JSON.stringify(value, null, 2)}\n`,
 	});
 	return {

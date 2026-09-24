@@ -6,7 +6,7 @@ Keep this file focused on product boundaries, non-obvious development rules, and
 
 Ling is a GUI/Web host for Pi: projects and Pi sessions, change review/diff, models, Pi package management, usage stats, and settings. A conversation requires an open project. Project cwd is the product boundary; worktrees are optional Git operations, not a project/workspace hierarchy.
 
-Support Pi packages/extensions, resource reload and Pi UI adaptation. Ling ships five built-in features beside the conversation: todo, access mode (permission system), questions, background tasks and scheduled tasks. Todo and the permission system are adapters over bundled Pi packages (`@juicesharp/rpiv-todo`, `@gotgenes/pi-permission-system`); a copy the user installed through Pi always wins over the bundled one, and their configuration files stay untouched. Questions, background tasks and schedules are Host features whose agent tools the Pi worker registers and forwards. Skills and declarative skins retain their own formats and owners.
+Support Pi packages/extensions, resource reload and Pi UI adaptation. Ling ships six built-in features beside the conversation: todo, access mode (permission system), voice input, questions, background tasks and scheduled tasks. Todo, permissions and voice adapt bundled Pi packages (`@juicesharp/rpiv-todo`, `@gotgenes/pi-permission-system`, `@earendil-works/pi-voice`); a copy the user installed through Pi always wins over the bundled one. Preserve their configuration unless the user explicitly changes it. Questions, background tasks and schedules are Host features whose agent tools the Pi worker registers and forwards. Skills and declarative skins retain their own formats and owners.
 
 Feature state lives under the Ling data home (`~/.ling`, overridable with `LING_HOME`) and never moves existing app data or credentials. Tool results from Pi extensions carry recorded provenance; a feature projects only results whose provenance it verified and otherwise keeps Pi's original rendering.
 
@@ -84,7 +84,7 @@ Propagate errors or explicit typed failure results through Core, Host, and Deskt
 
 `.agents/skills/` contains repository development guidance and is never packaged. `builtin-skills/<name>/SKILL.md` ships to end users. Keep both tiers English and read [skill-authoring](.agents/skills/skill-authoring/SKILL.md) before editing either.
 
-Use [commit](.agents/skills/commit/SKILL.md) for staging/commit work, [release](.agents/skills/release/SKILL.md) for version/build/tag/publication work, and [update-pi-dependency](.agents/skills/update-pi-dependency/SKILL.md) for SDK upgrades or compatibility reviews. Run [maintain-pi-dependencies](.agents/skills/maintain-pi-dependencies/SKILL.md) before every release candidate and for bundled Todo or permission package updates. Follow the user's requested endpoint; editing a workflow does not authorize executing its mutations.
+Use [commit](.agents/skills/commit/SKILL.md) for staging/commit work, [release](.agents/skills/release/SKILL.md) for version/build/tag/publication work, and [update-pi-dependency](.agents/skills/update-pi-dependency/SKILL.md) for SDK upgrades or compatibility reviews. Run [maintain-pi-dependencies](.agents/skills/maintain-pi-dependencies/SKILL.md) before every release candidate and for bundled Todo, permission or voice package updates. Follow the user's requested endpoint; editing a workflow does not authorize executing its mutations.
 
 ## Verification
 

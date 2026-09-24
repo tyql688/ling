@@ -101,7 +101,7 @@ export function PluginsView() {
 
 	return (
 		<SettingsPage title={t("plugins.title")} description={t("plugins.pageDescription")}>
-			<BuiltinFeaturesSection />
+			<BuiltinFeaturesSection projectCwd={projectCwd} />
 			<SettingsSection title={t("plugins.installSection")}>
 				<form
 					className="flex flex-col gap-3 px-4 py-4 sm:px-5"

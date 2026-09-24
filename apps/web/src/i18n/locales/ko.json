@@ -1854,7 +1854,8 @@
 		"permissionsDisabled": "권한 시스템이 꺼져 있습니다. 리소스를 다시 불러온 후 새 턴은 전체 접근을 사용합니다. 다시 켜면 저장된 접근 모드와 규칙이 적용됩니다.",
 		"permissionsOff": "권한 꺼짐",
 		"disabledError": "이 기능은 꺼져 있습니다. 새 작업을 시작하려면 설정 → 플러그인에서 켜세요.",
-		"schedulesPaused": "예약 실행 중지됨"
+		"schedulesPaused": "예약 실행 중지됨",
+		"voice": "기본적으로 꺼져 있습니다. 입력란에서 {{shortcut}} 단축키로 음성을 초안으로 변환합니다."
 	},
 	"completion": {
 		"title": {
@@ -1880,5 +1881,58 @@
 		"insert": "완성",
 		"close": "닫기",
 		"nameArgument": "<새 제목>"
+	},
+	"voice": {
+		"title": "음성 입력",
+		"settings": "음성 설정",
+		"description": "현재 기기에서 녹음하고 Pi Voice로 로컬에서 변환합니다. 확인 후 보낼 수 있도록 초안에 텍스트를 추가합니다.",
+		"loading": "음성 모델 불러오는 중…",
+		"model": "로컬 모델",
+		"chooseModel": "모델 선택",
+		"downloaded": "다운로드됨",
+		"language": "음성 언어",
+		"autoLanguage": "자동 감지",
+		"chineseOutput": "중국어 표기",
+		"simplified": "간체",
+		"traditional-taiwan": "번체 (대만)",
+		"traditional-hong-kong": "번체 (홍콩)",
+		"downloadNotice": "Hugging Face에서 {{size}} MB를 다운로드하여 Ling이 실행 중인 컴퓨터에 저장합니다.",
+		"saving": "저장 중…",
+		"downloading": "모델 다운로드 중…",
+		"useModel": "모델 사용",
+		"downloadModel": "다운로드 후 사용",
+		"start": "음성 입력 시작",
+		"stop": "녹음 종료 및 변환",
+		"starting": "마이크 시작 중…",
+		"transcribing": "음성 변환 중…",
+		"discard": "녹음 버리기",
+		"retry": "변환 다시 시도",
+		"noSpeech": "음성을 감지하지 못했습니다. 다시 녹음해 주세요.",
+		"draftFull": "초안이 가득 찼습니다. 아래 변환 텍스트를 유지합니다. 초안을 줄이고 다시 삽입하세요.",
+		"insert": "변환 텍스트 삽입",
+		"done": "완료",
+		"cancelOperation": "음성 입력 취소",
+		"recording": "녹음 중입니다. 중지하면 텍스트로 변환하며 Esc를 누르면 취소합니다.",
+		"cancelled": "음성 입력을 취소했습니다.",
+		"inserted": "변환한 텍스트를 초안에 추가했습니다.",
+		"menuHint": "마우스 오른쪽 버튼을 클릭하거나 길게 눌러 음성 메뉴 열기",
+		"openProject": "프로젝트를 열어 음성 입력을 설정하세요.",
+		"shortcutHint": "입력란에서 {{shortcut}}로 녹음을 시작하거나 중지하고, Esc로 취소하며, {{settingsShortcut}}로 설정을 엽니다.",
+		"modelLanguageHint": "현재 표시 언어를 지원하는 모델이 먼저 표시됩니다. 지원 언어는 모델마다 다릅니다.",
+		"supportedLanguages": "지원 언어 ({{count}})",
+		"mandarin": "표준 중국어",
+		"cantonese": "광둥어",
+		"operationFailed": "음성 처리를 완료하지 못했습니다. 다시 시도하거나 음성 설정을 확인하세요.",
+		"errorDetails": "오류 세부 정보 보기",
+		"captureError": {
+			"unsupported": "데스크톱 앱 또는 안전한 브라우저 연결에서 녹음하세요.",
+			"permission": "Ling 또는 브라우저의 마이크 접근을 허용한 후 다시 시도하세요.",
+			"missing": "마이크를 연결한 후 다시 시도하세요.",
+			"busy": "마이크를 사용할 수 없습니다. 연결 상태와 다른 앱의 사용 여부를 확인하세요.",
+			"disconnected": "마이크 연결이 끊어졌습니다. 다시 연결한 후 녹음하세요.",
+			"limit": "녹음 크기 제한을 초과했습니다. 더 짧게 녹음하세요.",
+			"recording": "녹음하지 못했습니다. 마이크를 확인한 후 다시 시도하세요.",
+			"decode": "녹음을 디코딩하지 못했습니다. 다시 녹음하세요."
+		}
 	}
 }

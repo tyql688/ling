@@ -16,7 +16,8 @@ Ling は Pi の会話、プロジェクトファイル、変更レビュー、�
 - **ファイルと変更レビュー：** 独立した閲覧エリア、Monaco エディター、言語サービス、Git 履歴、差分表示、レビューコメント。ファイルを開いても元の会話と入力中の下書きは保持されます。
 - **ターミナルとタスク：** プロジェクト用ターミナル、バックグラウンドコマンド、定期実行するエージェントタスク。
 - **Pi リソース：** パッケージ、拡張機能、スキル、プロンプトを管理し、開いているプロジェクトとセッションに再読み込みします。Pi 拡張機能の質問や状態表示も共通 UI に統合されます。
-- **組み込み機能：** Todo、アクセスモード、質問、バックグラウンドタスク、定期タスクを個別に切り替えられます。Todo と権限機能は上流の Pi パッケージを利用し、ユーザーが Pi 経由でインストールした版を組み込み版より優先します。
+- **組み込み機能：** Todo、アクセスモード、音声入力、質問、バックグラウンドタスク、定期タスクを個別に切り替えられます。Todo、権限、音声機能は上流の Pi パッケージを利用し、ユーザーが Pi 経由でインストールした版を組み込み版より優先します。
+- **音声入力：** 初期状態ではオフです。プラグイン画面で有効にすると、入力欄の音声ボタンひとつで録音し、Pi Voice でローカル文字起こしを行えます。macOS は `Cmd+Option+V`、Windows/Linux は `Ctrl+Alt+V` を使用します。Shift を加えるかボタンを右クリックすると設定を開けます。初回にモデルを選択してダウンロードしてください。対応する文字起こし言語はモデルによって異なります。下書きのテキストを確認してから送信します。`@earendil-works/pi-voice` をインストール済みでも Ling の録音・設定画面を使えます。元の `transcribe_file` ツールも利用でき、音声ファイルのデコードには FFmpeg が必要です。
 - **外観と使用量：** ライト・ダークテーマ、組み込みおよびカスタムの宣言型スキン、トークンと費用の統計、対応プロバイダーの利用枠表示。UI は英語、簡体字中国語、日本語、韓国語に対応しています。
 
 ## ソースから実行
@@ -53,7 +54,7 @@ Host は既定でループバックアドレスのみを使用します。Pi の
 | 分野 | 技術とライブラリ |
 | --- | --- |
 | 言語とワークスペース | TypeScript、pnpm workspaces。コンパイルと言語サービスには TypeScript 7、ESLint の互換性維持には別の TypeScript 6 依存関係を使用 |
-| エージェント実行環境 | `@earendil-works/pi-coding-agent`、組み込みの `@juicesharp/rpiv-todo` と `@gotgenes/pi-permission-system` のアダプター |
+| エージェント実行環境 | `@earendil-works/pi-coding-agent`、組み込みの `@juicesharp/rpiv-todo`、`@gotgenes/pi-permission-system`、`@earendil-works/pi-voice` のアダプター |
 | デスクトップ | Electron、electron-vite、electron-builder、electron-updater、node-mac-permissions |
 | Web と状態管理 | React 19、Vite、Jotai、jotai-family |
 | UI | Tailwind CSS 4、Radix UI、Floating UI、Motion、cmdk、react-resizable-panels |

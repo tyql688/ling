@@ -22,7 +22,7 @@ Inspect the checkout, staged work, HEAD, intended release branch, and relevant t
 
 ## Prepare and build
 
-Use the release-preflight section of [maintain-pi-dependencies](../maintain-pi-dependencies/SKILL.md) for every release candidate before verification, packaging and tagging. Record current/latest Pi SDK, Todo and permission-package versions and an explicit upgrade or deferral decision. Registry failures and unexplained pin mismatches leave this check incomplete. For authorized updates, complete that skill's migration, compatibility repair and real acceptance before validating the final candidate; a version report or installation alone does not complete an upgrade.
+Use the release-preflight section of [maintain-pi-dependencies](../maintain-pi-dependencies/SKILL.md) for every release candidate before verification, packaging and tagging. Record current/latest Pi SDK, Todo, permission and voice-package versions and an explicit upgrade or deferral decision. Registry failures and unexplained pin mismatches leave this check incomplete. For authorized updates, complete that skill's migration, compatibility repair and real acceptance before validating the final candidate; a version report or installation alone does not complete an upgrade.
 
 1. If a version change was requested, use the specified version or choose it from the actual release delta and explain the choice. Apply the version ownership rules in [Development](../../../docs/development.md).
 2. Follow [AGENTS.md](../../../AGENTS.md) for release-candidate verification, including `pnpm verify`. Reuse matching successful evidence from the current task as described in `commit`; CI's release workflow runs builds and packaging checks, so it does not replace source verification.

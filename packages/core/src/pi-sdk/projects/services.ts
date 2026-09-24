@@ -6,7 +6,13 @@ import { createPiTodoReconciliation } from "../extensions/pi-todo-reconciliation
 import type { PiAdapterPlan } from "@ling/contracts/companions";
 import type { BuiltinFeatureFlags } from "@ling/contracts/builtin-features";
 import type { PiTurnLifecycle } from "../session/turn-lifecycle";
-import type { PiInlineExtension, PiAgentSessionServices, PiSessionManager, PiSettingsManager } from "../types";
+import type {
+	PiInlineExtension,
+	PiAgentSessionServices,
+	PiSessionManager,
+	PiSettingsManager,
+	PiExtensionUiContext,
+} from "../types";
 import {
 	createAgentSessionServices,
 	DefaultResourceLoader,
@@ -137,6 +143,7 @@ type PiProjectServicesStateDependencies = {
 	/** Session workers load extensions only in their runtime, not in a second catalog graph. */
 	loadCatalogResources: boolean;
 	readAdapterPlan(cwd: string): Promise<PiAdapterPlan>;
+	openVoiceSettings?: (ui: PiExtensionUiContext) => void;
 	agentDir: string;
 	modelRuntimes: Pick<
 		PiModelRuntimes,
@@ -154,6 +161,7 @@ type PiProjectServicesStateDependencies = {
 interface PiProjectServicesState {
 	loadCatalogResources: boolean;
 	readAdapterPlan: PiProjectServicesStateDependencies["readAdapterPlan"];
+	openVoiceSettings: PiProjectServicesStateDependencies["openVoiceSettings"];
 	agentDir: PiProjectServicesStateDependencies["agentDir"];
 	builtinExtensions: PiProjectServicesStateDependencies["builtinExtensions"];
 	projectTrustResolver: PiProjectServicesStateDependencies["resolveProjectTrust"];
@@ -179,6 +187,7 @@ interface PiProjectServicesState {
 export function createPiProjectServices({
 	loadCatalogResources,
 	readAdapterPlan,
+	openVoiceSettings,
 	agentDir,
 	modelRuntimes,
 	turnLifecycle,
@@ -189,6 +198,7 @@ export function createPiProjectServices({
 	const owner: PiProjectServicesState = {
 		loadCatalogResources,
 		readAdapterPlan,
+		openVoiceSettings,
 		agentDir: agentDir,
 		builtinExtensions: builtinExtensions,
 		projectTrustResolver: projectTrustResolver,
@@ -335,6 +345,7 @@ async function createBoundedAgentSessionServices(
 			agentDir: options.agentDir,
 			settingsManager: options.settingsManager,
 			plan,
+			...(owner.openVoiceSettings ? { openVoiceSettings: owner.openVoiceSettings } : {}),
 		});
 		throwIfOperationAborted(signal);
 		const installSkillToggles = owner.createLingSkillToggles(options.settingsManager, options.agentDir);

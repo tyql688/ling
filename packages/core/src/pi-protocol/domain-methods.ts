@@ -1,4 +1,11 @@
 import { domainMethod } from "./method";
+import {
+	voiceProjectSchema,
+	voiceConfigureRequestSchema,
+	voiceTranscribeRequestSchema,
+	voiceOverviewSchema,
+	voiceTranscriptSchema,
+} from "@ling/contracts/voice";
 import type { EndpointProbeResult } from "@ling/contracts/model";
 import {
 	addCustomModelRequestSchema,
@@ -50,6 +57,32 @@ const fingerprintSchema = z.strictObject({
 	modifiedAtMs: z.number().nonnegative().max(Number.MAX_SAFE_INTEGER),
 });
 export const piDomainMethods = {
+	"voice.read": domainMethod(
+		piMethod(
+			voiceProjectSchema,
+			(value: unknown) => voiceOverviewSchema.parse(value),
+			recoverableQuery({ timeoutMs: IO_REQUEST_TIMEOUT_MS }),
+		),
+		"readVoice",
+		["cwd"],
+		{ signal: true },
+	),
+	"voice.configure": domainMethod(
+		piVoidMethod(voiceConfigureRequestSchema, command({ timeoutMs: LONG_REQUEST_TIMEOUT_MS })),
+		"configureVoice",
+		null,
+		{ signal: true },
+	),
+	"voice.transcribe": domainMethod(
+		piMethod(
+			voiceTranscribeRequestSchema,
+			(value: unknown) => voiceTranscriptSchema.parse(value),
+			command({ timeoutMs: LONG_REQUEST_TIMEOUT_MS }),
+		),
+		"transcribeVoice",
+		null,
+		{ signal: true },
+	),
 	"agent.getInfo": domainMethod(
 		piMethod(
 			z.strictObject({}),

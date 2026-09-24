@@ -20,7 +20,8 @@ export default defineConfig({
 		// Pi's extension loader derives runtime aliases from its installed package path.
 		// Bundling it into Host assets makes those aliases point at the Host bundle instead.
 		// Atomic publication uses its CommonJS filename to make collision-resistant temporary names.
-		external: ["@earendil-works/pi-coding-agent", "write-file-atomic", "@typescript/native"],
+		// Jiti also resolves its compiler relative to its installed entry file.
+		external: ["@earendil-works/pi-coding-agent", "write-file-atomic", "@typescript/native", "jiti"],
 	},
 	build: {
 		target: "node22",

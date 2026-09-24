@@ -38,6 +38,7 @@ import type { SessionRef } from "@ling/contracts/session-ref";
 import { sessionKey } from "@ling/contracts/session-ref";
 import { useTranslation } from "react-i18next";
 import type { ComposerPendingAction } from "./use-composer-core";
+import { VoiceInput } from "@renderer/features/pi-adapters/voice/voice-input";
 
 interface ComposerToolbarProps {
 	projectPath: string;
@@ -60,6 +61,7 @@ interface ComposerToolbarProps {
 	onSaveQueuedEdit: () => void;
 	onAbort: () => void;
 	onSubmit: () => void;
+	onVoiceTranscript(text: string): boolean;
 }
 
 /** Feature controls shared by every composer: access mode for the project, progress badges for a session. */
@@ -366,6 +368,7 @@ export function ComposerToolbar({
 	onSaveQueuedEdit,
 	onAbort,
 	onSubmit,
+	onVoiceTranscript,
 }: ComposerToolbarProps) {
 	const { t } = useTranslation();
 	const ModeIcon = followUpBehavior === "queue" ? Clock3 : Zap;
@@ -395,6 +398,13 @@ export function ComposerToolbar({
 			features={<ComposerFeatureControls projectPath={projectPath} sessionRef={sessionRef} />}
 			actions={
 				<>
+					{sessionRef && (
+						<VoiceInput
+							sessionRef={sessionRef}
+							disabled={queuedEdit || pendingAction !== null}
+							onTranscript={onVoiceTranscript}
+						/>
+					)}
 					{modelStateError && (
 						<span
 							role="status"

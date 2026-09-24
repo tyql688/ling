@@ -389,6 +389,10 @@ export function Composer({
 						onSaveQueuedEdit={() => void saveQueuedEdit()}
 						onAbort={abortSession}
 						onSubmit={() => submitIntent(busy ? busyMode : "prompt")}
+						onVoiceTranscript={(transcript) => {
+							const current = snapshotDraft().text;
+							return setText(`${current}${current && !/\s$/.test(current) ? "\n" : ""}${transcript}`);
+						}}
 					/>
 				}
 			/>

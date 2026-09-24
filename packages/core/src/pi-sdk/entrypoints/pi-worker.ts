@@ -221,6 +221,7 @@ export function startPiWorkerServer(options: StartPiWorkerServerOptions): PiWork
 		const projects = createPiProjectServices({
 			loadCatalogResources: options.role === "control",
 			readAdapterPlan: (cwd) => callMain("adapters.read", { cwd }),
+			openVoiceSettings: extensionUi.openVoiceSettings,
 			skillResources,
 			agentDir,
 			modelRuntimes,

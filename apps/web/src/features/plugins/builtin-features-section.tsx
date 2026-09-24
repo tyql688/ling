@@ -6,6 +6,9 @@ import { SettingsRow, SettingsSection } from "@renderer/components/ui/settings-l
 import { Switch } from "@renderer/components/ui/switch";
 import { useBuiltinFeatures } from "@renderer/features/companions/builtin-feature-state";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
+import { VoiceSettings } from "@renderer/features/pi-adapters/voice/voice-settings";
+import { voiceShortcut } from "@renderer/features/pi-adapters/voice/voice-shortcuts";
 
 const titles = {
 	todo: "todo.title",
@@ -13,11 +16,13 @@ const titles = {
 	questions: "questions.title",
 	"background-tasks": "backgroundTasks.title",
 	schedules: "schedules.title",
+	voice: "voice.title",
 } as const;
 
-export function BuiltinFeaturesSection() {
+export function BuiltinFeaturesSection({ projectCwd }: { projectCwd: string | null }) {
 	const { t } = useTranslation();
 	const state = useBuiltinFeatures();
+	const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
 	return (
 		<>
 			<SettingsSection title={t("builtinFeatures.title")} description={t("builtinFeatures.description")}>
@@ -35,7 +40,23 @@ export function BuiltinFeaturesSection() {
 				)}
 				{state.value
 					? builtinFeatureIdSchema.options.map((id) => (
-							<SettingsRow key={id} label={t(titles[id])} description={t(`builtinFeatures.${id}`)} layout="toggle">
+							<SettingsRow
+								key={id}
+								label={t(titles[id])}
+								description={t(`builtinFeatures.${id}`, { shortcut: voiceShortcut })}
+								layout="toggle"
+							>
+								{id === "voice" && state.value!.enabled.voice && (
+									<Button
+										variant="ghost"
+										size="sm"
+										disabled={projectCwd === null || state.busy}
+										title={projectCwd === null ? t("voice.openProject") : undefined}
+										onClick={() => setVoiceSettingsOpen(true)}
+									>
+										{t("voice.settings")}
+									</Button>
+								)}
 								<Switch
 									aria-label={t(titles[id])}
 									checked={state.value!.enabled[id]}
@@ -51,6 +72,9 @@ export function BuiltinFeaturesSection() {
 						)}
 			</SettingsSection>
 			{state.reload && <ResourceReloadFeedback summary={state.reload} />}
+			{voiceSettingsOpen && projectCwd !== null && state.value?.enabled.voice && (
+				<VoiceSettings key={projectCwd} cwd={projectCwd} onClose={() => setVoiceSettingsOpen(false)} />
+			)}
 		</>
 	);
 }

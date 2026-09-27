@@ -5,7 +5,7 @@ description: Prepare or publish a Ling version, including version bumps, distrib
 
 # Ling release workflow
 
-Read root `package.json`, `apps/desktop/package.json`, `apps/desktop/scripts/stage.ts`, `apps/desktop/scripts/package.ts`, `apps/desktop/electron-builder.yml`, and `.github/workflows/release.yml`. These files own the version, staging, target matrix, signing, and publication behavior. Recheck them rather than treating this skill as another build configuration.
+Read root `package.json`, `apps/desktop/package.json`, `apps/desktop/scripts/stage.ts`, `apps/desktop/scripts/prune-host.ts`, `apps/desktop/scripts/package.ts`, `apps/desktop/electron-builder.yml`, and `.github/workflows/release.yml`. These files own the version, staging, target matrix, signing, and publication behavior. Recheck them rather than treating this skill as another build configuration.
 
 ## Establish the requested endpoint
 
@@ -27,8 +27,8 @@ Use the release-preflight section of [maintain-pi-dependencies](../maintain-pi-d
 1. If a version change was requested, use the specified version or choose it from the actual release delta and explain the choice. Apply the version ownership rules in [Development](../../../docs/development.md).
 2. Follow [AGENTS.md](../../../AGENTS.md) for release-candidate verification, including `pnpm verify`. Reuse matching successful evidence from the current task as described in `commit`; CI's release workflow runs builds and packaging checks, so it does not replace source verification.
 3. When packaging is in scope, use `pnpm package` or its current-platform alias. It rebuilds, stages resources, and invokes `package.ts` with publication disabled. Directly invoking that script requires fresh builds and `stage:app` first; the release workflow demonstrates the ordered steps. Staging replaces the checkout's entire `.stage`, including standalone Node: stop Desktop instances using it or build from an isolated checkout. Never bypass the wrapper and lose root release metadata.
-4. Match the staged Node and native dependencies to the target. `stage.ts` stages Node for its current platform and architecture; changing only electron-builder target flags does not cross-build that runtime. Use a matching environment for another target.
-5. Exercise the actual artifact using the isolation and cleanup procedure in [Development](../../../docs/development.md). Inspect packaged Host dependencies, standalone Node, Web assets, and built-in skills. `.agents/skills` must not ship.
+4. Match the staged Node and native dependencies to the target. `stage.ts` stages the pinned Node release for its current platform and architecture, and `pnpm deploy` and `prune-host.ts` keep only that target's native addons and prebuilds; changing only electron-builder target flags does not cross-build them. Use a matching environment for another target. Bumping the pinned Node version also replaces every archive checksum in `stage.ts`.
+5. Exercise the actual artifact using the isolation and cleanup procedure in [Development](../../../docs/development.md). Packaged builds refuse remote debugging switches, so drive the artifact with Computer Use or run its Host in browser mode. Inspect packaged Host dependencies, standalone Node, Web assets, and built-in skills. `.agents/skills` must not ship.
 6. Record version, commit, any included uncommitted changes, platform/architecture, artifact paths, and the checks performed. Build, signature verification, installation, runtime smoke, and auto-update are separate evidence.
 
 ## Tag and publish when authorized

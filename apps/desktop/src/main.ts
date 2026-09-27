@@ -21,7 +21,24 @@ import { createDesktopWindow } from "./shell/window";
 
 declare const __LING_VERSION__: string;
 
+/**
+ * A packaged build never opens DevTools endpoints: another local process could drive the window
+ * through them and act with the macOS privacy permissions granted to Ling. Checked before
+ * `app.ready`, when Chromium has not started the endpoint yet.
+ */
+function requestsRemoteDebugging(): boolean {
+	return (
+		app.isPackaged &&
+		(app.commandLine.hasSwitch("remote-debugging-port") || app.commandLine.hasSwitch("remote-debugging-pipe"))
+	);
+}
+
 function startDesktop(): void {
+	if (requestsRemoteDebugging()) {
+		process.stderr.write("Ling does not start with remote debugging enabled.\n");
+		app.exit(1);
+		return;
+	}
 	const lifetime = createRuntimeLifetime(["admission", "native", "host", "storage"]);
 	let windowOwner: ReturnType<typeof createDesktopWindow> | null = null;
 	const getWindow = () => windowOwner?.get() ?? null;

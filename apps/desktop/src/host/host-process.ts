@@ -51,10 +51,16 @@ function websocketUrl(origin: string): string {
 export async function startDesktopHostProcess(options: DesktopHostProcessOptions): Promise<DesktopHostProcess> {
 	const hostRoot = join(options.appResourcesRoot, "host");
 	const nodeExecutable = join(options.appResourcesRoot, "runtime", process.platform === "win32" ? "node.exe" : "node");
-	const environment = { ...process.env, LING_HOST_STDIO_CONTROL: "1" };
+	const environment: NodeJS.ProcessEnv = { ...process.env, LING_HOST_STDIO_CONTROL: "1" };
+	// The independent Node process does not inherit Electron's disabled injection fuses.
+	// The plain-object copy preserves spellings that Windows treats as aliases.
+	for (const key of Object.keys(environment)) {
+		if (key.toUpperCase() === "NODE_OPTIONS" || key.toUpperCase() === "NODE_PATH") delete environment[key];
+	}
 	const child: ChildProcess = spawn(
 		nodeExecutable,
 		[
+			"--disable-sigusr1",
 			join(hostRoot, "dist/index.js"),
 			`--app-root=${hostRoot}`,
 			`--resources-dir=${options.appResourcesRoot}`,

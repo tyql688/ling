@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-This file preserves notices for adapted code and bundled resources. Dependencies installed from npm retain the license files in their packages; the workspace manifests and `pnpm-lock.yaml` identify those dependencies.
+This file preserves notices for adapted code and bundled resources. Dependencies installed from npm retain the license files in their packages; the workspace manifests and `pnpm-lock.yaml` identify those dependencies. Packaged Ling ships the Pi SDK as its bundle, and the licences of the dependencies embedded in that bundle are written to `BUNDLED_DEPENDENCY_NOTICES.md` beside it during staging.
 
 ## Artwork and brand assets
 

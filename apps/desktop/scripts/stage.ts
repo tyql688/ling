@@ -1,7 +1,7 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
-import { delimiter, dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { Range, satisfies } from "semver";
+import { createHash } from "node:crypto";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 const desktopRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(desktopRoot, "../..");
@@ -10,113 +10,100 @@ const hostBuild = join(repositoryRoot, "packages/host/dist/index.js");
 const webBuild = join(repositoryRoot, "apps/web/dist/index.html");
 const appIcon = join(repositoryRoot, "resources/icon.png");
 
-interface NodeRuntimeProbe {
-	execPath: string;
-	platform: NodeJS.Platform;
-	arch: string;
-	version: string;
+/**
+ * The official Node release the Host and its workers run on. Native Pi dependencies require this
+ * Node ABI, not Electron's ABI; user-installed native addons still need a compatible Node build.
+ * Bump it for Node security releases together with the checksums below from SHASUMS256.txt.
+ */
+const HOST_NODE_VERSION = "24.21.0";
+const HOST_NODE_ARCHIVES: Record<string, { archive: string; sha256: string }> = {
+	"darwin-arm64": {
+		archive: "darwin-arm64.tar.gz",
+		sha256: "bed7eea5325e1108f32ce5228ddd6a5f0f08a499ee42aa7442aea583702f6057",
+	},
+	"darwin-x64": {
+		archive: "darwin-x64.tar.gz",
+		sha256: "1462cb3b3046b815cf8ea436d3da450ec1a9f11dac7e5a46b0ada5305d7e8097",
+	},
+	"linux-arm64": {
+		archive: "linux-arm64.tar.gz",
+		sha256: "724282c3b43aec998aa9527380465b45d229e021b58035f5f4f63095eabfe5d5",
+	},
+	"linux-x64": {
+		archive: "linux-x64.tar.gz",
+		sha256: "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff",
+	},
+	"win32-arm64": {
+		archive: "win-arm64.zip",
+		sha256: "8779b1bde1d39f8d420e3b57aa657b39891af434d3de44a919044cec06785921",
+	},
+	"win32-x64": { archive: "win-x64.zip", sha256: "158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e541" },
+};
+/** Survives restaging; a cached archive is used only while its checksum still matches. */
+const nodeArchiveCache = join(repositoryRoot, "node_modules/.cache/ling-host-node");
+
+function sha256(bytes: Buffer): string {
+	return createHash("sha256").update(bytes).digest("hex");
 }
 
-function nodeEngineRange(): Range {
-	const packageJson = JSON.parse(readFileSync(join(repositoryRoot, "package.json"), "utf8")) as {
-		engines?: { node?: unknown };
-	};
-	const range = packageJson.engines?.node;
-	if (typeof range !== "string" || range.trim().length === 0) {
-		throw new Error("Root package.json must declare engines.node");
+async function hostNodeArchive(archive: string, expected: string): Promise<string> {
+	const cached = join(nodeArchiveCache, archive);
+	if (existsSync(cached) && sha256(readFileSync(cached)) === expected) return cached;
+	const url = `https://nodejs.org/dist/v${HOST_NODE_VERSION}/${archive}`;
+	let bytes: Buffer;
+	try {
+		const response = await fetch(url);
+		if (!response.ok) throw new Error(`HTTP ${response.status}`);
+		bytes = Buffer.from(await response.arrayBuffer());
+	} catch (error) {
+		throw new Error(`Could not download ${url}. Save it as ${cached} to stage offline.`, { cause: error });
 	}
-	return new Range(range);
+	const actual = sha256(bytes);
+	if (actual !== expected) throw new Error(`${url} has checksum ${actual}, expected ${expected}`);
+	mkdirSync(nodeArchiveCache, { recursive: true });
+	const partial = `${cached}.${process.pid}.partial`;
+	writeFileSync(partial, bytes);
+	renameSync(partial, cached);
+	return cached;
 }
 
-function nodeRuntimeCandidates(executableName: string): string[] {
-	const candidates = [
-		process.execPath,
-		...(process.env.PATH ?? "")
-			.split(delimiter)
-			.filter((directory) => directory.length > 0)
-			.map((directory) => join(directory, executableName)),
-	];
-	return [
-		...new Set(candidates.filter((candidate) => existsSync(candidate)).map((candidate) => realpathSync(candidate))),
-	];
+function run(command: string, args: string[]): string {
+	const result = spawnSync(command, args, { encoding: "utf8", stdio: "pipe", windowsHide: true });
+	if (result.error) throw result.error;
+	if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} failed: ${result.stderr.trim()}`);
+	return result.stdout;
 }
 
-function nodeLicense(executable: string): string | undefined {
-	return [join(dirname(executable), "LICENSE"), resolve(dirname(executable), "../LICENSE")].find((candidate) =>
-		existsSync(candidate),
-	);
-}
-
-function darwinNonSystemDependencies(executable: string): string[] {
-	if (process.platform !== "darwin") return [];
-	const inspection = spawnSync("/usr/bin/otool", ["-L", executable], {
-		encoding: "utf8",
-		stdio: "pipe",
-		windowsHide: true,
-	});
-	if (inspection.error) throw inspection.error;
-	if (inspection.status !== 0)
-		throw new Error(`Could not inspect Node runtime ${executable}: ${inspection.stderr.trim()}`);
-	return inspection.stdout
-		.split("\n")
-		.slice(1)
-		.map((line) => /^\s+(.+?) \(compatibility version/.exec(line)?.[1])
-		.filter((dependency): dependency is string => dependency !== undefined)
-		.filter((dependency) => !dependency.startsWith("/usr/lib/") && !dependency.startsWith("/System/Library/"));
-}
-
-function stageNodeRuntime(runtimeStage: string): void {
+/** Stages the pinned Node executable and its licence for the current platform and architecture. */
+async function stageHostNode(runtimeStage: string): Promise<void> {
+	const target = `${process.platform}-${process.arch}`;
+	const release = HOST_NODE_ARCHIVES[target];
+	if (!release) throw new Error(`No pinned Node ${HOST_NODE_VERSION} archive for ${target}`);
+	const archiveName = `node-v${HOST_NODE_VERSION}-${release.archive}`;
+	const archive = await hostNodeArchive(archiveName, release.sha256);
+	const root = archiveName.replace(/\.(tar\.gz|zip)$/, "");
 	const executableName = process.platform === "win32" ? "node.exe" : "node";
-	const stagedExecutable = join(runtimeStage, executableName);
-	const failures: string[] = [];
-	const engineRange = nodeEngineRange();
-	for (const candidate of nodeRuntimeCandidates(executableName)) {
-		const license = nodeLicense(candidate);
-		if (!license) {
-			failures.push(`${candidate}: Node license not found`);
-			continue;
-		}
-		const externalDependencies = darwinNonSystemDependencies(candidate);
-		if (externalDependencies.length > 0) {
-			failures.push(`${candidate}: requires non-system libraries (${externalDependencies.join(", ")})`);
-			continue;
-		}
-		cpSync(candidate, stagedExecutable);
-		const probe = spawnSync(
-			stagedExecutable,
-			[
-				"-p",
-				"JSON.stringify({execPath:process.execPath,platform:process.platform,arch:process.arch,version:process.versions.node})",
-			],
-			{ encoding: "utf8", stdio: "pipe", windowsHide: true },
-		);
-		if (probe.error || probe.status !== 0) {
-			failures.push(`${candidate}: copied runtime did not launch (${probe.error?.message ?? probe.stderr.trim()})`);
-			continue;
-		}
-		const result = JSON.parse(probe.stdout) as NodeRuntimeProbe;
-		if (realpathSync(result.execPath) !== realpathSync(stagedExecutable)) {
-			failures.push(`${candidate}: delegates to another Node executable (${result.execPath})`);
-			continue;
-		}
-		if (result.platform !== process.platform || result.arch !== process.arch) {
-			failures.push(
-				`${candidate}: runtime target is ${result.platform}/${result.arch}, expected ${process.platform}/${process.arch}`,
-			);
-			continue;
-		}
-		if (!satisfies(result.version, engineRange)) {
-			failures.push(`${candidate}: Node ${result.version} does not satisfy ${engineRange.raw}`);
-			continue;
-		}
-		cpSync(license, join(runtimeStage, "LICENSE.node.txt"));
-		console.log(`Staged standalone Node ${result.version} from ${candidate}`);
-		return;
+	const executableMember = process.platform === "win32" ? `${root}/node.exe` : `${root}/bin/node`;
+	const licenseMember = `${root}/LICENSE`;
+	// Windows' own bsdtar reads zip archives; a Git or MSYS tar earlier on PATH may not.
+	const tar =
+		process.platform === "win32" ? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe") : "tar";
+	const extracted = mkdtempSync(join(stageRoot, "node-"));
+	try {
+		run(tar, ["-xf", archive, "-C", extracted, executableMember, licenseMember]);
+		mkdirSync(runtimeStage, { recursive: true });
+		renameSync(join(extracted, executableMember), join(runtimeStage, executableName));
+		renameSync(join(extracted, licenseMember), join(runtimeStage, "LICENSE.node.txt"));
+	} finally {
+		rmSync(extracted, { recursive: true, force: true });
 	}
-	rmSync(runtimeStage, { recursive: true, force: true });
-	throw new Error(
-		`Could not stage a standalone Node Host runtime. Install an official Node distribution and expose it on PATH.\n${failures.join("\n")}`,
-	);
+	const probe = run(join(runtimeStage, executableName), [
+		"-p",
+		"JSON.stringify([process.versions.node, process.platform, process.arch])",
+	]);
+	const expected = JSON.stringify([HOST_NODE_VERSION, process.platform, process.arch]);
+	if (probe.trim() !== expected) throw new Error(`Staged Node reports ${probe.trim()}, expected ${expected}`);
+	console.log(`Staged Node ${HOST_NODE_VERSION} for ${target}`);
 }
 
 for (const required of [hostBuild, webBuild, appIcon]) {
@@ -129,7 +116,4 @@ mkdirSync(stageRoot, { recursive: true });
 cpSync(join(repositoryRoot, "apps/web/dist"), join(stageRoot, "web"), { recursive: true });
 cpSync(join(repositoryRoot, "builtin-skills"), join(stageRoot, "builtin-skills"), { recursive: true });
 cpSync(appIcon, join(stageRoot, "icon.png"));
-
-const runtimeStage = join(stageRoot, "runtime");
-mkdirSync(runtimeStage, { recursive: true });
-stageNodeRuntime(runtimeStage);
+await stageHostNode(join(stageRoot, "runtime"));

@@ -66,7 +66,6 @@ export function createLanguageProcess(options: {
 		cwd: options.cwd,
 		stdio: ["pipe", "pipe", "pipe"],
 		windowsHide: true,
-		env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
 	});
 	const frames = createLanguageFrameLimit();
 	const reader = new StreamMessageReader(child.stdout.pipe(frames));

@@ -9,7 +9,7 @@
 	"type": "module",
 	"main": "./out/main/index.js",
 	"scripts": {
-		"stage:app": "node --experimental-strip-types scripts/stage.ts && pnpm --config.node-linker=hoisted --config.inject-workspace-packages=true --filter @ling/host deploy --prod .stage/host",
+		"stage:app": "node --experimental-strip-types scripts/stage.ts && pnpm --config.node-linker=hoisted --config.inject-workspace-packages=true --filter @ling/host deploy --prod .stage/host && node --experimental-strip-types scripts/prune-host.ts",
 		"check-types": "tsc --noEmit",
 		"dev": "pnpm run stage:app && electron --version && electron-vite dev --ignoreConfigWarning",
 		"build": "electron-vite build --ignoreConfigWarning",
@@ -23,11 +23,9 @@
 	"devDependencies": {
 		"@ling/contracts": "workspace:*",
 		"@types/node": "^26.6.2",
-		"@types/semver": "7.8.0",
 		"electron": "^44.4.4",
 		"electron-builder": "^26.16.1",
 		"electron-vite": "^5.0.0",
-		"semver": "7.8.5",
 		"zod": "4.6.5"
 	},
 	"optionalDependencies": {

@@ -14,7 +14,105 @@ This is a map of current code owners. [AGENTS.md](../AGENTS.md) defines product 
 | `packages/node-runtime` | Bounded atomic publication, launch log files and process cleanup shared by native and business owners | Node libraries only |
 | `apps/desktop` | Native windows, OS integration, updates and Host supervision | Contracts and Node runtime primitives |
 
-Electron and browsers use the same Web client and authenticated Host protocol. Desktop launches an independent Host with a staged Node runtime. Host supervises one Pi control worker, one Pi session worker per live runtime, and the plugin, usage and terminal workers; [Processes](processes.md) owns that topology, supervision and the diagnostics store. Every Pi worker embeds the SDK; a separate Pi CLI or server does not implement conversation runtime. Host enters the adapter through `packages/core/src/pi-sdk/entrypoints/`.
+### Code dependencies
+
+Arrows point from a package to the code it imports. The Pi SDK edge is restricted to the Core adapter and actual extension implementations; other third-party libraries are omitted.
+
+```mermaid
+flowchart TB
+    Web["apps/web<br/>Features and shared workbench"]
+    Desktop["apps/desktop<br/>Native shell and Host supervision"]
+    Host["packages/host<br/>Business domains and worker ownership"]
+    Core["packages/core<br/>Pi adapter and shared interpretation"]
+    Extensions["packages/builtin-extensions<br/>Ling's Pi extension factories"]
+    Contracts["packages/contracts<br/>DTOs, validation and protocols"]
+    NodeRuntime["packages/node-runtime<br/>Atomic files, logs and process cleanup"]
+    SDK["Public Pi SDK API"]
+
+    Web --> Contracts
+    Desktop --> Contracts
+    Desktop --> NodeRuntime
+    Host --> Core
+    Host --> Contracts
+    Host --> NodeRuntime
+    Core --> Contracts
+    Core --> NodeRuntime
+    Core --> Extensions
+    Core -->|pi-sdk adapter only| SDK
+    Extensions --> Contracts
+    Extensions --> SDK
+```
+
+### Process communication
+
+Boxes below represent process roles, with one Pi session worker for each live session runtime. Both clients run `apps/web` and send business requests directly to Host. Native shell calls use `ShellApi` through preload; worker calls use Node IPC. [Processes](processes.md) owns counts, restart policy, retention and shutdown details.
+
+```mermaid
+flowchart TB
+    subgraph DesktopApp["Desktop application"]
+        Renderer["Electron renderer<br/>Shared Web client"]
+        Main["Electron main<br/>Windows, OS integration and updater"]
+        Renderer <-->|ShellApi through preload / Electron IPC| Main
+    end
+
+    Browser["Browser<br/>Shared Web client"]
+    Host["Host / standalone Node<br/>Authenticated transport and business domains"]
+    Control["Pi control worker<br/>Core adapter + embedded SDK<br/>Projects, catalogs, settings and auth"]
+    Sessions["Pi session workers<br/>Core adapter + embedded SDK<br/>Turns, extensions and session UI"]
+    Plugins["Plugin worker<br/>Pi package manager"]
+    Terminal["Terminal worker<br/>PTY sessions"]
+    Usage["Usage worker<br/>History scans and aggregation"]
+
+    Renderer <-->|Authenticated HTTP / WebSocket| Host
+    Browser <-->|Authenticated HTTP / WebSocket| Host
+    Main -->|Spawn, stdio supervision and drain| Host
+    Host <-->|Validated Node IPC| Control
+    Host <-->|Validated Node IPC| Sessions
+    Host <-->|Package operations| Plugins
+    Host <-->|Terminal operations| Terminal
+    Host <-->|Usage queries| Usage
+```
+
+Host also owns project file/Git operations, editor subprocesses and background task processes. Under Desktop, Host and its workers share the staged Node executable. Browser mode uses the same Host and workers without the Electron processes.
+
+### Packaged application
+
+Electron and browsers use the same Web client and authenticated Host protocol. The Electron shell ships in `app.asar`. Desktop launches an independent Host with the official Node release pinned and checksum-verified by `apps/desktop/scripts/stage.ts`; Host, Web, built-in skills and Node ship as ordinary application resources. Pi extensions, native libraries and subprocesses retain normal Node filesystem and ABI behavior. The `runAsNode` fuse stays disabled. Desktop removes `NODE_OPTIONS` and `NODE_PATH` when launching Host and disables its SIGUSR1 inspector entry; Electron's fuses alone do not protect an independent Node process.
+
+The build arrows show where executable code and resources end up. Core, Contracts, Node runtime primitives and Ling's extension factories are bundled into their consuming entries; the published Pi SDK bundle and its retained external dependencies remain in `host/node_modules`.
+
+```mermaid
+flowchart LR
+    DesktopBuild["Desktop build<br/>Main and preload"]
+    HostBuild["Host build<br/>Host and worker entries"]
+    WebBuild["Web build"]
+    Deploy["Production dependency deploy"]
+    Prune["Prune dependency graph<br/>Keep runtime resources and native libraries"]
+    NodeArchive["Pinned official Node archive<br/>Verify SHA-256"]
+    SkillSource["Built-in skill sources"]
+
+    subgraph App["Packaged application resources"]
+        Asar["app.asar<br/>Electron shell"]
+        subgraph Files["Ordinary files beside app.asar"]
+            HostFiles["host/dist/<br/>Host and worker JavaScript"]
+            Dependencies["host/node_modules/<br/>Pi SDK bundle and runtime dependencies<br/>npm and TypeScript"]
+            WebFiles["web/<br/>Shared browser assets"]
+            NodeFiles["runtime/<br/>Node executable and license"]
+            Skills["builtin-skills/"]
+        end
+    end
+
+    DesktopBuild --> Asar
+    HostBuild --> HostFiles
+    WebBuild --> WebFiles
+    Deploy --> Prune --> Dependencies
+    NodeArchive --> NodeFiles
+    SkillSource --> Skills
+```
+
+The Host build maps the public `@earendil-works/pi-coding-agent` import to the SDK's published `dist/bundle/index.js`. Pi's bundle embeds sibling packages and provider SDKs, supplies its virtual modules to extensions, and still imports some packages from disk. `apps/desktop/scripts/prune-host.ts` parses those literal imports and follows each declared dependency from its actual installed location, preserving nested versions, ordinary peers and installed optional dependencies. Only audited Pi virtual peers are exempt. Missing required dependencies fail staging before deletion. The SDK retains its bundle, runtime assets, documents, examples and notices; npm and TypeScript retain their complete runtime trees. The pruning policy and optional-import exceptions require review on SDK upgrades.
+
+Host supervises one Pi control worker, one Pi session worker per live runtime, and the plugin, usage and terminal workers; [Processes](processes.md) owns that topology, supervision and the diagnostics store. Every Pi worker embeds the SDK; a separate Pi CLI or server does not implement conversation runtime. Host enters the adapter through `packages/core/src/pi-sdk/entrypoints/`.
 
 ## Contracts and transport
 
@@ -124,6 +222,35 @@ Runtime-bound resources track public `agent_start` and `agent_settled`. Extensio
 Unsupported Pi TUI/editor capabilities throw typed unsupported errors. Extension prompts notify the shared Host shell-activity owner; native foreground and notification preferences remain with Desktop. Cancelled prompts do not create alerts. Native GUI adaptations use the original session and prompt owners; they do not make unsupported TUI calls appear successful.
 
 ## Built-in features and Pi adapters
+
+The seven built-in features have two execution owners. Todo, permissions, Voice and MCP retain their Pi package implementations; questions, background tasks and schedules execute in Host through tools registered in Pi. A user-installed Pi package takes precedence over its bundled copy. The Core adapter adapts supported extension UI to the shared Web client.
+
+```mermaid
+flowchart LR
+    subgraph HostOwners["Host domain owners"]
+        Adapters["Pi adapters<br/>Todo, permissions, Voice and MCP"]
+        Features["Host features<br/>Questions, background tasks and schedules"]
+        Mutations["Shared package and MCP mutation paths<br/>UI and conversation tools"]
+        Reload["Resource reload coordinator<br/>Project catalogs and live sessions"]
+    end
+
+    subgraph PiRuntime["Pi session worker"]
+        SDK["Core adapter + Pi SDK<br/>Session and resource loading"]
+        Packages["Selected Pi packages and extensions<br/>User-installed copies take precedence"]
+        Tools["Ling extension factories<br/>Companion and management tools"]
+        SDK -->|Load| Packages
+        SDK -->|Register| Tools
+    end
+
+    Control["Pi control worker<br/>Project resource catalogs"]
+    Packages -->|Events and verified result provenance| Adapters
+    Tools -->|Validated tool callbacks| Features
+    Tools -->|Package and MCP callbacks| Mutations
+    Adapters -->|Resource-affecting changes| Reload
+    Mutations -->|Reconcile after writes, including partial failure| Reload
+    Reload -->|Refresh catalogs| Control
+    Reload -->|Reload when the runtime settles| SDK
+```
 
 Seven features live beside the conversation. Host feature durable state sits under the Ling data home (`~/.ling`, `LING_HOME`) in `plugin-data/<feature>/host-state.json`, one revisioned value per feature through `domains/companions/feature-store.ts`. The permission system's activation lives in `plugin-data/ling-permission-system/pi-activation.json`. Nothing under the data home moves existing Ling app data, Pi credentials or declarative skins.
 

@@ -21,7 +21,6 @@ async function runFormatter(
 		cwd,
 		stdio: ["pipe", "pipe", "pipe"],
 		windowsHide: true,
-		env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
 	});
 	let output = "",
 		stderr = "";

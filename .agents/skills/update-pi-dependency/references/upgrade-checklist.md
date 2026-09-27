@@ -26,7 +26,7 @@ Use this reference after identifying the published upstream delta. Select checks
 | Composer completion and cancellation | Exercise rapid edits and atomic paste separately. Confirm autocomplete and command-argument reads coalesce, only dispatched unsettled operations cancel, and late results cannot update another session or an unmounted view. |
 | Skills, project trust, resource loading | Check discovery, diagnostics, project trust, switches, source scope, shadowing, and packaged resources against the target Pi behavior. Use [skill-authoring](../../skill-authoring/SKILL.md) for skill content and loading changes. |
 | Network/proxy behavior | Exercise affected provider, model-refresh, login, and quota requests with the intended network configuration. Confirm an inherited fix reaches the actual request path. |
-| Host packaging and standalone runtime | Inspect new runtime/native dependencies for externalization and staging. Import Pi with bundled Node from the staged Host dependency tree on the target architecture. |
+| Host packaging and standalone runtime | Inspect new runtime/native dependencies for externalization and pruning. Import Pi's bundle with bundled Node from the staged Host dependency tree on the target architecture. |
 
 ## Check changes that types cannot prove
 

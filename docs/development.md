@@ -49,7 +49,7 @@ Keep screenshots and measurements in the run's evidence directory or outside the
 
 ## Check the actual interface
 
-Use CDP or Computer Use against the newly built candidate. [Design](design.md) owns the interface acceptance matrix. Record the build, dimensions, language, exact interactions and observed result. `window.ling` and `window.lingShell` are frozen application APIs; their calls reach the real Host and can spend tokens.
+Use CDP or Computer Use against the newly built candidate. Packaged builds exit when started with a remote debugging switch, so CDP applies to development builds and a packaged artifact needs Computer Use. [Design](design.md) owns the interface acceptance matrix. Record the build, dimensions, language, exact interactions and observed result. `window.ling` and `window.lingShell` are frozen application APIs; their calls reach the real Host and can spend tokens.
 
 `pnpm verify` combines lint, formatting, typechecking and the test suite. Select its scope through AGENTS; a build, live acceptance and a release are separate results.
 

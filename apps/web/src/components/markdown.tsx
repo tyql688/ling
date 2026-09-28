@@ -4,6 +4,7 @@ import { MarkdownTable } from "@renderer/components/markdown-table";
 import { MarkdownExternalLinkDialog } from "@renderer/components/markdown-external-link";
 import { MarkdownDocumentContext } from "./markdown-image-root";
 import { MarkdownImage } from "@renderer/components/markdown-image";
+import { MarkdownHtmlBlock, MarkdownHtmlInline } from "@renderer/components/markdown-html";
 import { useStreamingText } from "@renderer/hooks/use-streaming-text";
 import { cn } from "@renderer/lib/utils";
 import { activeSkinAppearanceAtom } from "@renderer/lib/appearance/skin-state";
@@ -23,6 +24,8 @@ function MarkdownImageNode({ node }: ComponentProps<typeof ImageNode>) {
 
 setCustomComponents(MARKDOWN_COMPONENT_SCOPE, {
 	image: MarkdownImageNode,
+	html_block: MarkdownHtmlBlock,
+	html_inline: MarkdownHtmlInline,
 	blockquote: MarkdownBlockquote,
 	table: MarkdownTable,
 	code_block: MarkdownCode,

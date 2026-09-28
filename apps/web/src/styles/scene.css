@@ -27,6 +27,9 @@
 	--color-text-muted: var(--color-scene-text-muted);
 	--color-accent: var(--color-scene-accent);
 	--color-link: var(--color-scene-accent);
+	--color-danger: var(--color-scene-danger);
+	--color-warning: var(--color-scene-warning);
+	--color-success: var(--color-scene-success);
 	color: var(--color-text-primary);
 }
 

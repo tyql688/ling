@@ -4,9 +4,9 @@ import { toSessionRef } from "@ling/contracts/session-ref";
 import type { ChangeReviewTarget } from "@renderer/features/review/change-review-target";
 import { useCommandFeedback } from "@renderer/hooks/use-command-feedback";
 import { useSetAtom } from "jotai";
-import { updateReadingWorkspaceAtom } from "./reading-state";
+import { updateReadingWorkspaceAtom, withFeatureTab } from "./reading-state";
 import { useCallback, useMemo } from "react";
-import { useWorkspaceOwner, workspacePanelAtom, workspaceSelectionAtom, workspaceTabsAtom } from "./workspace-state";
+import { useWorkspaceOwner, workspacePanelAtom, workspaceSelectionAtom } from "./workspace-state";
 
 export function useWorkspaceReviewActions() {
 	const updateReading = useSetAtom(updateReadingWorkspaceAtom);
@@ -17,13 +17,12 @@ export function useWorkspaceReviewActions() {
 		sessionController: { selectSession },
 	} = useWorkspaceOwner(workspaceSelectionAtom);
 	const workbenchPanel = useWorkspaceOwner(workspacePanelAtom);
-	const { openReviewViewer } = useWorkspaceOwner(workspaceTabsAtom);
-	/** Project menu → "show changes": the panel is session-bound, so land on the project's most
+	/** Project menu → "show changes": the Changes tab is session-bound, so land on the project's most
 	 * recent session first when it isn't already active. */
 	const handleShowProjectChanges = useCallback(
 		(project: OpenProjectInfo) => {
 			if (activeSession?.cwd === project.cwd) {
-				workbenchPanel.openReviewWorkspace();
+				workbenchPanel.openReview("workspace");
 				return;
 			}
 			const latest = sessions
@@ -36,55 +35,32 @@ export function useWorkspaceReviewActions() {
 			const ref = toSessionRef(latest);
 			updateReading({
 				ref,
-				update: (current) => ({
-					...current,
-					panel: {
-						...current.panel,
-						sideMode: "review",
-						lastSideMode: "review",
-						reviewScope: "workspace",
-						reviewFocusFile: null,
-					},
-				}),
+				update: (current) =>
+					withFeatureTab(
+						{ ...current, panel: { ...current.panel, reviewScope: "workspace", reviewFocusFile: null } },
+						"changes",
+					),
 			});
 			void selectSession(ref).catch(showCommandError);
 		},
 		[activeSession, selectSession, sessions, showCommandError, workbenchPanel, updateReading],
 	);
 
+	/** Transcript file links land in the Changes tab, which keeps the list beside the selected diff. */
 	const openSessionFileReview = useCallback(
-		(path: string): void => {
-			workbenchPanel.openReviewSession();
-			openReviewViewer({ scope: "session", turnId: null, path });
-		},
-		[openReviewViewer, workbenchPanel],
+		(path: string): void => workbenchPanel.openReview("session", { focusFile: path }),
+		[workbenchPanel],
 	);
 
 	const openTurnReview = useCallback(
-		(turnId: string | null, path?: string): void => {
-			workbenchPanel.openReviewTurn(turnId);
-			if (path !== undefined) openReviewViewer({ scope: "turn", turnId, path });
-		},
-		[openReviewViewer, workbenchPanel],
+		(turnId: string | null, path?: string): void =>
+			workbenchPanel.openReview("turn", { turnId, ...(path === undefined ? {} : { focusFile: path }) }),
+		[workbenchPanel],
 	);
 
 	const openReviewNavigator = useCallback(
-		(target: ChangeReviewTarget): void => {
-			switch (target.scope) {
-				case "turn":
-					workbenchPanel.openReviewTurn(target.turnId);
-					break;
-				case "session":
-					workbenchPanel.openReviewSession();
-					break;
-				case "workspace":
-					workbenchPanel.openReviewWorkspace();
-					break;
-				case "unpushed":
-					workbenchPanel.openReviewUnpushed();
-					break;
-			}
-		},
+		(target: ChangeReviewTarget): void =>
+			workbenchPanel.openReview(target.scope, { turnId: target.turnId, focusFile: target.path }),
 		[workbenchPanel],
 	);
 

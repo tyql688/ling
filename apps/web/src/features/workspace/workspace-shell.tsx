@@ -3,12 +3,11 @@ import { appPageAtom } from "@renderer/lib/navigation-state";
 import { SchedulesPage } from "@renderer/features/schedules/schedules-page";
 import { ReadingCloseDialog } from "./reading-close-dialog";
 import { WorkbenchSlotHost } from "@renderer/components/workbench/workbench-slot-host";
-import { WorkspacePanel } from "./workspace-panel";
 import { ShellFrame } from "@renderer/components/shell-frame";
 import { SessionExtensionEditor } from "@renderer/features/chat/extension-ui/session-extension-surfaces";
 import { ReviewWorkspace } from "@renderer/features/review/review-workspace";
 import { TerminalProvider } from "@renderer/features/terminal/terminal-provider";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useAtomValueRawSync } from "jotai";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { WorkspaceHome } from "./empty-state";
@@ -71,19 +70,18 @@ function WorkspaceLayout({ overlay }: { overlay?: ReactNode }) {
 	);
 }
 
+/** The home view has no session, so its right column stays closed. */
 function WorkspaceHomeStage() {
-	const { sideMode, open, close, toggleSidePanel } = useWorkspaceOwner(workspacePanelAtom);
+	const { close, toggle } = useWorkspaceOwner(workspacePanelAtom);
 	return (
 		<WorkbenchSlotHost
 			chrome={<WorkspaceChrome />}
 			readingHeader={<WorkspaceReadingStrip />}
 			top={<WorkspaceBanners />}
 			main={<WorkspaceHome />}
-			bottom={(main) => main}
-			rightOpen={open}
-			side={sideMode === null ? null : <WorkspacePanel />}
+			rightOpen={false}
 			onSideClose={close}
-			onSideToggle={toggleSidePanel}
+			onSideToggle={toggle}
 			shortcuts={<WorkspaceShortcuts />}
 			overlay={null}
 		/>
@@ -102,8 +100,9 @@ export function WorkspaceShell({ overlay, ...props }: WorkspaceShellProps & { ov
 
 function WorkspaceNavigation({ children, ...props }: WorkspaceShellProps & { children: ReactNode }) {
 	useWorkspaceRuntime(props);
-	const ready = useAtomValue(workspaceSelectionAtom);
-	const tabs = useAtomValue(workspaceTabsAtom);
+	// Owners publish in layout effects, before passive atom subscriptions attach on first mount.
+	const ready = useAtomValueRawSync(workspaceSelectionAtom);
+	const tabs = useAtomValueRawSync(workspaceTabsAtom);
 	return ready === null || tabs === null ? null : (
 		<FeatureNavigationContext value={tabs.openFeatureViewer}>{children}</FeatureNavigationContext>
 	);

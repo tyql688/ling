@@ -21,7 +21,7 @@ export function ProjectPicker({
 	const { t } = useTranslation();
 
 	return (
-		<div className="view-fade-in flex h-full w-full flex-col items-center justify-center gap-4 text-text-primary">
+		<div className="view-fade-in relative flex h-full w-full flex-col items-center justify-center gap-4 text-text-primary">
 			<FolderOpen className="size-10 text-text-muted" aria-hidden="true" />
 			{storeError ? (
 				<>

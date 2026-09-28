@@ -20,6 +20,7 @@ export const RENDERER_PREFERENCE_KEYS = {
 	uiBootPreferences: "ling:ui-boot-preferences",
 	language: "ling:language",
 	sidebarCollapsed: "ling:sidebar-collapsed",
+	sidebarView: "ling:sidebar-view",
 	pinnedProjectCwds: "ling:pinned-project-cwds",
 	projectDisplayNames: "ling:project-display-names",
 	sessionSeenAt: "ling:session-seen-at",
@@ -28,7 +29,6 @@ export const RENDERER_PREFERENCE_KEYS = {
 	sidebarSortMode: "ling:sidebar-sort-mode",
 	sidebarArchiveVisibility: "ling:sidebar-archive-visibility",
 	changeReviewPanelWidth: "ling:change-review-panel-width",
-	terminalPanelHeight: "ling:terminal-panel-height",
 	// Preserve the saved value as native glass expands from the sidebar to the conversation.
 	nativeTransparency: "ling:vibrancy-transparency",
 	fontSmoothing: "ling:font-smoothing",
@@ -42,6 +42,7 @@ export const RENDERER_PREFERENCE_KEYS = {
 	workbenchGeometry: "ling:workbench-geometry-v2.5",
 	// Retired geometry keys remain owned so an explicit preference reset can remove them.
 	workbenchSideLayout: "ling:workbench-side-layout",
+	terminalPanelHeight: "ling:terminal-panel-height",
 	workbenchSideWidth: "ling:workbench-side-width",
 } as const;
 
@@ -66,6 +67,7 @@ const MAX_PREFERENCE_BYTES: Record<RendererPreferenceKey, number> = {
 	[RENDERER_PREFERENCE_KEYS.uiBootPreferences]: 8192,
 	[RENDERER_PREFERENCE_KEYS.language]: 32,
 	[RENDERER_PREFERENCE_KEYS.sidebarCollapsed]: 8,
+	[RENDERER_PREFERENCE_KEYS.sidebarView]: 16,
 	[RENDERER_PREFERENCE_KEYS.pinnedProjectCwds]: 1024 * 1024,
 	[RENDERER_PREFERENCE_KEYS.projectDisplayNames]: 1024 * 1024,
 	[RENDERER_PREFERENCE_KEYS.sessionSeenAt]: 2 * 1024 * 1024,

@@ -1,46 +1,31 @@
 import { appPageAtom } from "@renderer/lib/navigation-state";
 import { featurePageTitleKeys, type FeaturePageId } from "@renderer/components/workbench/feature-navigation";
-import { type SessionRef, sameSessionRef, sessionKey, toSessionRef } from "@ling/contracts/session-ref";
-import type { SkillInfo } from "@ling/contracts/skill";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 import {
 	dirtyFileDocumentsAtom,
 	fileDocumentKey,
 	getRetainedFileDocument,
 } from "@renderer/features/files/file-document-state";
 import { type ChangeReviewTarget, changeReviewTargetKey } from "@renderer/features/review/change-review-target";
-import { requireWorkspaceSessionStatus, useWorkspaceSessionStatuses } from "@renderer/features/sessions/session-status";
-import { useAtomValue, useSetAtom, useStore } from "jotai";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAtomValue, useStore } from "jotai";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ProjectController } from "../projects/use-projects";
 import type { SessionController } from "../sessions/use-sessions";
 import {
 	closeReadingTabsAtom,
-	keepReadingTabOpenAtom,
 	openReadingTabAtom,
 	reorderReadingTabAtom,
 	sessionWorkbenchesAtom,
 	updateReadingWorkspaceAtom,
 	useReadingWorkspace,
+	withFeatureTab,
 } from "./reading-state";
-import {
-	focusedTabGroupAtom,
-	keepSessionTabOpenAtom,
-	moveTab,
-	openSessionTabsAtom,
-	orderSessionTabs,
-	sessionPreviewAtom,
-	reconcileTabOrder,
-	replaceSessionPreviewAtom,
-	tabAfterClosing,
-	sessionTabOrderAtom,
-} from "./tab-state";
+import { focusedTabGroupAtom } from "./tab-state";
 import type { WorkspaceTab } from "./workspace-tabs";
 import { editorRevealAtom, type EditorSelection } from "@renderer/features/files/editor-navigation";
 
 interface WorkspaceTabsOptions {
 	sessionController: SessionController;
-	projects: ProjectController["projects"];
 	showCommandError(error: unknown): void;
 }
 
@@ -49,7 +34,6 @@ function tabGroup(
 	tabs: readonly WorkspaceTab[],
 	activeKey: string | null,
 	select: (key: string) => void,
-	keepOpen: (key: string) => void,
 	close: (keys: readonly string[]) => void,
 	reorder: (key: string, target: string, edge: "before" | "after") => void,
 ) {
@@ -57,7 +41,6 @@ function tabGroup(
 		tabs,
 		activeKey,
 		select,
-		keepOpen,
 		reorder,
 		close: (key: string) => close([key]),
 		closeOthers: (key: string) => close(tabs.filter((tab) => tab.key !== key).map((tab) => tab.key)),
@@ -80,8 +63,8 @@ function tabGroup(
 	};
 }
 
-export function useWorkspaceTabs({ sessionController, projects, showCommandError }: WorkspaceTabsOptions) {
-	const { sessions, activeSessionRef, deleteSession, selectSession, deselectSession } = sessionController;
+export function useWorkspaceTabs({ sessionController, showCommandError }: WorkspaceTabsOptions) {
+	const { activeSessionRef, deleteSession, selectSession, deselectSession } = sessionController;
 	const store = useStore();
 	const { t } = useTranslation();
 	const [pendingClose, setPendingClose] = useState<{
@@ -90,152 +73,28 @@ export function useWorkspaceTabs({ sessionController, projects, showCommandError
 		paths: string[];
 	} | null>(null);
 	const [closing, setClosing] = useState(false);
-	const openTabs = useAtomValue(openSessionTabsAtom);
-	const preview = useAtomValue(sessionPreviewAtom);
-	const order = useAtomValue(sessionTabOrderAtom);
 	const dirty = useAtomValue(dirtyFileDocumentsAtom);
 	const [reading] = useReadingWorkspace(activeSessionRef);
-	const activeSessionKey = activeSessionRef ? sessionKey(activeSessionRef) : null;
-	const replacePreview = useSetAtom(replaceSessionPreviewAtom);
-	const keepSessionTabOpen = useSetAtom(keepSessionTabOpenAtom);
 	const selectConversation = useCallback(
 		(ref: SessionRef) => {
 			store.set(appPageAtom, null);
-			if (!store.get(openSessionTabsAtom).some((tab) => sameSessionRef(tab, ref))) replacePreview(ref);
 			store.set(focusedTabGroupAtom, "conversation");
 			return selectSession(ref);
 		},
-		[replacePreview, selectSession, store],
-	);
-
-	// Resume and new-session selection may enter outside the tab strip. Closing a tab
-	// without a selection change must not immediately recreate it as a preview.
-	const observedSelection = useRef<string | null>(null);
-	useEffect(() => {
-		if (observedSelection.current === activeSessionKey) return;
-		observedSelection.current = activeSessionKey;
-		if (
-			activeSessionRef !== null &&
-			!store.get(openSessionTabsAtom).some((ref) => sameSessionRef(ref, activeSessionRef))
-		)
-			replacePreview(activeSessionRef);
-	}, [activeSessionKey, activeSessionRef, replacePreview, store]);
-
-	const refs = useMemo(
-		() =>
-			preview !== null && !openTabs.some((ref) => sameSessionRef(ref, preview)) ? [...openTabs, preview] : openTabs,
-		[openTabs, preview],
-	);
-	const tabSessions = useMemo(
-		() =>
-			refs.flatMap((ref) => {
-				const session = sessions.find((candidate) => sameSessionRef(toSessionRef(candidate), ref));
-				// Discovery can lag saved membership. It is retained until the catalog catches up.
-				return session === undefined ? [] : [session];
-			}),
-		[refs, sessions],
-	);
-	const statuses = useWorkspaceSessionStatuses(tabSessions, activeSessionRef);
-	const conversationTabs = useMemo<WorkspaceTab[]>(() => {
-		const items = tabSessions.map((session) => ({
-			kind: "session" as const,
-			key: sessionKey(toSessionRef(session)),
-			ref: toSessionRef(session),
-			title: session.title,
-			projectName: projects.find((project) => project.cwd === session.cwd)?.name ?? session.cwd,
-			status: requireWorkspaceSessionStatus(statuses, session).status,
-			child: session.relation?.kind === "child",
-			preview: sameSessionRef(preview, toSessionRef(session)),
-		}));
-		const positions = new Map(
-			reconcileTabOrder(
-				order,
-				items.map((tab) => tab.key),
-			).map((key, index) => [key, index]),
-		);
-		return items.sort((a, b) => positions.get(a.key)! - positions.get(b.key)!);
-	}, [order, preview, projects, statuses, tabSessions]);
-	useEffect(() => {
-		store.set(sessionTabOrderAtom, (current) => {
-			const available = reconcileTabOrder(current, refs.map(sessionKey));
-			const savedKeys = openTabs.map(sessionKey),
-				saved = new Set(savedKeys);
-			let index = 0;
-			const next = available.map((key) => (saved.has(key) ? savedKeys[index++]! : key));
-			return next.length === current.length && next.every((key, i) => key === current[i]) ? current : next;
-		});
-	}, [openTabs, refs, store]);
-
-	const selectConversationTab = useCallback(
-		(key: string) => {
-			const tab = conversationTabs.find((tab) => tab.key === key);
-			if (tab?.kind === "session") void selectConversation(tab.ref).catch(showCommandError);
-		},
-		[conversationTabs, selectConversation, showCommandError],
-	);
-	const keepConversationTab = useCallback(
-		(key: string) => {
-			const tab = conversationTabs.find((tab) => tab.key === key);
-			if (tab?.kind === "session") keepSessionTabOpen(tab.ref);
-		},
-		[conversationTabs, keepSessionTabOpen],
-	);
-	const closeConversations = useCallback(
-		(keys: readonly string[]) => {
-			const closing = new Set(keys);
-			store.set(openSessionTabsAtom, (current) => current.filter((ref) => !closing.has(sessionKey(ref))));
-			store.set(sessionPreviewAtom, (current) =>
-				current !== null && closing.has(sessionKey(current)) ? null : current,
-			);
-			store.set(sessionTabOrderAtom, (current) => current.filter((key) => !closing.has(key)));
-			if (activeSessionKey === null || !closing.has(activeSessionKey)) return;
-			const next = tabAfterClosing(conversationTabs, activeSessionKey, closing);
-			if (next !== null) selectConversationTab(next);
-			else deselectSession();
-		},
-		[activeSessionKey, conversationTabs, deselectSession, selectConversationTab, store],
-	);
-	const reorderConversations = useCallback(
-		(key: string, target: string, edge: "before" | "after") => {
-			const next = moveTab(store.get(sessionTabOrderAtom), key, target, edge);
-			keepConversationTab(key);
-			store.set(sessionTabOrderAtom, next);
-			store.set(openSessionTabsAtom, (current) => orderSessionTabs(current, next));
-		},
-		[keepConversationTab, store],
-	);
-	const conversationGroup = useMemo(
-		() =>
-			tabGroup(
-				conversationTabs,
-				activeSessionKey,
-				selectConversationTab,
-				keepConversationTab,
-				closeConversations,
-				reorderConversations,
-			),
-		[
-			conversationTabs,
-			activeSessionKey,
-			selectConversationTab,
-			keepConversationTab,
-			closeConversations,
-			reorderConversations,
-		],
+		[selectSession, store],
 	);
 
 	const readingTabs = useMemo<WorkspaceTab[]>(
 		() =>
 			reading.tabs.map((tab) =>
 				tab.kind === "feature"
-					? { ...tab, title: t(featurePageTitleKeys[tab.id]), preview: tab.key === reading.previewKey, dirty: false }
+					? { ...tab, title: t(featurePageTitleKeys[tab.id]), dirty: false }
 					: {
 							...tab,
-							preview: tab.key === reading.previewKey,
 							dirty: tab.kind === "file" && dirty.has(fileDocumentKey(tab.cwd, tab.path)),
 						},
 			),
-		[dirty, reading.tabs, reading.previewKey, t],
+		[dirty, reading.tabs, t],
 	);
 	const activeViewer = reading.tabs.find((tab) => tab.key === reading.activeKey) ?? null;
 	const activeReviewTarget: ChangeReviewTarget | null = activeViewer?.kind === "review" ? activeViewer : null;
@@ -248,12 +107,6 @@ export function useWorkspaceTabs({ sessionController, projects, showCommandError
 				existingOnly: true,
 				update: (current) => (current.tabs.some((tab) => tab.key === key) ? { ...current, activeKey: key } : current),
 			});
-		},
-		[activeSessionRef, store],
-	);
-	const keepReadingTab = useCallback(
-		(key: string) => {
-			if (activeSessionRef !== null) store.set(keepReadingTabOpenAtom, { ref: activeSessionRef, key });
 		},
 		[activeSessionRef, store],
 	);
@@ -314,81 +167,60 @@ export function useWorkspaceTabs({ sessionController, projects, showCommandError
 		[activeSessionRef, store],
 	);
 	const readingGroup = useMemo(
-		() =>
-			tabGroup(readingTabs, reading.activeKey, selectReadingTab, keepReadingTab, closeReadingTabs, reorderReadingTab),
-		[readingTabs, reading.activeKey, selectReadingTab, keepReadingTab, closeReadingTabs, reorderReadingTab],
+		() => tabGroup(readingTabs, reading.activeKey, selectReadingTab, closeReadingTabs, reorderReadingTab),
+		[readingTabs, reading.activeKey, selectReadingTab, closeReadingTabs, reorderReadingTab],
 	);
 	const openViewer = useCallback(
-		(path: string, keepOpen = false, range?: EditorSelection) => {
+		(path: string, range?: EditorSelection) => {
 			if (activeSessionRef === null) return;
-			keepSessionTabOpen(activeSessionRef);
 			const cwd = activeSessionRef.cwd;
 			store.set(openReadingTabAtom, {
 				ref: activeSessionRef,
 				tab: { kind: "file", key: ["file", cwd, path].join("\u0000"), path, cwd },
-				keepOpen,
 			});
 			store.set(focusedTabGroupAtom, "reading");
 			if (range)
 				store.set(editorRevealAtom, { viewKey: sessionKey(activeSessionRef), path, range, nonce: crypto.randomUUID() });
 		},
-		[activeSessionRef, keepSessionTabOpen, store],
+		[activeSessionRef, store],
 	);
 	const openReviewViewer = useCallback(
 		(target: ChangeReviewTarget) => {
 			if (activeSessionRef === null) return;
-			keepSessionTabOpen(activeSessionRef);
 			store.set(openReadingTabAtom, {
 				ref: activeSessionRef,
 				tab: { kind: "review", key: changeReviewTargetKey(activeSessionRef, target), ref: activeSessionRef, ...target },
 			});
 			store.set(focusedTabGroupAtom, "reading");
 		},
-		[activeSessionRef, keepSessionTabOpen, store],
+		[activeSessionRef, store],
 	);
 	const openFeatureViewer = useCallback(
-		(id: FeaturePageId, keepOpen = false) => {
+		(id: FeaturePageId) => {
 			if (!activeSessionRef) return;
-			keepSessionTabOpen(activeSessionRef);
-			store.set(openReadingTabAtom, {
+			store.set(updateReadingWorkspaceAtom, {
 				ref: activeSessionRef,
-				tab: { kind: "feature", key: `feature:${id}`, id },
-				keepOpen,
+				update: (current) => withFeatureTab(current, id),
 			});
 			store.set(focusedTabGroupAtom, "reading");
 		},
-		[activeSessionRef, keepSessionTabOpen, store],
+		[activeSessionRef, store],
 	);
-	const openSkillViewer = useCallback(
-		(skill: SkillInfo) => {
-			if (!activeSessionRef) return;
-			keepSessionTabOpen(activeSessionRef);
-			store.set(openReadingTabAtom, {
-				ref: activeSessionRef,
-				tab: { kind: "skill", key: ["skill", skill.filePath].join("\u0000"), skill },
-			});
-			store.set(focusedTabGroupAtom, "reading");
-		},
-		[activeSessionRef, keepSessionTabOpen, store],
-	);
-	useEffect(() => {
-		const tab = reading.tabs.find((tab) => tab.key === reading.previewKey);
-		if (tab?.kind === "file" && dirty.has(fileDocumentKey(tab.cwd, tab.path))) keepReadingTab(tab.key);
-	}, [dirty, reading.tabs, reading.previewKey, keepReadingTab]);
-	const closeActiveTab = useCallback(
-		() => (store.get(focusedTabGroupAtom) === "reading" ? readingGroup : conversationGroup).closeActive(),
-		[conversationGroup, readingGroup, store],
-	);
+	const closeActiveView = useCallback(() => {
+		if (store.get(focusedTabGroupAtom) === "reading" && reading.panel.open) return readingGroup.closeActive();
+		if (activeSessionRef === null) return false;
+		deselectSession();
+		return true;
+	}, [activeSessionRef, deselectSession, reading.panel.open, readingGroup, store]);
 	const selectAdjacentTab = useCallback(
-		(direction: -1 | 1) =>
-			(store.get(focusedTabGroupAtom) === "reading" ? readingGroup : conversationGroup).selectAdjacent(direction),
-		[conversationGroup, readingGroup, store],
+		(direction: -1 | 1) => {
+			if (store.get(focusedTabGroupAtom) === "reading" && reading.panel.open) readingGroup.selectAdjacent(direction);
+		},
+		[reading.panel.open, readingGroup, store],
 	);
-	const deleteSessionAndTab = useCallback(
+	const deleteSessionAndViews = useCallback(
 		async (ref: SessionRef) => {
 			await deleteSession(ref);
-			store.set(openSessionTabsAtom, (current) => current.filter((tab) => !sameSessionRef(tab, ref)));
-			store.set(sessionPreviewAtom, (current) => (sameSessionRef(current, ref) ? null : current));
 			store.set(sessionWorkbenchesAtom, (current) => {
 				const next = new Map(current);
 				next.delete(sessionKey(ref));
@@ -402,37 +234,31 @@ export function useWorkspaceTabs({ sessionController, projects, showCommandError
 			pendingClose,
 			closing,
 			resolveClose,
-			conversationGroup,
 			readingGroup,
 			activeViewer,
 			activeReviewTarget,
 			openViewer,
 			openReviewViewer,
 			openFeatureViewer,
-			openSkillViewer,
 			selectConversation,
-			keepSessionTabOpen,
-			closeActiveTab,
+			closeActiveView,
 			selectAdjacentTab,
-			deleteSessionAndTab,
+			deleteSessionAndViews,
 		}),
 		[
 			pendingClose,
 			closing,
 			resolveClose,
-			conversationGroup,
 			readingGroup,
 			activeViewer,
 			activeReviewTarget,
 			openViewer,
 			openReviewViewer,
 			openFeatureViewer,
-			openSkillViewer,
 			selectConversation,
-			keepSessionTabOpen,
-			closeActiveTab,
+			closeActiveView,
 			selectAdjacentTab,
-			deleteSessionAndTab,
+			deleteSessionAndViews,
 		],
 	);
 }

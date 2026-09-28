@@ -1,24 +1,12 @@
-import { PanelBoundary } from "@renderer/components/error-fallback";
-import type { WorkbenchSidePanelMode } from "@renderer/components/workbench/use-workbench-panel";
-import { SessionExtensionDock } from "@renderer/features/chat/extension-ui/session-extension-surfaces";
-import { useSessionExtensionMeta } from "@renderer/features/chat/extension-ui/use-session-extension-meta";
-import { WorkspaceExplorerPanel } from "@renderer/features/files/workspace-explorer-panel";
 import { EditorOutline } from "@renderer/features/files/editor-outline";
-import { ProjectPiConfigPanel } from "@renderer/features/projects/project-pi-config-panel";
-import { ChangeReviewPanel } from "@renderer/features/review/change-review-panel";
-import { ProjectSkillsPanel } from "@renderer/features/skills/project-skills-panel";
-import { BranchPicker } from "@renderer/features/review/branch-picker";
+import type { WorkspaceExplorerNavigation } from "@renderer/features/files/use-workspace-explorer";
+import { WorkspaceExplorerPanel } from "@renderer/features/files/workspace-explorer-panel";
 import { useReviewWorkspace } from "@renderer/features/review/use-review-workspace";
-import { useCommandFeedback } from "@renderer/hooks/use-command-feedback";
-import { Blocks, FileCog, Files, GitCompareArrows, GraduationCap, PanelsTopLeft } from "lucide-react";
-import { useCallback, useMemo, type ReactNode, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { explorerRefreshRevisions } from "../files/explorer-revisions";
-import { useWorkspaceFileActions } from "./workspace-file-actions";
 import { useReadingWorkspace } from "./reading-state";
-import type { WorkspaceExplorerNavigation } from "@renderer/features/files/use-workspace-explorer";
-import { WorkspaceSidePanel } from "./workspace-side-panel";
-import { WorkspaceToolPicker } from "./workspace-tool-picker";
+import { useWorkspaceFileActions } from "./workspace-file-actions";
 import {
 	useWorkspaceField,
 	useWorkspaceOwner,
@@ -26,14 +14,16 @@ import {
 	workspaceSelectionAtom,
 	workspaceTabsAtom,
 } from "./workspace-state";
-export function WorkspacePanel() {
+
+/** The file tree docked beside the right column's content, with the active file's outline below it. */
+export function WorkspaceFileTree() {
+	const { t } = useTranslation();
 	const activeSessionRef = useWorkspaceField(workspaceSelectionAtom, "activeSessionRef");
 	const activeSessionKey = useWorkspaceField(workspaceSelectionAtom, "activeSessionKey");
-	const runtimeSessionRef = useWorkspaceField(workspaceSelectionAtom, "runtimeSessionRef");
-	const activeCwd = useWorkspaceField(workspaceSelectionAtom, "activeCwd");
 	const activeProject = useWorkspaceField(workspaceSelectionAtom, "activeProject");
-	const { copyProjectPath, handleInsertProjectFileReference } = useWorkspaceFileActions();
-	const { activeReviewTarget, openViewer, openReviewViewer, openSkillViewer } = useWorkspaceOwner(workspaceTabsAtom);
+	const { handleInsertProjectFileReference } = useWorkspaceFileActions();
+	const { activeViewer, openViewer } = useWorkspaceOwner(workspaceTabsAtom);
+	const workbenchPanel = useWorkspaceOwner(workspacePanelAtom);
 	const [reading, setReading] = useReadingWorkspace(activeSessionRef);
 	const setExplorerNavigation = useCallback(
 		(update: SetStateAction<WorkspaceExplorerNavigation>) =>
@@ -43,116 +33,45 @@ export function WorkspacePanel() {
 			})),
 		[setReading],
 	);
-	const workbenchPanel = useWorkspaceOwner(workspacePanelAtom);
-	const { t } = useTranslation();
-	const showCommandError = useCommandFeedback();
-
+	const activePath = activeViewer?.kind === "file" ? activeViewer.path : null;
+	useEffect(() => {
+		if (activePath === null) return;
+		setExplorerNavigation((current) => {
+			const expanded = new Set(current.expanded);
+			const segments = activePath.split(/[/\\]/);
+			for (let index = 1; index < segments.length; index++) expanded.add(segments.slice(0, index).join("/"));
+			if (current.selectedPath === activePath && expanded.size === current.expanded.size) return current;
+			return { ...current, selectedPath: activePath, expanded };
+		});
+	}, [activePath, setExplorerNavigation]);
 	const { review: changeReview, files: changedFiles, refresh: refreshChanges } = useReviewWorkspace();
-	const { dockItems: extensionDockItemCount } = useSessionExtensionMeta(runtimeSessionRef);
-
-	const workspaceExplorerRevisions = useMemo(
+	const revisions = useMemo(
 		() => explorerRefreshRevisions(changeReview.snapshot?.scopes.workspace.files ?? [], changedFiles.files),
 		[changeReview.snapshot, changedFiles.files],
 	);
-	const workspaceChangeCount = changeReview.snapshot?.scopes.workspace.count ?? changedFiles.files.length;
-	const sidePanelTitles: Record<WorkbenchSidePanelMode, { label: string; icon: ReactNode; count?: number }> = {
-		picker: { label: t("nav.sidePanel"), icon: <PanelsTopLeft aria-hidden="true" /> },
-		explorer: { label: t("explorer.title"), icon: <Files aria-hidden="true" /> },
-		review: {
-			label: t("changes.toolbarLabel"),
-			icon: <GitCompareArrows aria-hidden="true" />,
-			count: workspaceChangeCount,
-		},
-		piConfig: { label: t("projectPiConfig.toolbarLabel"), icon: <FileCog aria-hidden="true" /> },
-		skills: { label: t("skills.title"), icon: <GraduationCap aria-hidden="true" /> },
-		dock: { label: t("extensionUi.dockTitle"), icon: <Blocks aria-hidden="true" />, count: extensionDockItemCount },
-	};
-	// The presence owner retains this view during its exit; keep the last tool painted until it unmounts.
-	const sideMode = activeSessionRef ? (workbenchPanel.sideMode ?? workbenchPanel.lastSideMode) : null;
-	const heading = sideMode === null ? sidePanelTitles.picker : sidePanelTitles[sideMode];
+	if (activeSessionRef === null || activeSessionKey === null) return null;
 	return (
-		<WorkspaceSidePanel
-			title={heading.label}
-			actions={
-				sideMode === "review" && activeCwd ? (
-					<BranchPicker
-						cwd={activeCwd}
-						open={workbenchPanel.historyOpen}
-						onOpenChange={workbenchPanel.setHistoryOpen}
-						onChanged={refreshChanges}
-						onError={showCommandError}
-					/>
-				) : null
-			}
+		<aside
+			data-workspace-side-panel=""
+			aria-label={t("explorer.title")}
+			className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
 		>
-			{sideMode === "picker" && <WorkspaceToolPicker />}
-			{sideMode === "explorer" && activeSessionRef && (
-				<>
-					<WorkspaceExplorerPanel
-						key={activeSessionKey}
-						navigation={reading.explorer}
-						onNavigationChange={setExplorerNavigation}
-						cwd={activeSessionRef.cwd}
-						projectName={activeProject?.name}
-						open
-						changedFiles={changedFiles.files}
-						treeRefreshRevision={workspaceExplorerRevisions.tree}
-						focusFile={workbenchPanel.explorerFocus}
-						onFocusFileHandled={workbenchPanel.clearExplorerFocus}
-						onInsertReference={handleInsertProjectFileReference}
-						onRefreshWorkspace={refreshChanges}
-						onOpenFile={openViewer}
-					/>
-					<EditorOutline viewKey={activeSessionKey!} />
-				</>
-			)}
-			{sideMode === "piConfig" && activeCwd && (
-				<PanelBoundary resetKeys={[activeCwd]}>
-					<ProjectPiConfigPanel
-						docked
-						cwd={activeCwd}
-						open
-						onOpenChange={(open) => {
-							if (!open) workbenchPanel.close();
-						}}
-					/>
-				</PanelBoundary>
-			)}
-			{sideMode === "skills" && activeProject && activeSessionRef && (
-				<PanelBoundary resetKeys={[activeProject.cwd, activeSessionKey]}>
-					<ProjectSkillsPanel key={activeSessionKey} session={activeSessionRef} onOpenSkill={openSkillViewer} />
-				</PanelBoundary>
-			)}
-			{sideMode === "review" && runtimeSessionRef && (
-				<PanelBoundary resetKeys={[activeSessionKey]}>
-					<ChangeReviewPanel
-						key={activeSessionKey}
-						docked
-						sessionRef={runtimeSessionRef}
-						open
-						focusFile={workbenchPanel.reviewFocusFile}
-						onFocusFileHandled={workbenchPanel.clearReviewFocusFile}
-						requestedScope={workbenchPanel.reviewScope}
-						onScopeChange={(reviewScope) =>
-							setReading((current) => ({ ...current, panel: { ...current.panel, reviewScope } }))
-						}
-						requestedTurnId={workbenchPanel.reviewTurnId}
-						snapshot={changeReview.snapshot}
-						loading={changeReview.loading}
-						error={changeReview.error}
-						stateRecoveryError={changeReview.stateRecoveryError}
-						onOpenChange={workbenchPanel.setReviewOpen}
-						onRefresh={refreshChanges}
-						onCopyPath={copyProjectPath}
-						activeTarget={activeReviewTarget}
-						onOpenFile={openReviewViewer}
-					/>
-				</PanelBoundary>
-			)}
-
-			{sideMode === "dock" && runtimeSessionRef && (
-				<SessionExtensionDock key={activeSessionKey} sessionRef={runtimeSessionRef} onClose={workbenchPanel.close} />
-			)}
-		</WorkspaceSidePanel>
+			<WorkspaceExplorerPanel
+				key={activeSessionKey}
+				navigation={reading.explorer}
+				onNavigationChange={setExplorerNavigation}
+				cwd={activeSessionRef.cwd}
+				projectName={activeProject?.name}
+				open
+				changedFiles={changedFiles.files}
+				treeRefreshRevision={revisions.tree}
+				focusFile={workbenchPanel.explorerFocus}
+				onFocusFileHandled={workbenchPanel.clearExplorerFocus}
+				onInsertReference={handleInsertProjectFileReference}
+				onRefreshWorkspace={refreshChanges}
+				onOpenFile={openViewer}
+			/>
+			<EditorOutline viewKey={activeSessionKey} />
+		</aside>
 	);
 }

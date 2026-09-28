@@ -1,7 +1,5 @@
+import { WorkbenchReadingPane } from "@renderer/components/workbench/workbench-reading-pane";
 import { PanelBoundary } from "@renderer/components/error-fallback";
-import { BackgroundTasksPage } from "@renderer/features/background-tasks/background-tasks-page";
-import { TodoPage } from "@renderer/features/pi-adapters/todo/todo-page";
-import { QuestionsPage } from "@renderer/features/questions/questions-page";
 import { LoadingTransition } from "@renderer/components/ui/loading-transition";
 import { WorkbenchSlotHost } from "@renderer/components/workbench/workbench-slot-host";
 import { SessionExtensionOverlay } from "@renderer/features/chat/extension-ui/session-extension-surfaces";
@@ -9,11 +7,9 @@ import type { FileReadingView } from "@renderer/features/files/use-file-preview-
 import { WorkspaceFilePreview } from "@renderer/features/files/workspace-file-preview";
 import { ChangeReviewDetailTab } from "@renderer/features/review/change-review-detail-tab";
 import { useReviewWorkspace } from "@renderer/features/review/use-review-workspace";
-import { SkillReadingView } from "@renderer/features/skills/skill-reading-view";
 import { sessionTranscriptStateFamily } from "@renderer/features/sessions/state/session";
-import { TerminalWorkspace } from "@renderer/features/terminal/terminal-workspace";
 import { atom, useAtomValue, useSetAtom } from "jotai";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { explorerRefreshRevisions } from "../files/explorer-revisions";
 import { useReadingWorkspace } from "./reading-state";
@@ -23,7 +19,8 @@ import { WorkspaceShortcuts } from "./workspace-shortcuts";
 import { archivedTranscriptsAtom } from "@renderer/features/sessions/archived-session-state";
 import { WorkspaceChrome, WorkspaceReadingStrip } from "./workspace-heading";
 import { useWorkspaceFileActions } from "./workspace-file-actions";
-import { WorkspacePanel } from "./workspace-panel";
+import { WorkspaceFileTree } from "./workspace-panel";
+import { WorkspaceToolPage } from "./workspace-tool-pages";
 import { useWorkspaceReviewActions } from "./workspace-review-actions";
 import { WorkspaceSessionConversation } from "./workspace-session-conversation";
 import {
@@ -44,7 +41,6 @@ export function WorkspaceSessionStage() {
 	const [reading, setReading] = useReadingWorkspace(activeSessionRef);
 	const archivedTranscripts = useAtomValue(archivedTranscriptsAtom);
 	const archived = activeSessionKey !== null && archivedTranscripts.has(activeSessionKey);
-	const [terminalHeight, setTerminalHeight] = useState(0);
 	const setFocusedGroup = useSetAtom(focusedTabGroupAtom);
 	const activeViewerKey = activeViewer?.key;
 	const updateFileView = useCallback(
@@ -86,11 +82,7 @@ export function WorkspaceSessionStage() {
 	if (!activeSessionRef) return null;
 	const viewer =
 		activeViewer?.kind === "feature" ? (
-			<PanelBoundary key={`${activeSessionKey}:${activeViewer.key}`}>
-				{activeViewer.id === "todo" && <TodoPage sessionRef={activeSessionRef} />}
-				{activeViewer.id === "questions" && <QuestionsPage sessionRef={activeSessionRef} />}
-				{activeViewer.id === "background-tasks" && <BackgroundTasksPage sessionRef={activeSessionRef} />}
-			</PanelBoundary>
+			<WorkspaceToolPage key={activeViewer.key} id={activeViewer.id} />
 		) : activeViewer?.kind === "file" ? (
 			<PanelBoundary resetKeys={[activeViewer.key, workspaceExplorerRevisions.preview]}>
 				<WorkspaceFilePreview
@@ -104,20 +96,6 @@ export function WorkspaceSessionStage() {
 					onCopyPath={copyProjectPath}
 					onInsertReference={handleInsertProjectFileReference}
 					onRevealEntry={revealProjectEntry}
-				/>
-			</PanelBoundary>
-		) : activeViewer?.kind === "skill" ? (
-			<PanelBoundary resetKeys={[activeViewer.key]}>
-				<SkillReadingView
-					key={`${activeSessionKey}:${activeViewer.key}`}
-					skill={activeViewer.skill}
-					view={activeViewer.view}
-					onViewChange={(view) =>
-						setReading((current) => ({
-							...current,
-							tabs: current.tabs.map((tab) => (tab === activeViewer ? { ...tab, view } : tab)),
-						}))
-					}
 				/>
 			</PanelBoundary>
 		) : activeViewer?.kind === "review" && runtimeSessionRef ? (
@@ -151,13 +129,12 @@ export function WorkspaceSessionStage() {
 			chrome={<WorkspaceChrome />}
 			readingHeader={<WorkspaceReadingStrip />}
 			onSideClose={workbenchPanel.close}
-			onSideToggle={workbenchPanel.toggleSidePanel}
+			onSideToggle={workbenchPanel.toggle}
 			shortcuts={<WorkspaceShortcuts />}
 			onConversationFocus={() => setFocusedGroup("conversation")}
 			onReadingFocus={() => setFocusedGroup("reading")}
 			expanded={reading.expanded}
 			rightOpen={workbenchPanel.open}
-			terminalHeight={reading.terminalOpen ? terminalHeight : 0}
 			top={<WorkspaceBanners />}
 			main={
 				<div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
@@ -171,18 +148,24 @@ export function WorkspaceSessionStage() {
 					)}
 				</div>
 			}
-			reading={viewer}
-			bottom={(content) => (
-				<TerminalWorkspace
-					cwd={activeSessionRef.cwd}
-					open={reading.terminalOpen}
-					onOpenChange={(open) => setReading((current) => ({ ...current, terminalOpen: open }))}
-					onHeightChange={setTerminalHeight}
-				>
-					{content}
-				</TerminalWorkspace>
-			)}
-			side={workbenchPanel.sideMode === null ? null : <WorkspacePanel />}
+			reading={
+				activeViewer?.kind === "feature" && (activeViewer.id === "changes" || activeViewer.id === "skills") ? (
+					viewer
+				) : (
+					<WorkbenchReadingPane
+						navigation={
+							workbenchPanel.treeOpen &&
+							(activeViewer?.kind === "file" || (activeViewer?.kind === "feature" && activeViewer.id === "files")) ? (
+								<WorkspaceFileTree />
+							) : null
+						}
+						navigationLabel={t("explorer.title")}
+						selectionKey={activeViewer?.key}
+					>
+						{viewer}
+					</WorkbenchReadingPane>
+				)
+			}
 			overlay={runtimeSessionRef ? <SessionExtensionOverlay sessionRef={runtimeSessionRef} /> : null}
 		/>
 	);

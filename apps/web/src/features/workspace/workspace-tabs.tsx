@@ -1,72 +1,47 @@
-import type { FeaturePageId } from "@renderer/components/workbench/feature-navigation";
-import type { SessionRef } from "@ling/contracts/session-ref";
-import type { SkillInfo } from "@ling/contracts/skill";
 import { MaterialFileIcon } from "@renderer/components/material-code-icon";
+import {
+	featurePageIcons,
+	formatFeatureCount,
+	type FeaturePageId,
+} from "@renderer/components/workbench/feature-navigation";
 import {
 	ContextMenu,
 	ContextMenuContent,
 	ContextMenuItem,
-	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@renderer/components/ui/context-menu";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@renderer/components/ui/dropdown-menu";
-import { ICON_BUTTON_CLASS } from "@renderer/components/ui/icon-button";
 import { TooltipIconButton } from "@renderer/components/ui/tooltip-icon-button";
-import type { WorkspaceSessionStatus } from "@renderer/features/sessions/session-status";
-import { noDragRegionClassName, shortcut } from "@renderer/lib/platform";
+import { noDragRegionClassName } from "@renderer/lib/platform";
 import { cn } from "@renderer/lib/utils";
-import { Bot, ChevronDown, FileDiff, GraduationCap, MessageSquare, Plus, X, PanelsTopLeft } from "lucide-react";
+import { FileDiff, Plus, X } from "lucide-react";
 import { type KeyboardEvent, useEffect, useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import type { SessionActionsMenuModel } from "../sessions/session-actions-menu";
-import { SessionStatusIcon } from "../sessions/session-list-item";
-import { sessionMenuGroups } from "../sessions/session-menu";
 import { useTabDrag } from "./use-tab-drag";
 
-export type WorkspaceTab = { key: string; preview: boolean; dirty?: boolean } & (
-	| {
-			kind: "session";
-			ref: SessionRef;
-			title: string;
-			projectName: string;
-			status: WorkspaceSessionStatus;
-			child: boolean;
-	  }
+export type WorkspaceTab = { key: string; dirty?: boolean } & (
 	| { kind: "file" | "review"; path: string }
-	| { kind: "skill"; skill: SkillInfo }
-	| { kind: "feature"; id: FeaturePageId; title: string }
+	| { kind: "feature"; id: FeaturePageId; title: string; count?: number | undefined }
 );
 
 interface WorkspaceTabsProps {
 	tabs: readonly WorkspaceTab[];
 	activeKey: string | null;
-	menuFor?: (ref: SessionRef) => SessionActionsMenuModel | undefined;
 	onSelect: (key: string) => void;
-	onKeepOpen: (key: string) => void;
 	onClose: (key: string) => void;
 	onCloseOthers: (key: string) => void;
 	onCloseRight: (key: string) => void;
 	onCloseAll: () => void;
 	onReorder: (key: string, target: string, edge: "before" | "after") => void;
-	onNewSession?: () => void;
-	label?: string;
+	onNewTab: () => void;
+	label: string;
 }
 
 function TabIcon({ tab }: { tab: WorkspaceTab }) {
 	const className = "size-3.5 shrink-0 text-text-muted";
-	if (tab.kind === "feature") return <PanelsTopLeft className={className} aria-hidden="true" />;
-	if (tab.kind === "skill") return <GraduationCap className={className} aria-hidden="true" />;
-	if (tab.kind === "session")
-		return tab.child ? (
-			<Bot className={className} aria-hidden="true" />
-		) : (
-			<MessageSquare className={className} aria-hidden="true" />
-		);
+	if (tab.kind === "feature") {
+		const Icon = featurePageIcons[tab.id];
+		return <Icon className={className} aria-hidden="true" />;
+	}
 	return tab.kind === "file" ? (
 		<MaterialFileIcon path={tab.path} className={className} />
 	) : (
@@ -78,21 +53,18 @@ function TabIcon({ tab }: { tab: WorkspaceTab }) {
 export function WorkspaceTabs({
 	tabs,
 	activeKey,
-	menuFor,
 	onSelect,
-	onKeepOpen,
 	onClose,
 	onCloseOthers,
 	onCloseRight,
 	onCloseAll,
 	onReorder,
-	onNewSession,
+	onNewTab,
 	label: groupLabel,
 }: WorkspaceTabsProps) {
 	const { t } = useTranslation();
 	const closeHintId = useId();
 	const hasActiveTab = tabs.some((tab) => tab.key === activeKey);
-	const mixedProjects = new Set(tabs.flatMap((tab) => (tab.kind === "session" ? [tab.projectName] : []))).size > 1;
 	const stripRef = useRef<HTMLDivElement>(null);
 	const tabDrag = useTabDrag(
 		stripRef,
@@ -101,28 +73,25 @@ export function WorkspaceTabs({
 	);
 	const { drag, drop } = tabDrag;
 	useEffect(() => {
-		stripRef.current
-			?.querySelector<HTMLElement>('[aria-selected="true"]')
-			?.scrollIntoView({ block: "nearest", inline: "nearest" });
+		const strip = stripRef.current;
+		if (!strip) return;
+		const revealActiveTab = () =>
+			strip
+				.querySelector<HTMLElement>('[aria-selected="true"]')
+				?.scrollIntoView({ block: "nearest", inline: "nearest" });
+		revealActiveTab();
+		// The split or window can shrink without changing the selected tab.
+		const observer = new ResizeObserver(revealActiveTab);
+		observer.observe(strip);
+		return () => observer.disconnect();
 	}, [activeKey, tabs.length]);
-	const label = (tab: WorkspaceTab) =>
-		tab.kind === "session" || tab.kind === "feature"
-			? tab.title
-			: tab.kind === "skill"
-				? tab.skill.name
-				: tab.path.split(/[/\\]/).at(-1)!;
+	const label = (tab: WorkspaceTab) => (tab.kind === "feature" ? tab.title : tab.path.split(/[/\\]/).at(-1)!);
 	const title = (tab: WorkspaceTab) =>
 		tab.kind === "feature"
 			? tab.title
-			: tab.kind === "skill"
-				? tab.skill.name
-				: tab.kind === "session"
-					? mixedProjects
-						? `${tab.projectName} · ${tab.title}`
-						: tab.title
-					: tab.kind === "review"
-						? t("changes.diffTabTitle", { path: tab.path })
-						: tab.path;
+			: tab.kind === "review"
+				? t("changes.diffTabTitle", { path: tab.path })
+				: tab.path;
 	const handleKeys = (event: KeyboardEvent<HTMLButtonElement>, tab: WorkspaceTab) => {
 		if (event.target !== event.currentTarget) return;
 		const index = tabs.findIndex((item) => item.key === tab.key);
@@ -155,16 +124,11 @@ export function WorkspaceTabs({
 			<div
 				ref={stripRef}
 				role="tablist"
-				aria-label={groupLabel ?? t("session.tabs")}
-				className={cn(
-					"flex min-w-0 items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none]",
-					noDragRegionClassName,
-				)}
+				aria-label={groupLabel}
+				className="flex min-w-0 items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none]"
 			>
 				{tabs.map((tab, index) => {
 					const active = tab.key === activeKey;
-					const menu = tab.kind === "session" ? menuFor?.(tab.ref) : undefined;
-					const groups = menu === undefined ? [] : sessionMenuGroups(menu.session, menu.handlers);
 					return (
 						<ContextMenu key={tab.key}>
 							<ContextMenuTrigger asChild>
@@ -175,12 +139,10 @@ export function WorkspaceTabs({
 									aria-selected={active}
 									aria-describedby={closeHintId}
 									title={title(tab)}
-									data-preview={tab.preview || undefined}
 									onClick={(event) => {
 										if ((event.target as HTMLElement).closest("[data-tab-close]")) onClose(tab.key);
 										else if (!tabDrag.consumeDragClick()) onSelect(tab.key);
 									}}
-									onDoubleClick={() => onKeepOpen(tab.key)}
 									onKeyDown={(event) => handleKeys(event, tab)}
 									onAuxClick={(event) => {
 										if (event.button === 1) {
@@ -195,7 +157,7 @@ export function WorkspaceTabs({
 									onLostPointerCapture={() => tabDrag.finish(false)}
 									style={drag?.key === tab.key ? { transform: `translateX(${drag.offset}px)`, zIndex: 1 } : undefined}
 									className={cn(
-										"group relative isolate flex h-7 max-w-56 min-w-0 shrink-0 cursor-default select-none items-center gap-1.5 rounded-control px-2 text-xs text-text-muted hover:bg-surface-hover/70 hover:text-text-primary focus-visible:bg-surface-hover focus-visible:text-text-primary",
+										"group relative isolate flex h-9 max-w-56 min-w-0 shrink-0 cursor-default select-none items-center gap-1.5 rounded-control px-2.5 text-ui text-text-muted hover:bg-surface-hover/70 hover:text-text-primary focus-visible:bg-surface-hover focus-visible:text-text-primary",
 										active && "bg-surface-hover text-text-primary",
 										noDragRegionClassName,
 										drag?.key === tab.key && "bg-surface-hover opacity-80",
@@ -206,12 +168,11 @@ export function WorkspaceTabs({
 									)}
 								>
 									<TabIcon tab={tab} />
-									<span className={cn("min-w-0 flex-1 truncate", tab.preview && "italic")}>{label(tab)}</span>
-									{tab.kind === "session" && (
-										<>
-											{mixedProjects && <span className="max-w-20 truncate text-text-muted/70">{tab.projectName}</span>}
-											<SessionStatusIcon status={tab.status} />
-										</>
+									<span className="min-w-0 flex-1 truncate">{label(tab)}</span>
+									{tab.kind === "feature" && tab.count !== undefined && tab.count > 0 && (
+										<span className="shrink-0 text-xs tabular-nums text-text-muted group-aria-selected:text-text-primary">
+											{formatFeatureCount(tab.count)}
+										</span>
 									)}
 									<span
 										data-tab-close=""
@@ -233,63 +194,15 @@ export function WorkspaceTabs({
 									{t("session.closeTabsToRight")}
 								</ContextMenuItem>
 								<ContextMenuItem onClick={onCloseAll}>{t("session.closeAllTabs")}</ContextMenuItem>
-								{tab.preview && (
-									<>
-										<ContextMenuSeparator />
-										<ContextMenuItem onClick={() => onKeepOpen(tab.key)}>{t("session.keepTabOpen")}</ContextMenuItem>
-									</>
-								)}
-								{groups.map((group, groupIndex) => (
-									// eslint-disable-next-line react/no-array-index-key -- groups have a fixed, ordered structure.
-									<div key={groupIndex} className="contents">
-										<ContextMenuSeparator />
-										{group.map((entry) => (
-											<ContextMenuItem
-												key={entry.key}
-												{...(entry.destructive ? { variant: "destructive" as const } : {})}
-												onClick={entry.onSelect}
-											>
-												{t(entry.labelKey)}
-											</ContextMenuItem>
-										))}
-									</div>
-								))}
 							</ContextMenuContent>
 						</ContextMenu>
 					);
 				})}
 			</div>
-			{onNewSession && (
-				<div className={cn("flex shrink-0 items-center", noDragRegionClassName)}>
-					<TooltipIconButton onClick={onNewSession} label={t("nav.newConversation")} shortcut={shortcut("N")}>
-						<Plus className="size-4" aria-hidden="true" />
-					</TooltipIconButton>
-				</div>
-			)}
+			<TooltipIconButton label={t("reading.newTab")} onClick={onNewTab}>
+				<Plus className="size-4" aria-hidden="true" />
+			</TooltipIconButton>
 			<div className="min-w-2 flex-1" />
-			{tabs.length > 1 && (
-				<DropdownMenu>
-					<DropdownMenuTrigger
-						render={
-							<button
-								type="button"
-								aria-label={t("session.tabList")}
-								className={cn(ICON_BUTTON_CLASS, noDragRegionClassName)}
-							/>
-						}
-					>
-						<ChevronDown className="size-4" aria-hidden="true" />
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end" className="max-h-80 w-64 overflow-y-auto">
-						{tabs.map((tab) => (
-							<DropdownMenuItem key={tab.key} onClick={() => onSelect(tab.key)}>
-								<TabIcon tab={tab} />
-								<span className={cn("min-w-0 flex-1 truncate", tab.preview && "italic")}>{label(tab)}</span>
-							</DropdownMenuItem>
-						))}
-					</DropdownMenuContent>
-				</DropdownMenu>
-			)}
 		</div>
 	);
 }

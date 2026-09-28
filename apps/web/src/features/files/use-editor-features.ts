@@ -77,7 +77,7 @@ export function useEditorFeatures(
 					current.change.apply();
 					for (const file of current.change.files) {
 						language.track(file.record.model, cwd, file.path);
-						latest.current.onOpenFile(file.path, true);
+						latest.current.onOpenFile(file.path);
 					}
 				} catch (error) {
 					onError(error);
@@ -112,7 +112,7 @@ export function useEditorFeatures(
 		const model = editor?.getModel();
 		if (!editor || !model || path === null) return;
 		return language.attach(model, cwd, path, editor, {
-			open: (path, range) => latest.current.onOpenFile(path, false, range),
+			open: (path, range) => latest.current.onOpenFile(path, range),
 			async load(path) {
 				const existing = modelRecords.get(fileDocumentKey(cwd, path));
 				if (existing) return existing.model;
@@ -378,11 +378,7 @@ export function useEditorFeatures(
 		symbolsLoading,
 		openSymbol(value: NonNullable<LanguageResults["workspaceSymbols"]>[number]) {
 			try {
-				latest.current.onOpenFile(
-					projectLanguagePath(cwd, value.location.uri),
-					false,
-					editorRange(value.location.range),
-				);
+				latest.current.onOpenFile(projectLanguagePath(cwd, value.location.uri), editorRange(value.location.range));
 				setSymbolsOpen(false);
 			} catch (error) {
 				onError(error);

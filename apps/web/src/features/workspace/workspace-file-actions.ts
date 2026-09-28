@@ -38,7 +38,7 @@ export function useWorkspaceFileActions() {
 		(reference: PendingFileReference) => {
 			if (activeSessionRef === null) return;
 			if (reference.scope === "project") {
-				workbenchPanel.openExplorer({ path: reference.path, directory: reference.directory === true });
+				workbenchPanel.openTree({ path: reference.path, directory: reference.directory === true });
 				return;
 			}
 			void hostProjectApi

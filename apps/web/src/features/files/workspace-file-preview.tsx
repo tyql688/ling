@@ -99,7 +99,7 @@ export function WorkspaceFilePreview(props: WorkspaceFilePreviewProps) {
 				: "";
 	if (path === null) {
 		return (
-			<div className="glass-surface workspace-explorer-detail flex min-h-0 min-w-0 flex-1 flex-col bg-workbench-surface">
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col">
 				<PreviewState
 					icon={FileQuestion}
 					title={t("explorer.selectFileTitle")}
@@ -137,7 +137,7 @@ export function WorkspaceFilePreview(props: WorkspaceFilePreviewProps) {
 	);
 
 	return (
-		<div className="glass-surface workspace-explorer-detail flex min-h-0 min-w-0 flex-1 flex-col bg-workbench-surface">
+		<div className="flex min-h-0 min-w-0 flex-1 flex-col">
 			{error !== null && preview !== null && (
 				<div
 					role="alert"

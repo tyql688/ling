@@ -1,6 +1,6 @@
 import { TooltipIconButton } from "@renderer/components/ui/tooltip-icon-button";
 import type { ShellSidebarController } from "@renderer/components/use-shell-sidebar";
-import { dragRegionClassName, noDragRegionClassName, shortcut } from "@renderer/lib/platform";
+import { dragRegionClassName, shortcut } from "@renderer/lib/platform";
 import { cn } from "@renderer/lib/utils";
 import { ArrowLeft, ArrowRight, PanelLeftOpen } from "lucide-react";
 import { motion } from "motion/react";
@@ -46,16 +46,44 @@ interface WorkspaceTitlebarProps {
 		"presentation" | "open" | "previewOpen" | "toggleSidebar" | "schedulePreview" | "schedulePreviewClose"
 	>;
 	history: NavigationHistory;
-	/** Session tabs occupy the normal chrome row. */
-	workingSet?: ReactNode;
+	title?: ReactNode;
+	reserveWindowControls?: boolean;
+	navigation?: boolean;
 	tools: ReactNode;
 }
 
-/**
- * The window's single chrome row, spanning every content column. The working set occupies its
- * normal tab slot while untouched space remains draggable.
- */
-export function WorkspaceTitlebar({ sidebar, history, workingSet, tools }: WorkspaceTitlebarProps) {
+/** The current conversation's title and controls share the native window drag region. */
+export function WorkspaceTitlebar({
+	sidebar,
+	history,
+	title,
+	tools,
+	reserveWindowControls = true,
+	navigation = true,
+}: WorkspaceTitlebarProps) {
+	const showSidebarTrigger = navigation && (sidebar.presentation === "sheet" || !sidebar.open);
+	return (
+		<header
+			style={{
+				paddingLeft: showSidebarTrigger ? "var(--window-controls-left-padding)" : undefined,
+				paddingRight: reserveWindowControls ? "calc(var(--window-controls-right-padding) + 0.5rem)" : "0.5rem",
+			}}
+			// 44px aligns with the sidebar's traffic-light-safe row and remains available for native window dragging.
+			className={cn(
+				"relative z-30 flex min-w-0 shrink-0 items-center gap-1.5 pl-3",
+				CHROME_TITLEBAR_CLASS,
+				dragRegionClassName,
+			)}
+		>
+			{showSidebarTrigger && <WorkspaceNavigationControls sidebar={sidebar} history={history} />}
+			<div className="flex min-w-0 flex-1 items-center">{title}</div>
+			<div className="flex shrink-0 items-center gap-0.5">{tools}</div>
+		</header>
+	);
+}
+
+/** Native padding is supplied by whichever pane currently owns the left edge. */
+export function WorkspaceNavigationControls({ sidebar, history }: Pick<WorkspaceTitlebarProps, "sidebar" | "history">) {
 	const { t } = useTranslation();
 	const sidebarLabel =
 		sidebar.presentation === "sheet"
@@ -65,42 +93,25 @@ export function WorkspaceTitlebar({ sidebar, history, workingSet, tools }: Works
 				: sidebar.open
 					? t("nav.closeSidebar")
 					: t("nav.openSidebar");
-	const showSidebarTrigger = sidebar.presentation === "sheet" || !sidebar.open;
+	if (sidebar.presentation !== "sheet" && sidebar.open) return null;
 	return (
-		<header
-			style={{
-				paddingLeft: showSidebarTrigger ? "var(--window-controls-left-padding)" : undefined,
-				paddingRight: "calc(var(--window-controls-right-padding) + 0.5rem)",
-			}}
-			// 44px aligns with the sidebar's traffic-light-safe row and remains available for native window dragging.
-			className={cn(
-				"relative z-30 flex shrink-0 items-center gap-1.5 pl-2",
-				CHROME_TITLEBAR_CLASS,
-				dragRegionClassName,
-			)}
+		<motion.div
+			className="flex shrink-0 items-center gap-0.5"
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			transition={{ delay: 0.15, duration: 0.12 }}
 		>
-			{showSidebarTrigger && (
-				<motion.div
-					className={cn("flex shrink-0 items-center gap-0.5", noDragRegionClassName)}
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					transition={{ delay: 0.15, duration: 0.12 }}
-				>
-					<TooltipIconButton
-						data-shell-sidebar-trigger=""
-						onClick={sidebar.toggleSidebar}
-						onPointerEnter={sidebar.schedulePreview}
-						onPointerLeave={sidebar.schedulePreviewClose}
-						label={sidebarLabel}
-						shortcut={shortcut("B")}
-					>
-						<PanelLeftOpen className="size-4" aria-hidden="true" />
-					</TooltipIconButton>
-					<HistoryButtons history={history} />
-				</motion.div>
-			)}
-			<div className="flex min-w-0 flex-1 items-center">{workingSet}</div>
-			<div className={cn("flex shrink-0 items-center gap-0.5", noDragRegionClassName)}>{tools}</div>
-		</header>
+			<TooltipIconButton
+				data-shell-sidebar-trigger=""
+				onClick={sidebar.toggleSidebar}
+				onPointerEnter={sidebar.schedulePreview}
+				onPointerLeave={sidebar.schedulePreviewClose}
+				label={sidebarLabel}
+				shortcut={shortcut("B")}
+			>
+				<PanelLeftOpen className="size-4" aria-hidden="true" />
+			</TooltipIconButton>
+			<HistoryButtons history={history} />
+		</motion.div>
 	);
 }

@@ -11,7 +11,6 @@ import { forgetProjectTerminalWorkspace } from "@renderer/features/terminal/term
 import { useStore } from "jotai";
 import { useMemo } from "react";
 import { workspaceDialogAtom } from "./use-workspace-dialogs";
-import { sessionPreviewAtom } from "./tab-state";
 import { sessionWorkbenchesAtom } from "./reading-state";
 
 /** Cross-feature deletion belongs to workspace composition, not to either catalog owner. */
@@ -25,9 +24,6 @@ export function useWorkspaceCleanup() {
 					new Map(
 						[...current].filter(([key, value]) => !removed.has(key) && (cwd === undefined || value.ref?.cwd !== cwd)),
 					),
-			);
-			store.set(sessionPreviewAtom, (ref) =>
-				ref !== null && (ref.cwd === cwd || removed.has(sessionKey(ref))) ? null : ref,
 			);
 			store.set(workspaceDialogAtom, (dialog) => {
 				if (dialog === null) return null;

@@ -25,7 +25,7 @@ export interface WorkspaceFilePreviewProps {
 	view?: FileReadingView | undefined;
 	onViewChange?: (view: Partial<FileReadingView>) => void;
 	viewKey?: string;
-	onOpenFile: (path: string, keepOpen?: boolean, range?: EditorSelection) => void;
+	onOpenFile: (path: string, range?: EditorSelection) => void;
 	cwd: string;
 	path: string | null;
 	refreshRevision: string;

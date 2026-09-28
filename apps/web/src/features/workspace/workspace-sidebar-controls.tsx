@@ -1,24 +1,15 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@renderer/components/ui/tooltip";
-import { Activity, ChevronDown } from "lucide-react";
+import { Activity } from "lucide-react";
 
-export function MoreSessionsButton({ count, label, onClick }: { count: number; label: string; onClick: () => void }) {
+export function MoreSessionsButton({ label, onClick }: { label: string; onClick: () => void }) {
 	return (
-		<Tooltip>
-			<TooltipTrigger
-				render={
-					<button
-						type="button"
-						onClick={onClick}
-						aria-label={label}
-						className="mt-0.5 flex h-7 w-full items-center justify-center gap-1 rounded-control text-xs tabular-nums text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
-					/>
-				}
-			>
-				<ChevronDown className="size-3.5" aria-hidden="true" />
-				<span>+{count}</span>
-			</TooltipTrigger>
-			<TooltipContent>{label}</TooltipContent>
-		</Tooltip>
+		<button
+			type="button"
+			onClick={onClick}
+			className="flex h-7 w-full items-center rounded-control px-3 text-left text-xs tabular-nums text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
+		>
+			{label}
+		</button>
 	);
 }
 

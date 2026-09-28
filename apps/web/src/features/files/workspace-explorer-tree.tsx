@@ -54,7 +54,7 @@ interface WorkspaceExplorerTreeProps {
 	onToggleDirectory: (path: string) => void;
 	onExpandDirectory: (path: string) => void;
 	onCollapseDirectory: (path: string) => void;
-	onSelectFile: (path: string, keepOpen?: boolean) => void;
+	onSelectFile: (path: string) => void;
 	onRetryDirectory: (path: string) => void;
 	onCopyPath: (path: string) => void;
 	onInsertReference: (path: string, options?: InsertFileReferenceOptions) => void;
@@ -290,9 +290,9 @@ export function WorkspaceExplorerTree({
 
 	useEffect(() => cancelDeferredFocus, [cancelDeferredFocus]);
 
-	const activateEntry = (entry: ProjectDirectoryEntry, keepOpen = false): void => {
+	const activateEntry = (entry: ProjectDirectoryEntry): void => {
 		if (entry.kind === "directory") onToggleDirectory(entry.path);
-		else if (entry.kind === "file") onSelectFile(entry.path, keepOpen);
+		else if (entry.kind === "file") onSelectFile(entry.path);
 	};
 
 	const handleEntryKeyDown = (
@@ -347,7 +347,7 @@ export function WorkspaceExplorerTree({
 		}
 		if (event.key === "Enter" || event.key === " ") {
 			event.preventDefault();
-			activateEntry(entry, event.key === "Enter");
+			activateEntry(entry);
 		}
 	};
 
@@ -383,9 +383,6 @@ export function WorkspaceExplorerTree({
 					style={{ paddingLeft: `${6 + depth * 16}px` }}
 					onFocus={() => setActivePath(entry.path)}
 					onClick={() => activateEntry(entry)}
-					onDoubleClick={() => {
-						if (entry.kind === "file") onSelectFile(entry.path, true);
-					}}
 					onKeyDown={(event) => handleEntryKeyDown(event, entry, row.parentPath)}
 					className={cn(
 						"group/tree-row flex h-7 w-full min-w-0 items-center gap-1 rounded-control pr-2 text-left text-xs outline-none transition-colors",

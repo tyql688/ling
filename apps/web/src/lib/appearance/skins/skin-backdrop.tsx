@@ -178,7 +178,7 @@ export function SkinBackdrop({
 	);
 }
 
-/** One conversation scene spans the workbench and its session tabs; reading panes own their backing. */
+/** One conversation scene spans the workbench and its title; reading panes own their backing. */
 export function ConversationBackdrop() {
 	const { layer, motion } = useContext(SkinBackdropContext);
 	return layer?.scope === "conversation" ? <SkinBackdrop layer={layer} motion={motion} tint /> : null;

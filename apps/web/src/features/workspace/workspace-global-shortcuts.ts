@@ -8,13 +8,14 @@ export function useWorkspaceGlobalShortcuts(options: {
 	enabled: boolean;
 	terminalInputListening: boolean;
 	onNewConversation: () => void;
-	closeActiveTab: () => boolean;
+	closeActiveView: () => boolean;
 	selectAdjacentTab: (direction: -1 | 1) => void;
 	toggleSidebar: () => void;
 	dismissSheet: () => void;
 	toggleExplorer: () => void;
 	toggleSidePanel: () => void;
-	setTerminalOpen: (update: boolean | ((current: boolean) => boolean)) => void;
+	toggleTerminal: () => void;
+	openTerminal: () => void;
 	createTerminal: (cwd: string) => Promise<unknown>;
 	terminalLoading: boolean;
 	showCommandError: (error: unknown) => void;
@@ -24,13 +25,14 @@ export function useWorkspaceGlobalShortcuts(options: {
 		enabled,
 		terminalInputListening,
 		onNewConversation,
-		closeActiveTab,
+		closeActiveView,
 		selectAdjacentTab,
 		toggleSidebar,
 		dismissSheet,
 		toggleExplorer,
 		toggleSidePanel,
-		setTerminalOpen,
+		toggleTerminal,
+		openTerminal,
 		createTerminal,
 		terminalLoading,
 		showCommandError,
@@ -60,18 +62,18 @@ export function useWorkspaceGlobalShortcuts(options: {
 				return;
 			}
 			if (event.key.toLowerCase() === "w" && !event.altKey && !event.shiftKey) {
-				if (closeActiveTab()) event.preventDefault();
+				if (closeActiveView()) event.preventDefault();
 				return;
 			}
 			if (event.code === "Backquote" && !event.altKey) {
 				event.preventDefault();
 				if (event.repeat || !activeSessionRef) return;
 				if (event.shiftKey) {
-					setTerminalOpen(true);
+					openTerminal();
 					if (terminalLoading) return;
 					void createTerminal(activeSessionRef.cwd).catch(showCommandError);
 				} else {
-					setTerminalOpen((current) => !current);
+					toggleTerminal();
 				}
 				return;
 			}
@@ -102,11 +104,12 @@ export function useWorkspaceGlobalShortcuts(options: {
 	}, [
 		activeSessionRef,
 		onNewConversation,
-		closeActiveTab,
+		closeActiveView,
 		selectAdjacentTab,
 		dismissSheet,
 		toggleSidebar,
-		setTerminalOpen,
+		toggleTerminal,
+		openTerminal,
 		showCommandError,
 		createTerminal,
 		terminalLoading,

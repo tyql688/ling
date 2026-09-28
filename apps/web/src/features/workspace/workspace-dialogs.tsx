@@ -141,7 +141,7 @@ function WorkspaceDialogs({
 export function WorkspaceDialogHost() {
 	const projectController = useWorkspaceField(workspaceSelectionAtom, "projectController");
 	const showCommandError = useCommandFeedback();
-	const { deleteSessionAndTab } = useWorkspaceOwner(workspaceTabsAtom);
+	const { deleteSessionAndViews } = useWorkspaceOwner(workspaceTabsAtom);
 	const dialogs = useWorkspaceDialogs();
 	const sessionActions = useWorkspaceOwner(workspaceSessionActionsAtom);
 
@@ -151,7 +151,7 @@ export function WorkspaceDialogHost() {
 	return (
 		<WorkspaceDialogs
 			controller={dialogs}
-			deleteSession={deleteSessionAndTab}
+			deleteSession={deleteSessionAndViews}
 			removeProject={removeProject}
 			removeWorktree={removeWorktree}
 			createWorktree={createWorktree}

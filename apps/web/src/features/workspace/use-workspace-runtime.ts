@@ -1,13 +1,12 @@
 import { sameSessionRef, sessionKey, toSessionRef } from "@ling/contracts/session-ref";
 import { useShellSidebar } from "@renderer/components/use-shell-sidebar";
-import { useWorkbenchPanel, type WorkbenchPanelState } from "@renderer/components/workbench/use-workbench-panel";
 import { sidebarProjectScopeAtom } from "@renderer/features/projects/state";
 import { useSessionSeen } from "@renderer/features/sessions/use-session-seen";
 import { archivedTranscriptsAtom } from "@renderer/features/sessions/archived-session-state";
 import { sidebarCollapsedAtom } from "@renderer/features/workspace/sidebar-state";
 import { useCommandFeedback } from "@renderer/hooks/use-command-feedback";
 import { useAtom, useAtomValue, useStore } from "jotai";
-import { useCallback, useEffect, useLayoutEffect, useMemo, type SetStateAction } from "react";
+import { useEffect, useLayoutEffect, useMemo } from "react";
 import type { ProjectController } from "../projects/use-projects";
 import type { SessionController } from "../sessions/use-sessions";
 import { useSessionNavigationHistory } from "./use-session-navigation-history";
@@ -26,8 +25,9 @@ import {
 	workspaceTabsAtom,
 } from "./workspace-state";
 
-import { focusedTabGroupAtom, sessionPreviewAtom, sessionTabOrderAtom } from "./tab-state";
+import { focusedTabGroupAtom } from "./tab-state";
 import { sessionWorkbenchesAtom, updateReadingWorkspaceAtom, useReadingWorkspace } from "./reading-state";
+import { useWorkbenchPanel } from "./use-workbench-panel";
 import { workspaceDialogAtom } from "./use-workspace-dialogs";
 
 export interface WorkspaceShellProps {
@@ -50,8 +50,6 @@ export function useWorkspaceRuntime({
 			store.set(workspaceDialogAtom, null);
 			store.set(sessionWorkbenchesAtom, new Map());
 			store.set(focusedTabGroupAtom, "conversation");
-			store.set(sessionPreviewAtom, null);
-			store.set(sessionTabOrderAtom, []);
 		},
 		[store],
 	);
@@ -86,12 +84,7 @@ export function useWorkspaceRuntime({
 		store.set(updateReadingWorkspaceAtom, { ref: activeSessionRef, update: (current) => ({ ...current }) });
 	}, [activeSessionKey, activeSessionRef, store]);
 	const [reading, setReading] = useReadingWorkspace(activeSessionRef);
-	const setPanel = useCallback(
-		(update: SetStateAction<WorkbenchPanelState>) =>
-			setReading((current) => ({ ...current, panel: typeof update === "function" ? update(current.panel) : update })),
-		[setReading],
-	);
-	const workbenchPanel = useWorkbenchPanel(reading.panel, setPanel);
+	const workbenchPanel = useWorkbenchPanel(reading.panel, setReading);
 
 	const workspaceModelFeedback = useWorkspaceModelFeedback(activeSessionKey);
 
@@ -114,7 +107,6 @@ export function useWorkspaceRuntime({
 
 	const workspaceTabs = useWorkspaceTabs({
 		sessionController,
-		projects,
 		showCommandError,
 	});
 

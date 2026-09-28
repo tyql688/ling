@@ -6,6 +6,11 @@ interface WorkbenchLayout {
 	hasReading: boolean;
 	hasRightColumn: boolean;
 	sideVisible: boolean;
+	readingOnLeft: boolean;
+	navigationWidth: number;
+	resizeNavigation: (width: number, persist: boolean) => void;
+	setDockedNavigationWidth: (width: number) => void;
+	contentBottomInset: number;
 	setComposerHeight: (height: number) => void;
 	toggleSidePanel: () => void;
 }

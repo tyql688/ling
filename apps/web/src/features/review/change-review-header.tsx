@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -28,6 +29,8 @@ export function ChangeReviewHeader({
 	onCopyPath,
 	onClose,
 	compact = false,
+	leading,
+	descriptionShown = true,
 }: {
 	snapshot: ChangeReviewSnapshot | null;
 	/** Renders the description line as soon as any of snapshot/recovery/error is present. */
@@ -47,6 +50,10 @@ export function ChangeReviewHeader({
 	onClose?: (() => void) | undefined;
 	/** Docked: one quiet row — the tab already carries the title. */
 	compact?: boolean | undefined;
+	/** Host controls placed before the description, such as the project and branch. */
+	leading?: ReactNode | undefined;
+	/** False when the leading controls already say what the description would. */
+	descriptionShown?: boolean | undefined;
 }) {
 	const { t } = useTranslation();
 	return (
@@ -57,9 +64,12 @@ export function ChangeReviewHeader({
 			)}
 		>
 			{!compact && <GitCompareArrows className="size-4 shrink-0 text-text-muted" aria-hidden="true" />}
+			{leading}
 			<div aria-hidden="true" className="change-review-heading min-w-0 flex-1">
 				{!compact && <div className="truncate text-xs font-medium text-text-primary">{t("changes.reviewTitle")}</div>}
-				{secondaryDescription && <div className="truncate text-xs text-text-muted">{description}</div>}
+				{secondaryDescription && descriptionShown && (
+					<div className="truncate text-xs text-text-muted">{description}</div>
+				)}
 			</div>
 			<div className="change-review-actions flex shrink-0 items-center gap-2">
 				{snapshot?.isRepository !== false && showWriteActions && (

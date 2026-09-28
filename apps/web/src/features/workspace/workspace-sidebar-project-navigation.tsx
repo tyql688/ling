@@ -8,17 +8,21 @@ import {
 	DropdownMenuTrigger,
 } from "@renderer/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@renderer/components/ui/tooltip";
+import { TooltipIconButton } from "@renderer/components/ui/tooltip-icon-button";
 import { ProjectDiagnosticList } from "@renderer/features/projects/project-hover-card";
+import { cn } from "@renderer/lib/utils";
 import {
 	AlertTriangle,
 	Check,
 	ChevronDown,
 	ChevronRight,
+	Ellipsis,
 	Folder,
 	FolderPlus,
 	Folders,
 	GitBranch,
 	Pin,
+	Plus,
 } from "lucide-react";
 import { type ReactElement, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,6 +40,12 @@ type ProjectHoverCardRenderer = (
 	entry: WorkspaceSidebarProject,
 	trigger: ReactElement,
 	disabled?: boolean,
+) => ReactElement;
+
+type ProjectActionsMenuRenderer = (
+	entry: WorkspaceSidebarProject,
+	trigger: ReactElement,
+	onOpenChange: (open: boolean) => void,
 ) => ReactElement;
 
 function visibleSessionsIncludingSelection(
@@ -153,6 +163,8 @@ interface WorkspaceProjectSessionsProps {
 	activeSessionRef: SessionRef | null;
 	activityCountByCwd: ReadonlyMap<string, number>;
 	renderProjectHoverCard: ProjectHoverCardRenderer;
+	renderProjectActionsMenu: ProjectActionsMenuRenderer;
+	onNewSession: (cwd: string) => void;
 	renderSession: (session: SessionSummary) => ReactElement;
 }
 
@@ -163,9 +175,13 @@ export function WorkspaceProjectSessions({
 	activeSessionRef,
 	activityCountByCwd,
 	renderProjectHoverCard,
+	renderProjectActionsMenu,
+	onNewSession,
 	renderSession,
 }: WorkspaceProjectSessionsProps) {
 	const { t } = useTranslation();
+	/** The project whose actions menu is open keeps its header actions visible and its hover card closed. */
+	const [menuProjectCwd, setMenuProjectCwd] = useState<string | null>(null);
 	const [projectExpandedOverrides, setProjectExpandedOverrides] = useState<Record<string, boolean>>({});
 	const [visibleCountsByCwd, setVisibleCountsByCwd] = useState<Record<string, number>>({});
 	const activeSessionsByCwd = useMemo(() => {
@@ -198,7 +214,6 @@ export function WorkspaceProjectSessions({
 				{visible.map(renderSession)}
 				{hidden > 0 && (
 					<MoreSessionsButton
-						count={hidden}
 						label={t("sidebar.showMore", { count: hidden })}
 						onClick={() => showMore(scopedProject.project.cwd, SCOPED_INITIAL_COUNT)}
 					/>
@@ -211,7 +226,7 @@ export function WorkspaceProjectSessions({
 		.map((entry) => ({ entry, sessions: activeSessionsByCwd.get(entry.project.cwd) ?? [] }))
 		.filter((group) => group.sessions.length > 0);
 	return (
-		<div className="flex flex-col gap-1">
+		<div className="flex flex-col gap-1.5">
 			{groups.map(({ entry, sessions }, index) => {
 				const override = projectExpandedOverrides[entry.project.cwd];
 				const defaultExpanded = entry.pinned || activeSessionRef?.cwd === entry.project.cwd || index < 2;
@@ -227,46 +242,94 @@ export function WorkspaceProjectSessions({
 						[entry.project.cwd]: !expanded,
 					}));
 				};
+				const cwd = entry.project.cwd;
+				const menuOpen = menuProjectCwd === cwd;
 				const trigger = (
-					<button
-						type="button"
-						onClick={toggleExpanded}
-						aria-expanded={expanded}
-						className="flex h-8 w-full min-w-0 items-center gap-2 rounded-control px-2 text-left text-xs font-medium text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
-					>
-						<ProjectIcon className="size-3.5 shrink-0" aria-hidden="true" />
-						<span className="min-w-0 flex-1 truncate">{entry.project.name}</span>
-						{entry.project.availability === "missing" && (
-							<span className="shrink-0 text-warning">{t("project.directoryMissing")}</span>
-						)}
-						{entry.pinned && (
-							<>
-								<Pin className="size-3 shrink-0 fill-current" aria-hidden="true" />
-								<span className="sr-only">{t("sidebar.pinned")}</span>
-							</>
-						)}
-						<ProjectActivityCount
-							count={activityCount}
-							label={t("sidebar.projectActivityCount", { count: activityCount })}
-						/>
-						{expanded ? (
-							<ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
-						) : (
-							<ChevronRight className="size-3.5 shrink-0" aria-hidden="true" />
-						)}
-					</button>
+					<div className="group/project relative">
+						<button
+							type="button"
+							onClick={toggleExpanded}
+							aria-expanded={expanded}
+							className={cn(
+								"flex h-8 w-full min-w-0 items-center gap-1.5 rounded-control pr-2 pl-1.5 text-left text-ui font-medium text-text-primary transition-colors hover:bg-surface-hover focus-visible:bg-surface-hover group-hover/project:pr-15 group-has-[:focus-visible]/project:pr-15",
+								menuOpen && "bg-surface-hover pr-15",
+							)}
+						>
+							<ChevronRight
+								className={cn(
+									"size-3 shrink-0 text-text-muted transition-transform motion-reduce:transition-none",
+									expanded && "rotate-90",
+								)}
+								aria-hidden="true"
+							/>
+							<ProjectIcon className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />
+							<span className="min-w-0 flex-1 truncate">{entry.project.name}</span>
+							{entry.project.availability === "missing" && (
+								<span className="shrink-0 text-xs font-normal text-warning">{t("project.directoryMissing")}</span>
+							)}
+							{entry.pinned && (
+								<>
+									<Pin className="size-3 shrink-0 fill-current text-text-muted" aria-hidden="true" />
+									<span className="sr-only">{t("sidebar.pinned")}</span>
+								</>
+							)}
+							{/* Hover actions take this slot; sr-only keeps the count in the button's accessible name. */}
+							<span
+								className={cn(
+									"flex shrink-0 items-center font-normal group-hover/project:sr-only group-has-[:focus-visible]/project:sr-only",
+									menuOpen && "sr-only",
+								)}
+							>
+								{activityCount > 0 ? (
+									<ProjectActivityCount
+										count={activityCount}
+										label={t("sidebar.projectActivityCount", { count: activityCount })}
+									/>
+								) : (
+									<>
+										<span aria-hidden="true" className="text-xs tabular-nums text-text-muted">
+											{sessions.length}
+										</span>
+										<span className="sr-only">{t("sidebar.projectSessionCount", { count: sessions.length })}</span>
+									</>
+								)}
+							</span>
+						</button>
+						<div
+							className={cn(
+								"pointer-events-none absolute top-1/2 right-1 flex -translate-y-1/2 items-center opacity-0 transition-opacity group-hover/project:pointer-events-auto group-hover/project:opacity-100 group-has-[:focus-visible]/project:pointer-events-auto group-has-[:focus-visible]/project:opacity-100 motion-reduce:transition-none",
+								menuOpen && "pointer-events-auto opacity-100",
+							)}
+						>
+							{entry.projectOpen && (
+								<TooltipIconButton label={t("session.new")} onClick={() => onNewSession(cwd)} className="size-6">
+									<Plus className="size-3.5" aria-hidden="true" />
+								</TooltipIconButton>
+							)}
+							{renderProjectActionsMenu(
+								entry,
+								<button
+									type="button"
+									aria-label={t("project.moreActions")}
+									className="flex size-6 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
+								>
+									<Ellipsis className="size-3.5" aria-hidden="true" />
+								</button>,
+								(open) => setMenuProjectCwd((current) => (open ? cwd : current === cwd ? null : current)),
+							)}
+						</div>
+					</div>
 				);
 				return (
-					<section key={entry.project.cwd} aria-label={entry.project.name}>
-						{renderProjectHoverCard(entry, trigger)}
+					<section key={cwd} aria-label={entry.project.name}>
+						{renderProjectHoverCard(entry, trigger, menuOpen)}
 						{expanded && (
-							<div className="flex flex-col gap-px">
+							<div className="flex flex-col gap-px pl-5">
 								{visible.map(renderSession)}
 								{hidden > 0 && (
 									<MoreSessionsButton
-										count={hidden}
 										label={t("sidebar.showMore", { count: hidden })}
-										onClick={() => showMore(entry.project.cwd, GROUP_INITIAL_COUNT)}
+										onClick={() => showMore(cwd, GROUP_INITIAL_COUNT)}
 									/>
 								)}
 							</div>

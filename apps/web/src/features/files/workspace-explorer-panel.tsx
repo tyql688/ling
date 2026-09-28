@@ -37,7 +37,7 @@ export function WorkspaceExplorerPanel({
 	onFocusFileHandled(): void;
 	onInsertReference(path: string, options?: InsertFileReferenceOptions): void;
 	onRefreshWorkspace(): void;
-	onOpenFile(path: string, keepOpen?: boolean): void;
+	onOpenFile(path: string): void;
 	navigation: WorkspaceExplorerNavigation;
 	onNavigationChange: Dispatch<SetStateAction<WorkspaceExplorerNavigation>>;
 }) {
@@ -62,9 +62,9 @@ export function WorkspaceExplorerPanel({
 		refresh();
 	}, [open, refresh, treeRefreshRevision]);
 	const selectFile = useCallback(
-		(path: string, keepOpen = false) => {
+		(path: string) => {
 			onNavigationChange((current) => ({ ...current, selectedPath: path }));
-			onOpenFile(path, keepOpen);
+			onOpenFile(path);
 		},
 		[onNavigationChange, onOpenFile],
 	);

@@ -1,73 +1,44 @@
-import { Dialog, DialogContent, DialogTitle } from "@renderer/components/ui/dialog";
+import { WorkbenchDivider } from "./workbench-divider";
+import { TooltipIconButton } from "@renderer/components/ui/tooltip-icon-button";
+import { ArrowLeftRight } from "lucide-react";
 import { ConversationBackdrop } from "@renderer/lib/appearance/skins/skin-backdrop";
+import { dragRegionClassName } from "@renderer/lib/platform";
 import {
 	readJsonPreference,
 	RENDERER_PREFERENCE_KEYS,
 	writeRendererPreference,
 } from "@renderer/lib/preferences/renderer-preferences";
 import { cn } from "@renderer/lib/utils";
-import { AnimatePresence, motion, useIsPresent } from "motion/react";
+import { motion } from "motion/react";
 import { useReducedMotion } from "@renderer/hooks/use-reduced-motion";
-import {
-	useCallback,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-	useState,
-	type ReactNode,
-	type PointerEvent,
-	type KeyboardEvent,
-} from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { WorkbenchLayoutContext } from "./workbench-layout-context";
+import {
+	DEFAULT_GEOMETRY,
+	MIN_CONVERSATION_WIDTH,
+	parseWorkbenchGeometry,
+	rightColumnWidth,
+	type WorkbenchGeometry,
+	withRightWidth,
+} from "./workbench-geometry";
 import { useCommandFeedback } from "@renderer/hooks/use-command-feedback";
 
-interface WorkbenchGeometry {
-	version: 1;
-	conversation: number;
-	sidebar: number;
-}
-// These are preferred pixel sizes. Viewport constraints never overwrite the stored preference.
-const DEFAULT_GEOMETRY: WorkbenchGeometry = { version: 1, conversation: 400, sidebar: 280 };
-const MAX_CONVERSATION_WIDTH = 1600;
 function readGeometry(): WorkbenchGeometry {
-	return readJsonPreference(RENDERER_PREFERENCE_KEYS.workbenchGeometry, DEFAULT_GEOMETRY, (value) => {
-		if (
-			typeof value !== "object" ||
-			value === null ||
-			!("version" in value) ||
-			value.version !== 1 ||
-			!("conversation" in value) ||
-			!("sidebar" in value)
-		)
-			return null;
-		return typeof value.conversation === "number" &&
-			Number.isFinite(value.conversation) &&
-			value.conversation >= 300 &&
-			value.conversation <= MAX_CONVERSATION_WIDTH &&
-			typeof value.sidebar === "number" &&
-			Number.isFinite(value.sidebar) &&
-			value.sidebar >= 240 &&
-			value.sidebar <= 600
-			? (value as WorkbenchGeometry)
-			: null;
-	}).value;
+	return readJsonPreference(RENDERER_PREFERENCE_KEYS.workbenchGeometry, DEFAULT_GEOMETRY, parseWorkbenchGeometry).value;
 }
 
 interface WorkbenchSlotHostProps {
-	/** The window's single top-level chrome row: conversation tabs and window-level controls. */
+	/** Current conversation title and controls. */
 	chrome: ReactNode;
-	/** The reading column's own tab strip, nested one level under the chrome row. */
+	/** Reading tabs align with the conversation title when both columns fit. */
 	readingHeader?: ReactNode;
 	top: ReactNode;
 	main: ReactNode;
 	reading?: ReactNode;
-	bottom: (content: ReactNode) => ReactNode;
-	side: ReactNode;
 	overlay: ReactNode;
 	expanded?: boolean;
-	terminalHeight?: number;
 	rightOpen: boolean;
 	onSideClose(): void;
 	onSideToggle(): void;
@@ -83,11 +54,8 @@ export function WorkbenchSlotHost({
 	top,
 	main,
 	reading = null,
-	bottom,
-	side,
 	overlay,
 	expanded = false,
-	terminalHeight = 0,
 	rightOpen,
 	onSideClose,
 	onSideToggle,
@@ -102,9 +70,9 @@ export function WorkbenchSlotHost({
 	const [size, setSize] = useState({ width: 0, height: 0 });
 	const [geometry, setGeometry] = useState(readGeometry);
 	const reducedMotion = useReducedMotion();
-	const [compactSideOpen, setCompactSideOpen] = useState(false);
 	const [dragging, setDragging] = useState(false);
 	const [composerHeight, setComposerHeight] = useState(0);
+	const [dockedSideWidth, setDockedNavigationWidth] = useState(0);
 	useLayoutEffect(() => {
 		const root = rootRef.current;
 		if (!root) return;
@@ -126,15 +94,31 @@ export function WorkbenchSlotHost({
 	// not a mutation of the user's saved reading expansion or preferred column widths.
 	const compact = size.width > 0 && size.width < 760;
 	const floating = hasReading && (expanded || compact);
-	const sidebarWidth = Math.min(geometry.sidebar, Math.max(240, size.width - 80));
-	const conversationWidth = Math.min(geometry.conversation, Math.max(300, size.width - 620));
-	const readingWidth = hasReading ? size.width - (floating ? 0 : conversationWidth) : sidebarWidth;
-	const dockSide = hasReading ? !compact && readingWidth >= 620 : size.width >= 680;
-	const sideOpen = rightOpen && side !== null;
-	const dockedSideWidth =
-		sideOpen && dockSide ? Math.min(sidebarWidth, hasReading ? readingWidth - 340 : sidebarWidth) : 0;
-	const hasRightColumn = hasReading || (sideOpen && dockSide);
+	const conversationWidth = size.width - rightColumnWidth(geometry, size.width, size.height);
+	const hasRightColumn = hasReading;
 	const floatingWidth = Math.min(760, Math.max(0, size.width - dockedSideWidth - 40));
+	// Only a narrow window moves the tabs below the titlebar.
+	const splitChrome = hasReading && !compact;
+	const expandedChrome = splitChrome && floating;
+	const readingOnLeft = geometry.readingOnLeft && splitChrome;
+	const conversationColumn = readingOnLeft ? 2 : 1;
+	const readingColumn = readingOnLeft ? 1 : 2;
+	const dividerLeft = readingOnLeft ? size.width - conversationWidth : conversationWidth;
+	const chromeColumns = !splitChrome
+		? "minmax(0, 1fr)"
+		: expandedChrome
+			? readingOnLeft
+				? "minmax(0, 1fr) max-content"
+				: "max-content minmax(0, 1fr)"
+			: readingOnLeft
+				? `minmax(0, 1fr) ${conversationWidth}px`
+				: `${conversationWidth}px minmax(0, 1fr)`;
+	const columns =
+		!hasRightColumn || floating
+			? "minmax(0, 1fr)"
+			: readingOnLeft
+				? `minmax(0, 1fr) ${conversationWidth}px`
+				: `${conversationWidth}px minmax(0, 1fr)`;
 
 	const sideVisible = rightOpen;
 	const focusSideTrigger = useCallback(() => {
@@ -145,8 +129,7 @@ export function WorkbenchSlotHost({
 	}, []);
 	const previousSideOpen = useRef(rightOpen);
 	useLayoutEffect(() => {
-		if (dockSide || !rightOpen) setCompactSideOpen(false);
-		else if (!previousSideOpen.current) setCompactSideOpen(true);
+		// Closing the right column must not leave keyboard focus inside hidden content.
 		if (
 			!rightOpen &&
 			previousSideOpen.current &&
@@ -154,48 +137,102 @@ export function WorkbenchSlotHost({
 		)
 			focusSideTrigger();
 		previousSideOpen.current = rightOpen;
-	}, [rightOpen, dockSide, focusSideTrigger]);
+	}, [rightOpen, focusSideTrigger]);
 	const toggleSidePanel = useCallback(() => {
 		if (rightOpen) onSideClose();
-		else {
-			if (!dockSide) setCompactSideOpen(true);
-			onSideToggle();
-		}
-	}, [onSideClose, onSideToggle, rightOpen, dockSide]);
+		else onSideToggle();
+	}, [onSideClose, onSideToggle, rightOpen]);
+	const transition = { duration: reducedMotion || dragging ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] as const };
+	const commit = useCallback(
+		(next: WorkbenchGeometry) => {
+			setGeometry(next);
+			try {
+				writeRendererPreference(RENDERER_PREFERENCE_KEYS.workbenchGeometry, JSON.stringify(next));
+			} catch (error) {
+				onError(error);
+			}
+		},
+		[onError],
+	);
+	const resizeNavigation = useCallback(
+		(width: number, persist: boolean) => {
+			const next = { ...geometry, sidebar: Math.round(width) };
+			if (persist) commit(next);
+			else setGeometry(next);
+		},
+		[commit, geometry],
+	);
 	const layout = useMemo(
-		() => ({ floating, compact, hasReading, hasRightColumn, sideVisible, toggleSidePanel, setComposerHeight }),
-		[floating, compact, hasReading, hasRightColumn, sideVisible, toggleSidePanel],
+		() => ({
+			floating,
+			compact,
+			hasReading,
+			hasRightColumn,
+			sideVisible,
+			readingOnLeft,
+			navigationWidth: geometry.sidebar,
+			resizeNavigation,
+			setDockedNavigationWidth,
+			contentBottomInset: floating ? composerHeight + 52 : 0,
+			toggleSidePanel,
+			setComposerHeight,
+		}),
+		[
+			floating,
+			compact,
+			hasReading,
+			hasRightColumn,
+			sideVisible,
+			readingOnLeft,
+			geometry.sidebar,
+			resizeNavigation,
+			composerHeight,
+			toggleSidePanel,
+		],
 	);
 
-	const transition = { duration: reducedMotion || dragging ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] as const };
-	const commit = (field: "conversation" | "sidebar", value: number) => {
-		const next = { ...geometry, [field]: Math.round(value) };
-		setGeometry(next);
-		try {
-			writeRendererPreference(RENDERER_PREFERENCE_KEYS.workbenchGeometry, JSON.stringify(next));
-		} catch (error) {
-			onError(error);
-		}
-	};
 	return (
 		<WorkbenchLayoutContext.Provider value={layout}>
 			{shortcuts}
-			<div ref={shellRef} className="conversation-scene relative flex min-h-0 min-w-0 flex-1 flex-col">
+			<div
+				ref={shellRef}
+				data-reading-on-left={readingOnLeft || undefined}
+				className="conversation-scene relative flex min-h-0 min-w-0 flex-1 flex-col"
+			>
 				<ConversationBackdrop />
-				<div className="shrink-0">{chrome}</div>
+				<div
+					className={cn(
+						"relative z-30 grid shrink-0",
+						dragRegionClassName,
+						expandedChrome && "skin-surface bg-workbench-surface",
+					)}
+					style={{ gridTemplateColumns: chromeColumns }}
+				>
+					<div
+						className="min-w-0"
+						style={{ gridColumn: conversationColumn, gridRow: 1 }}
+						onFocusCapture={onConversationFocus}
+						onPointerDownCapture={onConversationFocus}
+					>
+						{chrome}
+					</div>
+					{splitChrome && (
+						<div
+							className={cn("min-w-0", !expandedChrome && "skin-surface workbench-reading-seam bg-workbench-surface")}
+							style={{ gridColumn: readingColumn, gridRow: 1 }}
+							onFocusCapture={onReadingFocus}
+							onPointerDownCapture={onReadingFocus}
+						>
+							{readingHeader}
+						</div>
+					)}
+				</div>
 				<div
 					ref={rootRef}
 					data-workbench-slot-host=""
 					data-reading-expanded={floating || undefined}
 					className="relative grid min-h-0 min-w-0 flex-1 overflow-hidden"
-					style={{
-						gridTemplateColumns:
-							!hasRightColumn || floating
-								? "minmax(0, 1fr)"
-								: hasReading
-									? `${conversationWidth}px minmax(0, 1fr)`
-									: `minmax(0, 1fr) ${dockedSideWidth}px`,
-					}}
+					style={{ gridTemplateColumns: columns }}
 				>
 					<motion.section
 						data-workspace-conversation=""
@@ -206,7 +243,7 @@ export function WorkbenchSlotHost({
 						onPointerDownCapture={onConversationFocus}
 						className={cn(
 							"flex min-h-0 min-w-0 flex-col",
-							floating ? "pointer-events-none absolute z-30" : "relative col-start-1 overflow-hidden",
+							floating ? "pointer-events-none absolute z-30" : "relative overflow-hidden",
 						)}
 						style={
 							floating
@@ -216,28 +253,37 @@ export function WorkbenchSlotHost({
 										bottom: 16,
 										height: Math.max(160, Math.min(620, size.height - 76)),
 									}
-								: {}
+								: { gridColumn: conversationColumn, gridRow: 1 }
 						}
 					>
-						{bottom(
-							<div className={cn("flex min-h-0 flex-1 flex-col", floating && "workbench-floating-conversation")}>
-								{top}
-								{main}
-							</div>,
-						)}
+						<div className={cn("flex min-h-0 flex-1 flex-col", floating && "workbench-floating-conversation")}>
+							{top}
+							{main}
+						</div>
 					</motion.section>
 					{hasReading && !floating && (
-						<WorkbenchDivider
-							label={t("reading.resizeConversation")}
-							value={conversationWidth}
-							min={300}
-							max={Math.min(MAX_CONVERSATION_WIDTH, Math.max(300, size.width - 620))}
-							onChange={(value) => setGeometry((current) => ({ ...current, conversation: value }))}
-							onCommit={(value) => commit("conversation", value)}
-							onDragging={setDragging}
-							onReset={() => commit("conversation", DEFAULT_GEOMETRY.conversation)}
-							style={{ left: conversationWidth }}
-						/>
+						<>
+							<WorkbenchDivider
+								label={t("reading.resizeConversation")}
+								direction={readingOnLeft ? -1 : 1}
+								value={conversationWidth}
+								min={MIN_CONVERSATION_WIDTH}
+								max={Math.max(MIN_CONVERSATION_WIDTH, size.width - 320)}
+								onChange={(value) => setGeometry((current) => withRightWidth(current, size.width - value, size.width))}
+								onCommit={(value) => commit(withRightWidth(geometry, size.width - value, size.width))}
+								onDragging={setDragging}
+								onReset={() => commit({ ...geometry, rightRatio: null, legacyConversation: null })}
+								style={{ left: dividerLeft }}
+							/>
+							<TooltipIconButton
+								label={t("reading.swapPanes")}
+								onClick={() => commit({ ...geometry, readingOnLeft: !geometry.readingOnLeft })}
+								className="absolute top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 border border-border-subtle bg-surface-raised shadow-(--shadow-control)"
+								style={{ left: dividerLeft }}
+							>
+								<ArrowLeftRight className="size-3.5" aria-hidden="true" />
+							</TooltipIconButton>
+						</>
 					)}
 					<section
 						data-workspace-reading=""
@@ -245,170 +291,21 @@ export function WorkbenchSlotHost({
 						onFocusCapture={onReadingFocus}
 						onPointerDownCapture={onReadingFocus}
 						inert={!hasRightColumn ? true : undefined}
+						// Translucent skins stack alpha, so the column paints no fill of its own: the header,
+						// the content and the docked tree each paint exactly one material layer.
 						className={cn(
-							"skin-surface flex min-h-0 min-w-0 flex-col overflow-hidden bg-workbench-surface",
+							"skin-surface flex min-h-0 min-w-0 flex-col overflow-hidden",
+							!floating && "workbench-reading-seam",
 							!hasRightColumn && "hidden",
-							hasRightColumn && !floating && "workbench-reading-seam",
 						)}
-						style={{ gridColumn: floating || !hasRightColumn ? 1 : 2, gridRow: 1 }}
+						style={{ gridColumn: floating || !hasRightColumn ? 1 : readingColumn, gridRow: 1 }}
 					>
-						{readingHeader}
-						<div className="relative flex min-h-0 min-w-0 flex-1">
-							<div
-								className={cn("flex min-h-0 min-w-0 flex-1 flex-col", !hasReading && "hidden")}
-								style={{ marginRight: dockedSideWidth }}
-							>
-								<div
-									className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-workbench-surface"
-									style={{ paddingBottom: floating ? composerHeight + terminalHeight + 52 : 0 }}
-								>
-									{reading}
-								</div>
-							</div>
-							{dockedSideWidth > 0 && hasReading && (
-								<WorkbenchDivider
-									label={t("nav.resizeSidePanel")}
-									value={dockedSideWidth}
-									min={240}
-									max={Math.min(600, readingWidth - 340)}
-									direction={-1}
-									onChange={(value) => setGeometry((current) => ({ ...current, sidebar: value }))}
-									onCommit={(value) => commit("sidebar", value)}
-									onDragging={setDragging}
-									onReset={() => commit("sidebar", DEFAULT_GEOMETRY.sidebar)}
-									style={{ right: dockedSideWidth }}
-								/>
-							)}
-							<AnimatePresence initial={false}>
-								{sideOpen && dockSide && (
-									<SidebarPresence
-										key="sidebar"
-										initial={{ x: 24, opacity: 0 }}
-										animate={{ x: 0, opacity: 1 }}
-										exit={{ x: 24, opacity: 0 }}
-										transition={transition}
-										className="absolute inset-y-0 right-0 flex min-h-0 border-l border-border-subtle"
-										style={{ width: dockedSideWidth }}
-										data-workspace-context-sidebar=""
-									>
-										{side}
-									</SidebarPresence>
-								)}
-							</AnimatePresence>
-						</div>
+						{!splitChrome && hasReading && <div className="shrink-0 bg-workbench-surface">{readingHeader}</div>}
+						{reading}
 					</section>
-					{sideOpen && !dockSide && compactSideOpen && (
-						<Dialog
-							open
-							onOpenChange={(open) => {
-								if (!open) onSideClose();
-							}}
-						>
-							<DialogContent
-								variant="workspace-right-sheet"
-								portalled={false}
-								overlayClassName="absolute"
-								className="flex flex-col overflow-hidden p-0"
-								onCloseAutoFocus={(event) => {
-									event.preventDefault();
-									focusSideTrigger();
-								}}
-							>
-								<DialogTitle className="sr-only">{t("nav.sidePanel")}</DialogTitle>
-								{side}
-							</DialogContent>
-						</Dialog>
-					)}
 					{overlay}
 				</div>
 			</div>
 		</WorkbenchLayoutContext.Provider>
 	);
-}
-
-function WorkbenchDivider({
-	label,
-	value,
-	min,
-	max,
-	direction = 1,
-	onChange,
-	onCommit,
-	onDragging,
-	onReset,
-	style,
-}: {
-	label: string;
-	value: number;
-	min: number;
-	max: number;
-	direction?: number;
-	onChange(value: number): void;
-	onCommit(value: number): void;
-	onDragging(value: boolean): void;
-	onReset(): void;
-	style: React.CSSProperties;
-}) {
-	const drag = useRef<{ start: number; value: number; next: number } | null>(null);
-	const bound = (size: number) => Math.max(min, Math.min(max, size));
-	const end = (event: PointerEvent<HTMLDivElement>) => {
-		if (!drag.current) return;
-		const next = drag.current.next;
-		drag.current = null;
-		onDragging(false);
-		if (event.currentTarget.hasPointerCapture(event.pointerId))
-			event.currentTarget.releasePointerCapture(event.pointerId);
-		onCommit(next);
-	};
-	const keys = (event: KeyboardEvent<HTMLDivElement>) => {
-		const delta = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
-		if (!delta && event.key !== "Home" && event.key !== "End") return;
-		event.preventDefault();
-		onCommit(
-			event.key === "Home"
-				? min
-				: event.key === "End"
-					? max
-					: bound(value + delta * direction * (event.shiftKey ? 40 : 10)),
-		);
-	};
-	/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- A focusable ARIA window splitter supports pointer, arrow, Home and End resizing. */
-	return (
-		<div
-			role="separator"
-			aria-label={label}
-			aria-orientation="vertical"
-			aria-valuenow={Math.round(value)}
-			aria-valuemin={min}
-			aria-valuemax={Math.round(max)}
-			tabIndex={0}
-			className="workbench-column-divider absolute inset-y-0 z-40 w-px cursor-col-resize outline-none"
-			style={style}
-			onKeyDown={keys}
-			onDoubleClick={onReset}
-			onPointerDown={(event) => {
-				if (event.button !== 0) return;
-				event.preventDefault();
-				drag.current = { start: event.clientX, value, next: value };
-				event.currentTarget.setPointerCapture(event.pointerId);
-				onDragging(true);
-			}}
-			onPointerMove={(event) => {
-				if (!drag.current) return;
-				const next = bound(drag.current.value + (event.clientX - drag.current.start) * direction);
-				drag.current.next = next;
-				onChange(next);
-			}}
-			onPointerUp={end}
-			onPointerCancel={end}
-			onLostPointerCapture={end}
-		/>
-	);
-}
-/* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
-
-/** Exit paint must not retain interactive descendants after the sidebar closes. */
-function SidebarPresence(props: React.ComponentProps<typeof motion.div>) {
-	const present = useIsPresent();
-	return <motion.div {...props} inert={!present} aria-hidden={!present} />;
 }

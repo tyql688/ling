@@ -17,7 +17,7 @@ export interface SessionMenuHandlers {
 }
 
 /**
- * The one session menu. The sidebar row and tab strip render
+ * The one session menu. The sidebar row and conversation title render
  * these same groups so a session never offers different actions depending on where
  * it was clicked. Groups: state · session operations · path & id · put away.
  */

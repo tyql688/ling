@@ -319,24 +319,6 @@
 		grid-column: 1 / -1;
 		justify-self: end;
 	}
-
-	.change-review-layout {
-		display: block;
-	}
-
-	.change-review-files,
-	.change-review-detail {
-		height: 100%;
-	}
-
-	.change-review-layout[data-mobile-pane="files"] .change-review-detail,
-	.change-review-layout[data-mobile-pane="detail"] .change-review-files {
-		display: none;
-	}
-
-	.change-review-back {
-		display: inline-flex;
-	}
 }
 
 /* Project files share the workbench dialog shell but own a denser master/detail boundary.
@@ -547,6 +529,12 @@
 	box-shadow:
 		inset 1px 0 color-mix(in srgb, var(--color-text-primary) 4%, transparent),
 		inset 7px 0 14px -11px color-mix(in srgb, var(--color-text-primary) 22%, transparent);
+}
+
+[data-reading-on-left] .workbench-reading-seam {
+	box-shadow:
+		inset -1px 0 color-mix(in srgb, var(--color-text-primary) 4%, transparent),
+		inset -7px 0 14px -11px color-mix(in srgb, var(--color-text-primary) 22%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

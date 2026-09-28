@@ -8,7 +8,7 @@ import {
 	ContextMenuTrigger,
 } from "@renderer/components/ui/context-menu";
 import { StatusGlyph } from "@renderer/components/ui/status-glyph";
-import { STATUS_PRESENTATION, type StatusMeaning } from "@renderer/components/ui/status-presentation";
+import type { StatusMeaning } from "@renderer/components/ui/status-presentation";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@renderer/components/ui/tooltip";
 import { TooltipIconButton } from "@renderer/components/ui/tooltip-icon-button";
 import type { WorkspaceSessionStatus, WorkspaceSessionStatusEntry } from "@renderer/features/sessions/session-status";
@@ -16,12 +16,11 @@ import { useBoundedTextInput } from "@renderer/hooks/use-bounded-text-input";
 import { useImeGuard } from "@renderer/hooks/use-ime-guard";
 import { formatAbsoluteTime, relativeTime } from "@renderer/lib/relative-time";
 import { cn } from "@renderer/lib/utils";
-import { AlertCircle, Archive, Folder, ListPlus, Pin, Undo2 } from "lucide-react";
+import { AlertCircle, Archive, ListPlus, Pin, Undo2 } from "lucide-react";
 import { motion } from "motion/react";
 import {
 	type KeyboardEvent as ReactKeyboardEvent,
 	type MouseEvent as ReactMouseEvent,
-	type ReactNode,
 	useEffect,
 	useRef,
 	useState,
@@ -41,7 +40,6 @@ interface SessionListItemProps {
 	status: WorkspaceSessionStatusEntry;
 	now: number;
 	onSelect: () => void;
-	onKeepOpen: () => void;
 	onRename: (title: string) => void;
 	onFork: () => void;
 	onPin: (pinned: boolean) => void;
@@ -52,49 +50,13 @@ interface SessionListItemProps {
 	onCompact?: (() => void) | undefined;
 }
 
-function statusPresentation(
-	status: WorkspaceSessionStatus,
-	t: ReturnType<typeof useTranslation>["t"],
-): { label: string; className: string; icon: ReactNode } | null {
-	const label = sessionStatusLabelKey(status);
-	if (label === null) return null;
-	const meanings: Record<WorkspaceSessionStatus, StatusMeaning> = {
-		approval: "attention",
-		input: "attention",
-		working: "active",
-		failed: "error",
-		done: "success",
-		ready: "neutral",
-	};
-	const meaning = meanings[status];
-	return { label: t(label), className: STATUS_PRESENTATION[meaning].className, icon: <StatusGlyph status={meaning} /> };
-}
-
-/** The sidebar row's status glyph, shared with the session tab strip so both read the same. */
-export function SessionStatusIcon({ status }: { status: WorkspaceSessionStatus }) {
-	const { t } = useTranslation();
-	return <StatusIcon presentation={statusPresentation(status, t)} />;
-}
-
-function StatusIcon({ presentation }: { presentation: ReturnType<typeof statusPresentation> }) {
-	if (presentation === null) return null;
-	return (
-		<Tooltip>
-			<TooltipTrigger
-				render={
-					<span
-						role="img"
-						aria-label={presentation.label}
-						className={cn("inline-flex size-5 shrink-0 items-center justify-center", presentation.className)}
-					/>
-				}
-			>
-				{presentation.icon}
-			</TooltipTrigger>
-			<TooltipContent>{presentation.label}</TooltipContent>
-		</Tooltip>
-	);
-}
+/** Statuses shown in the row's trailing slot; unread ("done") is the leading dot instead. */
+const TRAILING_STATUS_MEANINGS: Partial<Record<WorkspaceSessionStatus, StatusMeaning>> = {
+	approval: "attention",
+	input: "attention",
+	working: "active",
+	failed: "error",
+};
 
 export function SessionListItem({
 	session,
@@ -105,7 +67,6 @@ export function SessionListItem({
 	status,
 	now,
 	onSelect,
-	onKeepOpen,
 	onRename,
 	onFork,
 	onPin,
@@ -116,8 +77,14 @@ export function SessionListItem({
 }: SessionListItemProps) {
 	const { t } = useTranslation();
 	const key = sessionKey(toSessionRef(session));
-	const presentation = statusPresentation(status.status, t);
 	const activityLabel = t("sidebar.lastActivityAt", { time: formatAbsoluteTime(session.updatedAt) });
+	const statusLabelKey = sessionStatusLabelKey(status.status);
+	const statusLabel = statusLabelKey === null ? null : t(statusLabelKey);
+	const statusMeaning = TRAILING_STATUS_MEANINGS[status.status];
+	const unread = status.status === "done";
+	const queuedLabel = status.queuedCount > 0 ? t("sidebar.queued", { count: status.queuedCount }) : null;
+	// One row tooltip carries status and queue text because the trailing slot yields to hover actions.
+	const rowTooltip = [statusLabel, queuedLabel, activityLabel].filter((part) => part !== null).join(" · ");
 	const [editing, setEditing] = useState(false);
 	const [editValue, setEditValueState] = useState(session.title);
 	const { limitExceeded: titleLimitExceeded, setBoundedValue: setEditValue } = useBoundedTextInput(
@@ -151,7 +118,6 @@ export function SessionListItem({
 		if (event.key !== " " && event.key !== "Enter") return;
 		event.preventDefault();
 		onSelect();
-		if (event.key === "Enter") onKeepOpen();
 	};
 
 	const archiveAction = (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -187,7 +153,7 @@ export function SessionListItem({
 				aria-invalid={titleLimitExceeded}
 				className={cn(
 					"h-4 min-w-0 flex-1 border-0 bg-transparent p-0 text-ui leading-4 text-text-primary outline-none",
-					isActive && "font-medium",
+					(isActive || unread) && "font-medium",
 				)}
 			/>
 			{titleLimitExceeded && (
@@ -201,74 +167,89 @@ export function SessionListItem({
 			)}
 		</div>
 	) : (
-		<span className={cn("min-w-0 flex-1 truncate text-ui leading-4", isActive && "font-medium")}>{session.title}</span>
+		<span className={cn("min-w-0 flex-1 truncate text-ui leading-4", (isActive || unread) && "font-medium")}>
+			{session.title}
+		</span>
 	);
 
 	const queueNode =
-		status.queuedCount > 0 ? (
-			<Tooltip>
-				<TooltipTrigger
-					render={
-						<span
-							role="status"
-							aria-label={t("sidebar.queued", { count: status.queuedCount })}
-							className="inline-flex shrink-0 items-center gap-0.5 text-xs tabular-nums text-text-muted"
-						/>
-					}
-				>
-					<ListPlus className="size-3" aria-hidden="true" />
-					{status.queuedCount}
-				</TooltipTrigger>
-				<TooltipContent>{t("sidebar.queued", { count: status.queuedCount })}</TooltipContent>
-			</Tooltip>
-		) : null;
-
-	const metaNode = (
-		<time
-			dateTime={new Date(session.updatedAt).toISOString()}
-			className="flex h-6 min-w-9 shrink-0 items-center justify-end text-xs tabular-nums text-text-primary/65 transition-opacity group-focus-within/session:opacity-0 group-hover/session:opacity-0"
-		>
+		queuedLabel === null ? null : (
+			<span
+				role="status"
+				aria-label={queuedLabel}
+				className="inline-flex shrink-0 items-center gap-0.5 tabular-nums text-text-muted"
+			>
+				<ListPlus className="size-3" aria-hidden="true" />
+				{status.queuedCount}
+			</span>
+		);
+	const statusNode =
+		statusMeaning === undefined || statusLabel === null ? null : (
+			<span role="img" aria-label={statusLabel} className="inline-flex size-4 shrink-0 items-center justify-center">
+				<StatusGlyph status={statusMeaning} />
+			</span>
+		);
+	const timeNode = (
+		<time dateTime={new Date(session.updatedAt).toISOString()} className="shrink-0 tabular-nums">
 			<span className="sr-only">{activityLabel}</span>
 			<span aria-hidden="true">{relativeTime(session.updatedAt, now)}</span>
 		</time>
 	);
-	const statusNode = <StatusIcon presentation={presentation} />;
+	const pinMark = session.pinnedAt !== undefined && (
+		<Pin className="size-3 shrink-0 text-text-muted" aria-hidden="true" />
+	);
+	const twoLine = variant === "active" && showProjectContext;
+	// Hover and keyboard focus replace the trailing slot with row actions: sr-only keeps its text in the
+	// button's accessible name, and the extra end padding keeps the title clear of the action buttons.
+	const actionReserve = editing
+		? undefined
+		: variant === "active"
+			? "group-hover/session:pr-15 group-has-[:focus-visible]/session:pr-15"
+			: "group-hover/session:pr-8 group-has-[:focus-visible]/session:pr-8";
+	const trailingNode = (
+		<span
+			className={cn(
+				"flex shrink-0 items-center gap-1.5 text-xs text-text-muted",
+				!editing && "group-hover/session:sr-only group-has-[:focus-visible]/session:sr-only",
+			)}
+		>
+			{unread && <span className="sr-only">{statusLabel}</span>}
+			{queueNode}
+			{statusNode}
+			{!twoLine && statusNode === null && timeNode}
+		</span>
+	);
 
-	const rowContent =
-		variant === "active" && showProjectContext ? (
-			<div className="flex h-[46px] min-w-0 items-center gap-1.5 px-2 py-1">
-				{presentation !== null && (
-					<span className="flex size-5 shrink-0 items-center justify-center">{statusNode}</span>
-				)}
-				<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-					<div className="flex min-w-0 items-center gap-1.5">
-						{session.pinnedAt !== undefined && <Pin className="size-3 shrink-0 text-text-muted" aria-hidden="true" />}
-						{titleNode}
-						{queueNode}
-					</div>
-					<div className="flex min-w-0 items-center gap-1 text-xs text-text-muted">
-						<Folder className="size-3 shrink-0" aria-hidden="true" />
-						<span className="min-w-0 flex-1 truncate">{projectName}</span>
-					</div>
+	const rowContent = twoLine ? (
+		<div className={cn("flex h-11 min-w-0 items-center gap-2 pr-2 pl-3", actionReserve)}>
+			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+				<div className="flex min-w-0 items-center gap-1.5">
+					{pinMark}
+					{titleNode}
 				</div>
-				{metaNode}
+				<div className="flex min-w-0 items-center text-xs text-text-muted">
+					<span className="min-w-0 truncate">{projectName}</span>
+					<span aria-hidden="true" className="shrink-0 px-1">
+						·
+					</span>
+					{timeNode}
+				</div>
 			</div>
-		) : (
-			<div className="flex h-9 min-w-0 items-center gap-1.5 px-2">
-				{presentation !== null && statusNode}
-				{session.pinnedAt !== undefined && <Pin className="size-3 shrink-0 text-text-muted" aria-hidden="true" />}
-				{titleNode}
-				{queueNode}
-				{metaNode}
-			</div>
-		);
+			{trailingNode}
+		</div>
+	) : (
+		<div className={cn("flex h-8 min-w-0 items-center gap-1.5 pr-2 pl-3", actionReserve)}>
+			{pinMark}
+			{titleNode}
+			{trailingNode}
+		</div>
+	);
 	const primaryButton = (
 		<button
 			type="button"
 			data-session-key={key}
 			aria-current={isActive ? "page" : undefined}
 			onClick={onSelect}
-			onDoubleClick={onKeepOpen}
 			onKeyDown={handlePrimaryKeyDown}
 			className="block w-full cursor-default rounded-control text-left focus-visible:bg-surface-hover"
 		>
@@ -281,7 +262,7 @@ export function SessionListItem({
 			<ContextMenuTrigger asChild>
 				<div
 					className={cn(
-						"group/session relative isolate w-full overflow-hidden rounded-control border border-transparent text-left text-text-primary transition-[background-color]",
+						"group/session relative isolate w-full overflow-hidden rounded-control text-left text-text-primary transition-[background-color]",
 						!isActive && "hover:bg-surface-hover/75",
 						variant === "archived" && !isActive && "text-text-muted",
 					)}
@@ -296,22 +277,26 @@ export function SessionListItem({
 							transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
 						/>
 					)}
+					{unread && (
+						<span
+							aria-hidden="true"
+							className="pointer-events-none absolute top-1/2 left-1 size-1.5 -translate-y-1/2 rounded-full bg-accent"
+						/>
+					)}
 					{editing ? (
 						<div className="w-full text-left">{rowContent}</div>
-					) : presentation === null && queueNode === null ? (
+					) : (
 						<Tooltip>
 							<TooltipTrigger render={primaryButton} />
-							<TooltipContent side="right">{activityLabel}</TooltipContent>
+							<TooltipContent side="right">{rowTooltip}</TooltipContent>
 						</Tooltip>
-					) : (
-						primaryButton
 					)}
 					{!editing && variant === "active" && (
 						<TooltipIconButton
 							onClick={pinAction}
 							label={t(session.pinnedAt !== undefined ? "session.ctxUnpin" : "session.ctxPin")}
 							className={cn(
-								"pointer-events-none absolute top-1/2 right-8 z-10 size-6 -translate-y-1/2 bg-transparent opacity-0 shadow-none group-focus-within/session:pointer-events-auto group-focus-within/session:opacity-100 group-hover/session:pointer-events-auto group-hover/session:opacity-100",
+								"pointer-events-none absolute top-1/2 right-8 z-10 size-6 -translate-y-1/2 bg-transparent opacity-0 shadow-none group-hover/session:pointer-events-auto group-hover/session:opacity-100 group-has-[:focus-visible]/session:pointer-events-auto group-has-[:focus-visible]/session:opacity-100",
 								session.pinnedAt !== undefined && "text-text-primary",
 							)}
 						>
@@ -326,7 +311,7 @@ export function SessionListItem({
 						<TooltipIconButton
 							onClick={archiveAction}
 							label={t(variant === "active" ? "session.ctxArchive" : "session.ctxUnarchive")}
-							className="pointer-events-none absolute top-1/2 right-1 z-10 size-6 -translate-y-1/2 bg-transparent opacity-0 shadow-none group-focus-within/session:pointer-events-auto group-focus-within/session:opacity-100 group-hover/session:pointer-events-auto group-hover/session:opacity-100"
+							className="pointer-events-none absolute top-1/2 right-1 z-10 size-6 -translate-y-1/2 bg-transparent opacity-0 shadow-none group-hover/session:pointer-events-auto group-hover/session:opacity-100 group-has-[:focus-visible]/session:pointer-events-auto group-has-[:focus-visible]/session:opacity-100"
 						>
 							{variant === "active" ? (
 								<Archive className="size-3.5" aria-hidden="true" />

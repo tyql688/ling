@@ -1,8 +1,7 @@
 import type { ChangeReviewFile } from "@ling/contracts/git";
-import { tildify } from "@renderer/lib/format-path";
 import { cn } from "@renderer/lib/utils";
 import { useTranslation } from "react-i18next";
-import { changedFileLabel } from "./changed-file-label";
+import { changedFileLabel, splitChangedPath } from "./changed-file-label";
 
 /** Git status → badge palette classes; aligned with the workspace tree/diff color tokens. */
 const STATUS_TONE: Record<ChangeReviewFile["status"], string> = {
@@ -28,14 +27,7 @@ const STATUS_SHORT: Record<ChangeReviewFile["status"], string> = {
 	clean: "✓",
 };
 
-function splitChangedPath(path: string): { directory: string; name: string } {
-	const normalized = tildify(path);
-	const separatorIndex = normalized.lastIndexOf("/");
-	if (separatorIndex === -1) return { directory: "", name: normalized };
-	return { directory: normalized.slice(0, separatorIndex), name: normalized.slice(separatorIndex + 1) };
-}
-
-function StatusBadge({ file }: { file: Pick<ChangeReviewFile, "status"> }) {
+export function StatusBadge({ file }: { file: Pick<ChangeReviewFile, "status"> }) {
 	const { t } = useTranslation();
 	return (
 		<span
@@ -54,6 +46,7 @@ export function ChangedFileRow({
 	file,
 	selected,
 	showOwner,
+	nested = false,
 	reviewed,
 	onToggleReviewed,
 	onSelect,
@@ -62,6 +55,7 @@ export function ChangedFileRow({
 	selected?: boolean;
 	/** Workspace tab only: label files that did not come from this session. */
 	showOwner?: boolean;
+	nested?: boolean;
 	reviewed: boolean;
 	onToggleReviewed: () => void;
 	onSelect: () => void;
@@ -111,18 +105,23 @@ export function ChangedFileRow({
 					<span className={cn("block truncate font-mono", reviewed ? "text-text-muted" : "text-text-primary")}>
 						{name}
 					</span>
-					{directory && <span className="block truncate font-mono text-xs text-text-muted">{directory}</span>}
+					{!nested && directory && (
+						<span className="block truncate font-mono text-xs text-text-muted">{directory}</span>
+					)}
 				</span>
 				{ownerChip && (
 					<span
+						title={t(`changes.owner.${file.owner}`)}
 						className={cn(
-							"shrink-0 rounded-full px-1.5 py-px text-xs",
+							nested ? "size-1.5 shrink-0 rounded-full" : "shrink-0 rounded-full px-1.5 py-px text-xs",
 							file.owner === "external" || file.owner === "mixed"
-								? "bg-warning/10 text-warning"
+								? nested
+									? "bg-warning"
+									: "bg-warning/10 text-warning"
 								: "bg-surface-hover text-text-muted",
 						)}
 					>
-						{t(`changes.owner.${file.owner}`)}
+						{!nested && t(`changes.owner.${file.owner}`)}
 					</span>
 				)}
 				{hasStats && (

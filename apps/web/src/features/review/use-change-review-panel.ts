@@ -15,7 +15,7 @@ import {
 
 import { isWindows } from "@renderer/lib/platform";
 
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useReducer, useRef, useState } from "react";
 
 import { useTranslation } from "react-i18next";
 
@@ -90,8 +90,10 @@ export type ChangeReviewPanelProps = {
 	onOpenChange: (open: boolean) => void;
 	onRefresh: () => void;
 	onCopyPath: (path: string) => void;
-	/** Inline in the workspace side panel (no dialog chrome). */
+	/** Inline in the workspace (no dialog chrome). */
 	docked?: boolean | undefined;
+	/** A docked host's own project and branch controls; they replace the plain branch description. */
+	headerLeading?: ReactNode | undefined;
 	/** Active main-area diff; used to highlight the navigator row. */
 	activeTarget?: ChangeReviewTarget | null | undefined;
 	/** When present, the docked panel is navigation-only and opens details in the main area. */
@@ -226,6 +228,12 @@ export function useChangeReviewPanel({
 		closePanel();
 	};
 
+	// Only the plain branch line is redundant beside a host branch control; failures and scope notes still show.
+	const branchDescription =
+		stateRecoveryError === null &&
+		error === null &&
+		snapshot?.isRepository === true &&
+		!(scope === "unpushed" && snapshot.unpushed.status === "ready");
 	const panelDescription = stateRecoveryError
 		? t("changes.stateReadErrorTitle")
 		: (error ??
@@ -241,6 +249,7 @@ export function useChangeReviewPanel({
 				: t("changes.loading")));
 	return {
 		docked,
+		branchDescription,
 		open,
 		nestedDialogOpen,
 		t,

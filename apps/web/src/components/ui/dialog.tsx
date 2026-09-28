@@ -91,8 +91,6 @@ const dialogContentVariants = {
 	// Large panels don't zoom (zooming re-rasterizes the whole layer texture every frame); fade + small rise stay on the compositor.
 	workspace:
 		"absolute data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom-1 data-[state=open]:slide-in-from-bottom-2 top-1/2 left-1/2 h-[min(44rem,calc(100%-1.5rem))] w-[min(64rem,calc(100%-1.5rem))] max-w-none -translate-x-1/2 -translate-y-1/2 rounded-dialog border duration-200 ease-out",
-	"workspace-right-sheet":
-		"absolute data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-auto w-full max-w-none border-l duration-200 ease-out sm:w-[min(22rem,100%)]",
 };
 
 type DialogContentVariant = keyof typeof dialogContentVariants;

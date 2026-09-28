@@ -2,7 +2,7 @@ import type { OpenProjectInfo } from "@ling/contracts/project";
 import type { SessionSummary } from "@ling/contracts/session";
 import type { SessionRef } from "@ling/contracts/session-ref";
 import type { useShellSidebar } from "@renderer/components/use-shell-sidebar";
-import type { useWorkbenchPanel } from "@renderer/components/workbench/use-workbench-panel";
+import type { useWorkbenchPanel } from "./use-workbench-panel";
 import { atom, useAtomValue, useStore, type PrimitiveAtom } from "jotai";
 import { useLayoutEffect, useMemo } from "react";
 import type { useSessionNavigationHistory } from "./use-session-navigation-history";

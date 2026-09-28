@@ -29,11 +29,13 @@ interface SkillBrowserProps {
 	/** Known discovery roots make nested collection folders readable without exposing a full absolute tree. */
 	roots?: readonly string[];
 	onSelect: (skill: SkillInfo) => void;
+	selectedPath?: string | undefined;
 	/** Right-click action offered on every row; omitted where there is no composer to write into. */
 	onUse?: (skill: SkillInfo) => void;
 	/** Per-row load switches; omitted for read-only browsers (project dialog). */
 	toggle?: Omit<SkillRowToggle, "disabled">;
 	contained?: boolean;
+	tree?: boolean;
 	className?: string;
 }
 
@@ -244,10 +246,12 @@ export function SkillBrowser({
 	groups,
 	roots = [],
 	onSelect,
+	selectedPath,
 	onUse,
 	toggle,
 	contained = false,
 	className,
+	tree = false,
 }: SkillBrowserProps) {
 	const { t } = useTranslation();
 	const [query, setQuery] = useState("");
@@ -271,7 +275,7 @@ export function SkillBrowser({
 	return (
 		<div className={cn("flex min-h-0 flex-col gap-3", className)}>
 			<div className="flex shrink-0 flex-wrap items-center gap-2.5">
-				<div className="relative min-w-[13rem] flex-1">
+				<div className="relative min-w-0 flex-1">
 					<Search
 						className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-text-muted"
 						aria-hidden="true"
@@ -336,8 +340,16 @@ export function SkillBrowser({
 										compact
 									/>
 								) : group.flat ? (
-									<div className="divide-y divide-border-subtle overflow-hidden rounded-panel border border-border-subtle bg-surface">
+									<div
+										className={
+											tree
+												? "min-w-0"
+												: "divide-y divide-border-subtle overflow-hidden rounded-panel border border-border-subtle bg-surface"
+										}
+									>
 										<SkillRows
+											selectedPath={selectedPath}
+											tree={tree}
 											skills={[...group.skills].sort((a, b) => a.name.localeCompare(b.name))}
 											onSelect={onSelect}
 											{...(onUse === undefined ? {} : { onUse })}
@@ -347,7 +359,13 @@ export function SkillBrowser({
 										/>
 									</div>
 								) : (
-									<div className="divide-y divide-border-subtle overflow-hidden rounded-panel border border-border-subtle bg-surface">
+									<div
+										className={
+											tree
+												? "min-w-0"
+												: "divide-y divide-border-subtle overflow-hidden rounded-panel border border-border-subtle bg-surface"
+										}
+									>
 										{skillRoots.map((root) => {
 											const rootKey = `${group.key}:${root.key}`;
 											const resolvedOpen = rootOverrides.get(rootKey) ?? skillRoots.length <= 1;
@@ -367,7 +385,10 @@ export function SkillBrowser({
 														aria-expanded={rootOpen}
 														onClick={() => setRootOverrides((current) => new Map(current).set(rootKey, !resolvedOpen))}
 														title={root.kind === "directory" ? tildify(root.path) : root.label}
-														className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-surface-hover/50 focus-visible:bg-surface-hover/50"
+														className={cn(
+															"flex w-full items-center gap-2 text-left transition-colors hover:bg-surface-hover/50 focus-visible:bg-surface-hover/50",
+															tree ? "min-h-7 px-1 py-1" : "px-3 py-2.5",
+														)}
 													>
 														<ChevronDown
 															className={cn(
@@ -383,16 +404,18 @@ export function SkillBrowser({
 														<span className="shrink-0 text-xs tabular-nums text-text-muted">{root.count}</span>
 													</button>
 													{rootOpen && (
-														<div className="border-border-subtle border-t bg-surface-raised/15">
+														<div className={tree ? "min-w-0" : "border-border-subtle border-t bg-surface-raised/15"}>
 															{root.directSkills.length > 0 && (
-																<div className="divide-y divide-border-subtle">
+																<div className={tree ? "min-w-0" : "divide-y divide-border-subtle"}>
 																	<SkillRows
+																		selectedPath={selectedPath}
+																		tree={tree}
 																		skills={root.directSkills}
 																		onSelect={onSelect}
 																		{...(onUse === undefined ? {} : { onUse })}
 																		embedded
 																		compact
-																		rowClassName="pl-9"
+																		rowClassName={tree ? "pl-6" : "pl-9"}
 																		{...(groupToggle === undefined ? {} : { toggle: groupToggle })}
 																	/>
 																</div>
@@ -428,14 +451,22 @@ export function SkillBrowser({
 																			</span>
 																		</button>
 																		{folderOpen && (
-																			<div className="divide-y divide-border-subtle border-border-subtle border-t bg-surface">
+																			<div
+																				className={
+																					tree
+																						? "min-w-0"
+																						: "divide-y divide-border-subtle border-border-subtle border-t bg-surface"
+																				}
+																			>
 																				<SkillRows
+																					selectedPath={selectedPath}
+																					tree={tree}
 																					skills={folder.skills}
 																					onSelect={onSelect}
 																					{...(onUse === undefined ? {} : { onUse })}
 																					embedded
 																					compact
-																					rowClassName="pl-11"
+																					rowClassName={tree ? "pl-8" : "pl-11"}
 																					{...(groupToggle === undefined ? {} : { toggle: groupToggle })}
 																				/>
 																			</div>

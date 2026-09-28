@@ -19,7 +19,7 @@ import { TodayUsageSummary } from "@renderer/features/usage/today-usage-summary"
 import { NavigationItem } from "@renderer/components/ui/navigation-item";
 import { useCommandFeedback } from "@renderer/hooks/use-command-feedback";
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import { dragRegionClassName, noDragRegionClassName, requestCommandPalette, shortcut } from "@renderer/lib/platform";
+import { dragRegionClassName, requestCommandPalette, shortcut } from "@renderer/lib/platform";
 import { cn } from "@renderer/lib/utils";
 import { useAtom } from "jotai";
 import { appPageAtom } from "@renderer/lib/navigation-state";
@@ -49,7 +49,6 @@ import type { SessionController } from "../sessions/use-sessions";
 import { useWorkspaceDialogs } from "./use-workspace-dialogs";
 import type { WorkspaceSidebarState } from "./use-workspace-sidebar-state";
 import { useWorkspaceReviewActions } from "./workspace-review-actions";
-import { useWorkspaceSessionMenus } from "./workspace-session-menus";
 import { MoreSessionsButton } from "./workspace-sidebar-controls";
 import { buildWorkspaceSidebarModel, type WorkspaceSidebarProject } from "./workspace-sidebar-model";
 import { ProjectScopeSelector, WorkspaceProjectSessions } from "./workspace-sidebar-project-navigation";
@@ -62,7 +61,6 @@ import {
 	workspaceSelectionAtom,
 	workspaceSessionActionsAtom,
 	workspaceSidebarAtom,
-	workspaceTabsAtom,
 } from "./workspace-state";
 
 /** Rows per archived "load more". */
@@ -80,7 +78,6 @@ interface WorkspaceSidebarNavigation {
 }
 
 interface WorkspaceSidebarSessionActions {
-	keepTabOpen: (ref: SessionRef) => void;
 	rename: (ref: SessionRef, title: string) => void;
 	fork: (ref: SessionRef) => Promise<void>;
 	requestDelete: (ref: SessionRef, title: string) => void;
@@ -198,6 +195,8 @@ function WorkspaceSidebar({
 		selectedArchivedBeyondLimit === undefined ? archivedVisible : [...archivedVisible, selectedArchivedBeyondLimit];
 	const hiddenArchivedCount = model.archivedSessions.length - visibleArchivedSessions.length;
 	const pinnedSessions = model.activeSessions.filter((session) => session.pinnedAt !== undefined);
+	// Pinned sessions live only in their own section; project groups list the rest.
+	const unpinnedSessions = model.activeSessions.filter((session) => session.pinnedAt === undefined);
 
 	const projectSessions = (cwd: string): readonly SessionSummary[] => {
 		const grouped = sessionsByCwd.get(cwd);
@@ -266,7 +265,6 @@ function WorkspaceSidebar({
 				status={variant === "archived" ? ARCHIVED_STATUS : requireWorkspaceSessionStatus(statuses, session)}
 				now={now}
 				onSelect={() => selectSidebarSession(session)}
-				onKeepOpen={() => sessionActions.keepTabOpen(toSessionRef(session))}
 				onRename={(title) => sessionActions.rename(toSessionRef(session), title)}
 				onFork={() => void sessionActions.fork(toSessionRef(session)).catch(onError)}
 				onPin={(pinned) => void setSessionPinned(toSessionRef(session), pinned).catch(onError)}
@@ -355,10 +353,12 @@ function WorkspaceSidebar({
 			<WorkspaceProjectSessions
 				projects={model.projects}
 				scopedProject={scopedProject}
-				activeSessions={model.activeSessions}
+				activeSessions={unpinnedSessions}
 				activeSessionRef={activeSessionRef}
 				activityCountByCwd={activityCountByCwd}
 				renderProjectHoverCard={renderProjectHoverCard}
+				renderProjectActionsMenu={renderProjectActionsMenu}
+				onNewSession={(cwd) => routeNewConversation(navigation, cwd)}
 				renderSession={(session) => renderSession(session, "active", false)}
 			/>
 		</>
@@ -370,7 +370,7 @@ function WorkspaceSidebar({
 				style={{ paddingLeft: "var(--window-controls-left-padding)" }}
 				className={cn("flex shrink-0 items-center pr-2", CHROME_TITLEBAR_CLASS, dragRegionClassName)}
 			>
-				<div className={cn("flex items-center gap-0.5", noDragRegionClassName)}>
+				<div className="flex items-center gap-0.5">
 					<TooltipIconButton
 						onClick={navigation.toggleSidebar}
 						label={t(previewing ? "nav.pinSidebar" : "nav.closeSidebar")}
@@ -401,7 +401,11 @@ function WorkspaceSidebar({
 					onClick={() => state.setView(state.view === "recent" ? "all" : "recent")}
 					label={t(state.view === "recent" ? "sidebar.focusOn" : "sidebar.focusOff")}
 					aria-pressed={state.view === "recent"}
-					className={cn(state.view === "recent" && "bg-surface-hover text-text-primary")}
+					// The focused view uses the skin accent so its state reads over any sidebar material.
+					className={cn(
+						state.view === "recent" &&
+							"bg-accent-muted text-accent hover:bg-accent-muted hover:text-accent focus-visible:bg-accent-muted focus-visible:text-accent active:bg-accent-muted",
+					)}
 				>
 					<Bell className="size-4" aria-hidden="true" />
 				</TooltipIconButton>
@@ -439,7 +443,8 @@ function WorkspaceSidebar({
 			{/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- arrow-key convenience is layered over individually focusable session rows. */}
 			<div
 				onKeyDown={handleSessionListKeyDown}
-				className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 [scrollbar-gutter:stable]"
+				// The 20px fade softens rows scrolling under the footer; bottom padding lets the last row clear it.
+				className="min-h-0 flex-1 overflow-y-auto px-2 pb-5 [mask-image:linear-gradient(to_bottom,#000_calc(100%-20px),transparent)] [scrollbar-gutter:stable]"
 			>
 				{state.view === "recent" ? (
 					model.activeSessions.length > 0 ? (
@@ -466,7 +471,7 @@ function WorkspaceSidebar({
 												onClick={() => state.setArchivedExpanded((current) => !current)}
 												aria-label={t("sidebar.archivedCount", { count: model.archivedSessions.length })}
 												aria-expanded={state.archivedExpanded}
-												className="flex h-7 w-full items-center gap-2 rounded-control px-2 text-left text-xs tabular-nums text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
+												className="flex h-8 w-full items-center gap-2 rounded-control px-3 text-left text-xs tabular-nums text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
 											/>
 										}
 									>
@@ -487,7 +492,6 @@ function WorkspaceSidebar({
 										{visibleArchivedSessions.map((session) => renderSession(session, "archived", false))}
 										{hiddenArchivedCount > 0 && (
 											<MoreSessionsButton
-												count={hiddenArchivedCount}
 												label={t("sidebar.showMoreArchived", {
 													count: Math.min(hiddenArchivedCount, ARCHIVED_PAGE_COUNT),
 													remaining: hiddenArchivedCount,
@@ -554,13 +558,11 @@ export function WorkspaceSidebarNavigation() {
 	const sidebarSessionController = useWorkspaceField(workspaceSidebarAtom, "sidebarSessionController");
 	const showCommandError = useCommandFeedback();
 	const { handleShowProjectChanges } = useWorkspaceReviewActions();
-	const { startNewConversation } = useWorkspaceSessionMenus();
 	const dialogs = useWorkspaceDialogs();
 	const sessionActions = useWorkspaceOwner(workspaceSessionActionsAtom);
-	const { keepSessionTabOpen } = useWorkspaceOwner(workspaceTabsAtom);
 	const sessionNavigation = useWorkspaceOwner(workspaceHistoryAtom);
 
-	const { handleRenameSession, handleForkWhole, handleCompact } = sessionActions;
+	const { handleRenameSession, handleForkWhole, handleCompact, handleNewConversation } = sessionActions;
 	return (
 		<WorkspaceSidebar
 			projectController={projectController}
@@ -571,11 +573,10 @@ export function WorkspaceSidebarNavigation() {
 			navigation={{
 				toggleSidebar: shellSidebar.toggleSidebar,
 				dismissSheet: shellSidebar.dismissSheet,
-				newConversation: startNewConversation,
+				newConversation: handleNewConversation,
 				openSettings: onOpenSettings,
 			}}
 			sessionActions={{
-				keepTabOpen: keepSessionTabOpen,
 				rename: (ref, title) => void handleRenameSession(ref, title).catch(showCommandError),
 				fork: handleForkWhole,
 				requestDelete: dialogs.requestDeleteSession,

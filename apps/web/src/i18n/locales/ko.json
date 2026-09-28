@@ -2029,6 +2029,7 @@
 		"commandNameHint": "서비스 이름에 공백이 있습니다. 연결 기능을 사용하려면 설정 파일에서 이름을 변경하세요.",
 		"connectNamed": "{{name}} 연결 / 다시 연결",
 		"authenticateNamed": "{{name}} 로그인",
-		"multilineArgs": "빈 인수나 줄바꿈이 포함된 인수는 값을 정확하게 유지하려면 고급 JSON에서 편집하세요."
+		"multilineArgs": "빈 인수나 줄바꿈이 포함된 인수는 값을 정확하게 유지하려면 고급 JSON에서 편집하세요.",
+		"status_blocked": "프로젝트 승인 필요"
 	}
 }

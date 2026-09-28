@@ -5,11 +5,14 @@ import { MCP_CONFIG_MAX_BYTES, mcpConfigSchema, mcpServerSchema, type McpWriteRe
 import { createAtomicFileStore, readUtf8FileBoundedPreserveBom } from "../../store/atomic-file-store";
 import { createLingError } from "../../ling-error";
 
-function parseConfig(source: string) {
-	if (source.startsWith("\uFEFF"))
-		throw new Error("Pi MCP configuration requires UTF-8 without a BOM. Repair the file before saving.");
+function parseConfig(source: string, allowBom: boolean) {
+	if (!allowBom && source.startsWith("\uFEFF"))
+		throw new Error("The installed MCP adapter does not support a UTF-8 BOM. Remove it before saving.");
 	const errors: ParseError[] = [];
-	const value: unknown = parse(source, errors, { allowTrailingComma: true, allowEmptyContent: true });
+	const value: unknown = parse(source.startsWith("\uFEFF") ? source.slice(1) : source, errors, {
+		allowTrailingComma: true,
+		allowEmptyContent: true,
+	});
 	if (errors.length) throw new Error(`Invalid MCP JSON at offset ${errors[0]!.offset}. Repair the file before saving.`);
 	// Upstream treats an empty or comments-only document as an unconfigured source.
 	return mcpConfigSchema.parse(value === undefined ? {} : value);
@@ -22,7 +25,7 @@ function revision(source: string | undefined): string {
 }
 
 /** Edits one server under a file lock without reconstructing other services, secrets or comments. */
-export function createMcpConfigFile(path: string) {
+export function createMcpConfigFile(path: string, { allowBom = true } = {}) {
 	const store = createAtomicFileStore({
 		getPath: () => path,
 		lockPath: "target",
@@ -36,7 +39,7 @@ export function createMcpConfigFile(path: string) {
 		async read(signal?: AbortSignal) {
 			const source = await readUtf8FileBoundedPreserveBom(path, MCP_CONFIG_MAX_BYTES, signal);
 			// Absence is a new configuration; malformed existing files never become empty settings.
-			const config = source === undefined ? {} : parseConfig(source);
+			const config = source === undefined ? {} : parseConfig(source, allowBom);
 			return {
 				exists: source !== undefined,
 				revision: revision(source),
@@ -46,7 +49,7 @@ export function createMcpConfigFile(path: string) {
 		write(input: Pick<McpWriteRequest, "expectedRevision" | "name" | "change">, signal: AbortSignal) {
 			return store.transact(
 				(value, context) => {
-					const config = parseConfig(context.source ?? value.text);
+					const config = parseConfig(context.source ?? value.text, allowBom);
 					if (revision(context.source) !== input.expectedRevision)
 						throw createLingError({
 							code: "MCP_CONFIG_CHANGED",
@@ -125,8 +128,8 @@ export function createMcpConfigFile(path: string) {
 						{ formattingOptions: { insertSpaces: true, tabSize: 2, eol: value.text.includes("\r\n") ? "\r\n" : "\n" } },
 					);
 					if (!edits.length) return { commit: false, result: false };
-					const updated = applyEdits(value.text, edits);
-					parseConfig(updated);
+					const updated = (context.source?.startsWith("\uFEFF") ? "\uFEFF" : "") + applyEdits(value.text, edits);
+					parseConfig(updated, allowBom);
 					value.text = updated;
 					return { commit: true, result: true };
 				},

@@ -116,6 +116,7 @@ export const mcpDocumentSchema = z.strictObject({
 export type McpDocument = z.infer<typeof mcpDocumentSchema>;
 export const mcpOverviewSchema = z.strictObject({
 	documents: z.array(mcpDocumentSchema).max(64),
+	notices: z.array(z.string()).max(64),
 	effective: z
 		.array(
 			z.strictObject({
@@ -137,7 +138,8 @@ export const mcpStatusSchema = z.object({
 		.array(
 			z.object({
 				name: z.string().max(200),
-				status: z.enum(["connected", "cached", "failed", "needs-auth", "not-connected", "disabled"]),
+				status: z.enum(["connected", "cached", "failed", "needs-auth", "not-connected", "blocked", "disabled"]),
+				blockedReason: z.string().max(16_384).optional(),
 				toolCount: z.number().int().nonnegative(),
 				directToolCount: z.number().int().nonnegative(),
 				disabled: z.boolean(),

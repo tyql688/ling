@@ -3,7 +3,7 @@ import { requireCommand } from "@ling/core/command-resolver";
 import { assertProjectDirectory } from "@ling/host/runtime/project-directory";
 import { realpath } from "node:fs/promises";
 import { isAbsolute, relative, sep } from "node:path";
-import simpleGit from "simple-git";
+import { simpleGit } from "simple-git";
 import { assertGitPath } from "./git-output-parsers";
 
 const UNSAFE_GIT_ENVIRONMENT_KEYS = new Set(["EDITOR", "PAGER", "PREFIX", "SSH_ASKPASS"]);

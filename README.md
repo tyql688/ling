@@ -21,7 +21,7 @@ Ling brings Pi conversations, project files, change review and terminals into on
 
 ## Run from source
 
-Install Node.js **22.19 or newer**, Git and the pnpm version declared in [package.json](package.json) (currently **11.25.0**).
+Install Git and the Node.js and pnpm versions declared in [package.json](package.json).
 
 The macOS desktop app requires **macOS 13 or newer**.
 

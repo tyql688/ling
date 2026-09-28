@@ -336,7 +336,7 @@ export async function startHostWebServer(options: HostWebServerOptions): Promise
 			socket.destroy();
 			return;
 		}
-		let pathname: string | null = null;
+		let pathname: string | null;
 		try {
 			pathname = new URL(request.url ?? "/", expectedOrigin).pathname;
 		} catch {

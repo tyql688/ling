@@ -1,6 +1,7 @@
 import { FeatureNavigationContext } from "@renderer/components/workbench/feature-navigation";
 import { appPageAtom } from "@renderer/lib/navigation-state";
 import { SchedulesPage } from "@renderer/features/schedules/schedules-page";
+import { StartupApprovalDialog } from "@renderer/features/sessions/startup-approval-dialog";
 import { ReadingCloseDialog } from "./reading-close-dialog";
 import { WorkbenchSlotHost } from "@renderer/components/workbench/workbench-slot-host";
 import { ShellFrame } from "@renderer/components/shell-frame";
@@ -64,6 +65,7 @@ function WorkspaceLayout({ overlay }: { overlay?: ReactNode }) {
 			</ShellFrame>
 
 			<WorkspaceDialogHost />
+			<StartupApprovalDialog />
 			<ReadingCloseDialog />
 			{overlay}
 		</ReviewWorkspace>

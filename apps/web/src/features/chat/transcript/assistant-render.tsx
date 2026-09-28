@@ -1,6 +1,6 @@
 import { Markdown } from "@renderer/components/markdown";
 import { cn } from "@renderer/lib/utils";
-import Ansi from "ansi-to-react";
+import { Ansi } from "@renderer/components/ansi";
 import { memo } from "react";
 import { projectExtensionTerminalText } from "../extension-ui/extension-terminal-text";
 import type { AssistantContentPart } from "./transcript-activity-model";

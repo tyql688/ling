@@ -155,7 +155,6 @@ async function promoteQueuedPrompt(
 	} catch (error) {
 		if (removed && !committed) {
 			await mirror.restoreFront(kind, message.text, message.images, message.fileReferences);
-			removed = false;
 		}
 		throw error;
 	} finally {

@@ -21,7 +21,7 @@ Ling 将 Pi 会话、项目文件、变更审阅和终端放在同一个工作�
 
 ## 从源码运行
 
-安装 Node.js **22.19 或更新版本**、Git，以及 [package.json](package.json) 声明的 pnpm 版本（目前为 **11.25.0**）。
+安装 Git，以及 [package.json](package.json) 声明的 Node.js 和 pnpm 版本。
 
 macOS 桌面端要求 **macOS 13 或更新版本**。
 

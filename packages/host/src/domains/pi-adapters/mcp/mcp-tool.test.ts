@@ -52,6 +52,7 @@ async function fixture() {
 			readMcp: async (cwd): Promise<McpOverview> => {
 				expect(cwd).toBe(root);
 				return {
+					notices: [],
 					documents: [{ ...(await file.read()), path, target: "project", scope: "project", error: null }],
 					effective: [],
 				};

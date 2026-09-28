@@ -17,15 +17,16 @@
 		"package": "pnpm build && pnpm run stage:app && node --experimental-strip-types scripts/package.ts"
 	},
 	"dependencies": {
-		"electron-updater": "^6.8.9",
-		"@ling/node-runtime": "workspace:*"
+		"@ling/node-runtime": "workspace:*",
+		"electron-updater": "^6.8.9"
 	},
 	"devDependencies": {
 		"@ling/contracts": "workspace:*",
-		"@types/node": "^26.6.2",
-		"electron": "^44.4.4",
-		"electron-builder": "^26.16.1",
+		"@types/node": "^26.6.3",
+		"electron": "^44.4.5",
+		"electron-builder": "^26.17.0",
 		"electron-vite": "^5.0.0",
+		"vite": "^7.3.6",
 		"zod": "4.6.5"
 	},
 	"optionalDependencies": {

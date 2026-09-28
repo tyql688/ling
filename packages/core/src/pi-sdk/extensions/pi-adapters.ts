@@ -101,16 +101,18 @@ export async function preparePiAdapters(options: {
 		overrides(base: PiLoadExtensionsResult): PiLoadExtensionsResult {
 			for (const extension of base.extensions) {
 				if (mcpPaths.has(extension.path) && options.mcpUi) {
-					const command = extension.commands.get("mcp");
 					const open = options.mcpUi.open;
-					if (command)
-						extension.commands.set("mcp", {
-							...command,
-							handler: async (args, ctx) => {
-								if (["", "status", "setup", "edit"].includes(args.trim())) open(ctx.ui);
-								else await command.handler(args, ctx);
-							},
-						});
+					for (const name of ["mcp-adapter", "mcp"]) {
+						const command = extension.commands.get(name);
+						if (command)
+							extension.commands.set(name, {
+								...command,
+								handler: async (args, ctx) => {
+									if (["", "status", "setup", "edit"].includes(args.trim())) open(ctx.ui);
+									else await command.handler(args, ctx);
+								},
+							});
+					}
 				}
 				if (revocable.has(extension.path)) restoreToolFiltersOnShutdown(extension, base.runtime);
 				if (voicePaths.has(extension.path) && options.openVoiceSettings) {

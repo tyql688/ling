@@ -58,6 +58,7 @@ export function McpLiveSession({
 				disabled: server.disabled,
 				status: server.disabled ? ("disabled" as const) : ("not-connected" as const),
 				toolCount: null,
+				blockedReason: undefined,
 			}));
 	return (
 		<SettingsSection
@@ -80,6 +81,7 @@ export function McpLiveSession({
 						description={
 							<>
 								{t(`mcp.status_${server.status}`)}
+								{server.blockedReason && <span className="mt-1 block">{server.blockedReason}</span>}
 								{!supportsCommand && !server.disabled && <span className="mt-1 block">{t("mcp.commandNameHint")}</span>}
 							</>
 						}

@@ -6,7 +6,7 @@ import { sessionToolExecutionsFamily } from "@renderer/features/sessions/state/s
 import { useStreamingText } from "@renderer/hooks/use-streaming-text";
 import { tildify } from "@renderer/lib/format-path";
 import { cn } from "@renderer/lib/utils";
-import Ansi from "ansi-to-react";
+import { Ansi } from "@renderer/components/ansi";
 import { atom, useAtomValue } from "jotai";
 import {
 	Brain,

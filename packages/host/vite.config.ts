@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
-import releasePackage from "../../package.json";
+import releasePackage from "../../package.json" with { type: "json" };
 
 const hostRoot = import.meta.dirname;
 
@@ -52,10 +52,10 @@ export default defineConfig({
 		target: "node22",
 		outDir: resolve(hostRoot, "dist"),
 		emptyOutDir: true,
-		minify: "esbuild",
+		minify: "oxc",
 		sourcemap: false,
 		ssr: true,
-		rollupOptions: {
+		rolldownOptions: {
 			input: {
 				index: resolve(hostRoot, "src/index.ts"),
 				"pi-worker-entry": resolve(hostRoot, "src/workers/pi/entry.ts"),

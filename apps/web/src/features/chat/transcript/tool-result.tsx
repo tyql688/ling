@@ -7,7 +7,7 @@ import { DiffView } from "@renderer/features/review/diff-view";
 import { sessionTranscriptStateFamily } from "@renderer/features/sessions/state/session";
 import { formatRequestError } from "@renderer/lib/errors";
 import { cn } from "@renderer/lib/utils";
-import Ansi from "ansi-to-react";
+import { Ansi } from "@renderer/components/ansi";
 import { useAtomValue, useStore } from "jotai";
 import { useEffect, useState } from "react";
 import { TodoToolResult } from "@renderer/features/pi-adapters/todo/todo-tool-result";

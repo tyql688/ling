@@ -159,7 +159,7 @@ export function createSessionDialogHost(
 		extensionUi,
 		shellActivity,
 	}: {
-		registry: Pick<SessionRegistry, "setApprovalRequester" | "setExtensionUiRequester">;
+		registry: Pick<SessionRegistry, "setApprovalRequester" | "setExtensionUiRequester" | "findManagedSession">;
 		extensionUi: ExtensionUiBridge;
 		shellActivity: Pick<HostShellActivity, "notify">;
 	},
@@ -226,6 +226,7 @@ export function createSessionDialogHost(
 					approvalDialog,
 					{
 						ref: request.ref,
+						sessionStarting: registry.findManagedSession(request.ref) === undefined,
 						title: request.title,
 						message: request.message,
 						expiresAt: timeoutExpiresAt(request.options),

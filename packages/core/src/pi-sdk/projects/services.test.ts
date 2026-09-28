@@ -132,7 +132,7 @@ export default function(pi) {
 				projects.releasePiRuntimeServices(fresh);
 				if (loadCatalogResources) {
 					const mcp = createPiMcp(projects);
-					const file = createMcpConfigFile(join(cwd, ".pi", "mcp.json"));
+					const file = createMcpConfigFile(join(cwd, ".pi", "mcp-adapter.json"));
 					const signal = new AbortController().signal;
 					try {
 						const save = async (disabled: boolean) =>

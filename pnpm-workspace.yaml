@@ -19,26 +19,21 @@ minimumReleaseAgeExclude:
   - "@earendil-works/pi-coding-agent@0.87.1"
   - "@earendil-works/pi-telemetry@0.87.1"
   - "@earendil-works/pi-tui@0.87.1"
-  - "@gotgenes/pi-permission-system@33.0.7"
-  - electron@44.4.4
-  - framer-motion@13.4.1
-  - motion-dom@13.4.1
-  - motion@13.4.1
-  - npm@11.20.0
-  - undici@8.11.0
-  - pi-mcp-adapter@2.37.0
+  - "@gotgenes/pi-permission-system@35.0.1"
+  - pi-mcp-adapter@3.1.0
 overrides:
   "ansi-to-react>linkify-it": 5.0.2
   "minimatch@3.1.5>brace-expansion": 1.1.18
-  "monaco-editor>dompurify": 3.4.14
-  "minimatch@10.2.5>brace-expansion": 5.0.9
-  "postcss>nanoid": 3.3.18
-  "vite>postcss": 8.5.23
 patchedDependencies:
   # Backport upstream CSS zoom positioning for Web menus: floating-ui/floating-ui#3492.
   "@floating-ui/core@1.8.0": patches/@floating-ui__core@1.8.0.patch
   "@floating-ui/dom@1.8.0": patches/@floating-ui__dom@1.8.0.patch
   # Expose the staged NSIS copy hook without replacing the signed installer/update workflow.
-  app-builder-lib@26.16.1: patches/app-builder-lib@26.16.1.patch
+  app-builder-lib@26.17.0: patches/app-builder-lib@26.17.0.patch
   # Preserve strict SVG labels, line breaks and the classic diagram layout across Mermaid upgrades.
   markstream-react@2.0.13: patches/markstream-react@2.0.13.patch
+peerDependencyRules:
+  allowedVersions:
+    # ESLint's official compatibility adapter wraps these exact plugin versions in eslint.config.js.
+    "eslint-plugin-react@7.37.5>eslint": "10"
+    "eslint-plugin-jsx-a11y@6.10.2>eslint": "10"

@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
-import { PRODUCTION_BUILD, rendererPlugins } from "./vite-plugins";
+import { PRODUCTION_BUILD, rendererPlugins } from "./vite-plugins.ts";
 
 const webRoot = import.meta.dirname;
 
@@ -19,7 +19,7 @@ export default defineConfig({
 		...PRODUCTION_BUILD,
 		outDir: resolve(webRoot, "dist"),
 		emptyOutDir: true,
-		rollupOptions: {
+		rolldownOptions: {
 			input: { index: resolve(webRoot, "index.html") },
 		},
 	},

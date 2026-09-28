@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import ts from "typescript";
 import { defineConfig } from "vitest/config";
-import webConfig from "./apps/web/vite.config";
+import webConfig from "./apps/web/vite.config.ts";
 
 const root = import.meta.dirname;
 const nodeConfig = ts.getParsedCommandLineOfConfigFile(

@@ -16,10 +16,13 @@ export interface McpUi {
 export async function runMcpCommand(session: PiAgentSession, input: McpCommand): Promise<void> {
 	if (!session.isIdle) throw new Error("Wait for the current session operation before connecting MCP.");
 	const runner = session.extensionRunner;
-	const name = input.action === "authenticate" ? "mcp-auth" : "mcp";
-	const command = runner
-		.getRegisteredCommands()
-		.find((command) => command.name === name && isPiMcpSource(piPackageSource(command.sourceInfo.source)));
+	const names = input.action === "authenticate" ? ["mcp-auth"] : ["mcp-adapter", "mcp"];
+	const commands = runner.getRegisteredCommands();
+	const command = names
+		.map((name) =>
+			commands.find((command) => command.name === name && isPiMcpSource(piPackageSource(command.sourceInfo.source))),
+		)
+		.find((command) => command !== undefined);
 	if (!command) throw new Error("The MCP adapter is no longer active. Refresh its settings and try again.");
 	await command.handler(
 		input.action === "authenticate" ? input.name : `reconnect ${input.name}`,
@@ -37,7 +40,7 @@ export async function supportsPiMcp(entry: string): Promise<boolean> {
 		"name" in value &&
 		"version" in value &&
 		value.name === MCP_PACKAGE &&
-		value.version === "2.37.0"
+		(value.version === "2.37.0" || value.version === "3.1.0")
 	);
 }
 

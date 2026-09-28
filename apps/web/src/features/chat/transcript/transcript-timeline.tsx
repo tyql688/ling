@@ -19,7 +19,7 @@ import {
 } from "@renderer/features/sessions/runtime/transcript-scroll-memory";
 import { sessionAutoRetryFamily } from "@renderer/features/sessions/state/session";
 import { useStableCallback } from "@renderer/hooks/use-stable-callback";
-import Ansi from "ansi-to-react";
+import { Ansi } from "@renderer/components/ansi";
 import { useAtomValue } from "jotai";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

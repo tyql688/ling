@@ -2031,6 +2031,7 @@
 		"commandNameHint": "This name contains spaces. Edit its name in the configuration file to use connection actions.",
 		"connectNamed": "Connect / reconnect {{name}}",
 		"authenticateNamed": "Sign in to {{name}}",
-		"multilineArgs": "Empty arguments and arguments containing line breaks require Advanced JSON to preserve their exact values."
+		"multilineArgs": "Empty arguments and arguments containing line breaks require Advanced JSON to preserve their exact values.",
+		"status_blocked": "Blocked by project approval"
 	}
 }

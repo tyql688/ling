@@ -211,6 +211,11 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 			</div>
 			{document && <p className="-mt-5 break-all font-mono text-xs text-text-muted">{document.path}</p>}
 			{error && !editor && <FeedbackNotice tone="danger">{error}</FeedbackNotice>}
+			{overview?.notices.map((notice) => (
+				<FeedbackNotice key={notice} tone="warning">
+					{notice}
+				</FeedbackNotice>
+			))}
 			{overview?.documents
 				.filter((item) => item.error)
 				.map((item) => (

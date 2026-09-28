@@ -2029,6 +2029,7 @@
 		"commandNameHint": "名前に空白が含まれています。接続操作を使うには、設定ファイルで名前を変更してください。",
 		"connectNamed": "{{name}} に接続 / 再接続",
 		"authenticateNamed": "{{name}} にサインイン",
-		"multilineArgs": "空の引数や改行を含む引数は、値を正確に保持するために詳細 JSON で編集してください。"
+		"multilineArgs": "空の引数や改行を含む引数は、値を正確に保持するために詳細 JSON で編集してください。",
+		"status_blocked": "プロジェクトの承認待ち"
 	}
 }

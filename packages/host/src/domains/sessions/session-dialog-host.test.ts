@@ -16,6 +16,7 @@ function createHarness(notify?: HostShellActivity["notify"]) {
 	const notifications: Array<Parameters<HostShellActivity["notify"]>> = [];
 	const host = createSessionDialogHost(createHostEventBus(), createHostClientState(), {
 		registry: {
+			findManagedSession: () => undefined,
 			setApprovalRequester: extensionUi.registerApprovalRequester,
 			setExtensionUiRequester: extensionUi.registerExtensionUiRequester,
 		},
@@ -50,6 +51,7 @@ describe("session attention routing", () => {
 		expect(notifications).toEqual([[ref, "attentionNeeded", "Ling — approval needed", "Read workspace file"]]);
 		const [pending] = host.pendingApprovals();
 		if (!pending) throw new Error("Approval was not retained");
+		expect(pending.sessionStarting).toBe(true);
 		host.respondApproval(pending.requestId, true);
 		await expect(answer).resolves.toBe(true);
 		expect(host.pendingApprovals()).toEqual([]);

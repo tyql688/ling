@@ -1,4 +1,5 @@
 import js from "@eslint/js";
+import { fixupConfigRules } from "@eslint/compat";
 import prettier from "eslint-config-prettier";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import react from "eslint-plugin-react";
@@ -45,6 +46,9 @@ export default tseslint.config(
 			parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
 		},
 		rules: {
+			// Ling preserves failures through normalized causes and AggregateError.errors;
+			// this syntax-only rule requires a direct cause even when the error is retained.
+			"preserve-caught-error": "off",
 			// `== null` is the deliberate "null or undefined" test; every other loose comparison coerces.
 			eqeqeq: ["error", "always", { null: "ignore" }],
 			// `_`-prefixed bindings are deliberate discards.
@@ -103,7 +107,8 @@ export default tseslint.config(
 	// JSX-only surfaces.
 	{
 		files: ["apps/web/**/*.tsx"],
-		extends: [react.configs.flat.recommended, jsxA11y.flatConfigs.recommended],
+		// These published plugins still call rule-context APIs removed by ESLint 10.
+		extends: fixupConfigRules([react.configs.flat.recommended, jsxA11y.flatConfigs.recommended]),
 		settings: { react: { version: "detect" } },
 		plugins: { "react-refresh": reactRefresh },
 		rules: {

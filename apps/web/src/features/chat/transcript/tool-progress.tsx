@@ -1,7 +1,7 @@
 import type { ToolExecutionProgress } from "@ling/contracts/session-tool-progress";
 import { FeedbackNotice } from "@renderer/components/ui/feedback";
 import { useStreamingText } from "@renderer/hooks/use-streaming-text";
-import Ansi from "ansi-to-react";
+import { Ansi } from "@renderer/components/ansi";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { RenderedTerminalLines } from "./assistant-render";

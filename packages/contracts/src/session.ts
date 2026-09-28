@@ -436,6 +436,8 @@ export interface SessionEventEnvelope {
 export interface ApprovalRequest {
 	requestId: string;
 	ref: SessionRef;
+	/** Startup can wait for approval before the conversation is available to render it. */
+	sessionStarting: boolean;
 	title: string;
 	message: string;
 	expiresAt: number | null;

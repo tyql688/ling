@@ -21,7 +21,7 @@ Ling은 Pi 대화, 프로젝트 파일, 변경 사항 검토, 터미널을 하�
 
 ## 소스에서 실행
 
-Node.js **22.19 이상**, Git, [package.json](package.json)에 지정된 pnpm 버전(현재 **11.25.0**)을 설치하세요.
+Git과 [package.json](package.json)에 지정된 버전의 Node.js 및 pnpm을 설치하세요.
 
 macOS 데스크톱 앱에는 **macOS 13 이상**이 필요합니다.
 

@@ -4,7 +4,7 @@ import { sessionKey } from "@ling/contracts/session-ref";
 import { SessionProgressIndicator } from "@renderer/features/chat/transcript/session-progress-indicator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@renderer/components/ui/tooltip";
 import { cn } from "@renderer/lib/utils";
-import Ansi from "ansi-to-react";
+import { Ansi } from "@renderer/components/ansi";
 import { X } from "lucide-react";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

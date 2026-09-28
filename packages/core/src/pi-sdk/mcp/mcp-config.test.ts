@@ -260,17 +260,35 @@ it("retains upstream aliases, trailing commas and environment references without
 	expect(await readFile(f.path, "utf8")).not.toContain('"mcpServers"');
 });
 
-it("reports BOM files that the upstream loader rejects, without rewriting them", async () => {
+it("preserves the BOM and comments while rejecting edits based on an earlier revision", async () => {
 	const f = await fixture();
 	const before = await f.file.read();
-	const source = '\uFEFF{"mcpServers":{}}';
+	const source = '\uFEFF{ // retained comment\n "mcpServers": {}, "settings": {"custom": true}}';
 	await writeFile(f.path, source);
-	await expect(f.file.read()).rejects.toThrow("BOM");
+	const legacy = createMcpConfigFile(f.path, { allowBom: false });
+	await expect(legacy.read()).rejects.toThrow("does not support a UTF-8 BOM");
+	await expect(
+		legacy.write(
+			{ expectedRevision: before.revision, name: "local", change: { kind: "toggle", disabled: true } },
+			f.signal,
+		),
+	).rejects.toThrow("does not support a UTF-8 BOM");
+	const current = await f.file.read();
+	expect(current.servers).toEqual({});
 	await expect(
 		f.file.write(
 			{ expectedRevision: before.revision, name: "local", change: { kind: "toggle", disabled: true } },
 			f.signal,
 		),
-	).rejects.toThrow("BOM");
+	).rejects.toThrow("MCP configuration changed");
 	expect(await readFile(f.path, "utf8")).toBe(source);
+	await f.file.write(
+		{ expectedRevision: current.revision, name: "local", change: { kind: "toggle", disabled: true } },
+		f.signal,
+	);
+	const updated = await readFile(f.path, "utf8");
+	expect(updated.startsWith("\uFEFF")).toBe(true);
+	expect(updated).toContain("// retained comment");
+	expect(updated).toContain('"custom": true');
+	expect((await f.file.read()).servers.local).toEqual({ disabled: true });
 });

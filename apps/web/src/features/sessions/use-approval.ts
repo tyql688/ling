@@ -3,21 +3,18 @@ import type { ApprovalRequest } from "@ling/contracts/session";
 import type { SessionRef } from "@ling/contracts/session-ref";
 import { sameSessionRef } from "@ling/contracts/session-ref";
 import { pendingApprovalQueueAtom } from "@renderer/features/sessions/state/session";
-import { usePairedDialogQueue } from "@renderer/hooks/use-paired-dialog-queue";
+import { removeDialogRequest } from "@renderer/lib/dialog-request-replay";
+import { useAtom } from "jotai";
 import { useCallback, useMemo } from "react";
 
 function approvalRequestsForSession(queue: readonly ApprovalRequest[], ref: SessionRef | null): ApprovalRequest[] {
-	return ref === null ? [] : queue.filter((request) => sameSessionRef(request.ref, ref));
+	return ref === null ? [] : queue.filter((request) => !request.sessionStarting && sameSessionRef(request.ref, ref));
 }
 
 export function useApproval(ref: SessionRef | null) {
 	const hostSessionApi = useDomainApi("session");
 
-	const { queue, remove } = usePairedDialogQueue(pendingApprovalQueueAtom, {
-		getPending: hostSessionApi.pendingApprovalRequests,
-		onRequest: hostSessionApi.onApprovalRequest,
-		onDismiss: hostSessionApi.onApprovalDismiss,
-	});
+	const [queue, setQueue] = useAtom(pendingApprovalQueueAtom);
 	const sessionQueue = useMemo(() => approvalRequestsForSession(queue, ref), [queue, ref]);
 	const pending = sessionQueue[0] ?? null;
 
@@ -25,9 +22,9 @@ export function useApproval(ref: SessionRef | null) {
 		async (approved: boolean) => {
 			if (!pending) return;
 			await hostSessionApi.respondToApproval(pending.requestId, approved);
-			remove(pending.requestId);
+			setQueue((current) => removeDialogRequest(current, pending.requestId));
 		},
-		[hostSessionApi, pending, remove],
+		[hostSessionApi, pending, setQueue],
 	);
 
 	return { pending, pendingCount: sessionQueue.length, respond };

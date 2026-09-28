@@ -21,7 +21,7 @@ Ling は Pi の会話、プロジェクトファイル、変更レビュー、�
 
 ## ソースから実行
 
-Node.js **22.19 以降**、Git、および [package.json](package.json) に指定された pnpm（現在は **11.25.0**）をインストールしてください。
+Git と、[package.json](package.json) に指定されたバージョンの Node.js および pnpm をインストールしてください。
 
 macOS デスクトップ版には **macOS 13 以降**が必要です。
 

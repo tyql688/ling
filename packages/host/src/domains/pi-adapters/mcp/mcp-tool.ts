@@ -14,6 +14,7 @@ const TOOL_SERVER_LIMIT = 100;
 function inventory(overview: McpOverview, name?: string, target?: string) {
 	const effective = overview.effective?.filter((entry) => name === undefined || entry.name === name) ?? null;
 	return {
+		notices: overview.notices,
 		documents: overview.documents
 			.filter((document) => target === undefined || document.target === target)
 			.map((document) => {

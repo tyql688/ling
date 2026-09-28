@@ -1,7 +1,7 @@
 import type { ExtensionUiStateSnapshot } from "@ling/contracts/session-extension-ui";
 import { WORKSPACE_PANEL_HEADER_CLASS } from "@renderer/components/shell-chrome";
 import { cn } from "@renderer/lib/utils";
-import Ansi from "ansi-to-react";
+import { Ansi } from "@renderer/components/ansi";
 import { Blocks, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { type ExtensionWidget, hasVisibleTerminalText, visibleWidgets } from "./extension-dock-count";

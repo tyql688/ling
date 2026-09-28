@@ -13,7 +13,7 @@ const materialIconOverrides = new Set(["folder.svg", "tsdoc.svg"]);
 const materialIconOmissions = new Set(["file.svg", "folder-open.svg", "folder-root.svg", "folder-root-open.svg"]);
 
 export const PRODUCTION_BUILD = {
-	minify: "esbuild",
+	minify: "oxc",
 	sourcemap: false,
 } as const;
 

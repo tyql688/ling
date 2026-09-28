@@ -2022,6 +2022,7 @@
 		"commandNameHint": "服务名称包含空格。请在配置文件中修改名称后使用连接操作。",
 		"connectNamed": "连接 / 重连 {{name}}",
 		"authenticateNamed": "登录 {{name}}",
-		"multilineArgs": "空参数或包含换行的参数需要使用高级 JSON 编辑，以保持参数完整。"
+		"multilineArgs": "空参数或包含换行的参数需要使用高级 JSON 编辑，以保持参数完整。",
+		"status_blocked": "项目服务尚未获准"
 	}
 }

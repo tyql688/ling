@@ -4,6 +4,8 @@ import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { expect, it } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { createPiModelRuntimes } from "../models/model-runtime";
+import { createPiModelProjection } from "../models/model-projection";
+import { createPiRuntimeFactory } from "../session/runtime-factory";
 import { createLingSkillResources } from "../resources/skill-toggles";
 import { createPiTurnLifecycle } from "../session/turn-lifecycle";
 import { createPiMcp } from "../mcp/pi-mcp";
@@ -70,7 +72,6 @@ export default function(pi) {
 						mcp: false,
 					},
 					voice: null,
-					mcp: null,
 					todo: bundled,
 					permissions: null,
 				}),
@@ -88,6 +89,9 @@ export default function(pi) {
 				expect(projects.listResourceReloadTargets(usesProbe)).toEqual(loadCatalogResources ? [cwd] : []);
 				const sessionManager = SessionManager.inMemory(cwd);
 				const runtime = await projects.acquirePiRuntimeServices(cwd, { sessionManager });
+				expect(
+					runtime.resourceLoader.getExtensions().extensions.filter((item) => item.tools.has("generate_image")),
+				).toHaveLength(1);
 				expect(await countLoads()).toBe(loadCatalogResources ? 2 : 1);
 				expect(await countBundledLoads()).toBe(1);
 				expect(projects.listResourceReloadTargets(usesProbe)).toEqual([cwd]);
@@ -132,7 +136,7 @@ export default function(pi) {
 				projects.releasePiRuntimeServices(fresh);
 				if (loadCatalogResources) {
 					const mcp = createPiMcp(projects);
-					const file = createMcpConfigFile(join(cwd, ".pi", "mcp-adapter.json"));
+					const file = createMcpConfigFile(join(cwd, ".pi", "mcp.json"));
 					const signal = new AbortController().signal;
 					try {
 						const save = async (disabled: boolean) =>
@@ -142,11 +146,11 @@ export default function(pi) {
 									target: "project",
 									expectedRevision: (await file.read()).revision,
 									name: "fixture",
-									change: { kind: "toggle", disabled },
+									change: { kind: "save", server: { command: "node", enabled: !disabled } },
 								},
 								signal,
 							);
-						await expect(save(true)).resolves.toEqual({ changed: true, reloadProjects: [] });
+						await expect(save(true)).resolves.toEqual({ changed: true, reloadProjects: [cwd] });
 						// A local/community MCP adapter remains a consumer with Ling's switch off.
 						await writeFile(extension, (await readFile(extension, "utf8")).replace("resource-probe", "mcp"));
 						await projects.reloadProjectSettings([cwd]);
@@ -154,6 +158,63 @@ export default function(pi) {
 						await expect(save(false)).resolves.toEqual({ changed: false, reloadProjects: [] });
 					} finally {
 						await mcp.dispose();
+					}
+				}
+				if (!loadCatalogResources) {
+					await writeFile(
+						extension,
+						`import { Type } from "@sinclair/typebox";
+export default function(pi) {
+  for (const [name, defaultActive] of [["fixture_active", true], ["fixture_inactive", false], ["generate_image", true]]) {
+    pi.registerTool({ name, label: name, description: name, parameters: Type.Object({}), defaultActive,
+      async execute() { return { content: [{ type: "text", text: name }] }; } });
+  }
+}
+`,
+					);
+					await mkdir(join(cwd, ".pi"), { recursive: true });
+					const factory = createPiRuntimeFactory({ projects, modelProjection: createPiModelProjection(modelRuntimes) });
+					for (const selection of [
+						{
+							global: { defaultTools: ["read", "+codemode"] },
+							project: { defaultTools: ["-codemode", "+tool_search"] },
+							expected: ["read", "tool_search", "fixture_active"],
+						},
+						{ global: { defaultTools: [] }, project: {}, expected: ["fixture_active"] },
+						{ global: {}, project: {}, expected: ["read", "codemode", "fixture_active"] },
+						{
+							global: {},
+							project: {},
+							wasConfigured: true,
+							expected: ["read", "bash", "edit", "write", "fixture_active"],
+						},
+					]) {
+						await writeFile(join(agentDir, "settings.json"), JSON.stringify(selection.global));
+						await writeFile(join(cwd, ".pi", "settings.json"), JSON.stringify(selection.project));
+						await projects.reloadProjectSettings([cwd]);
+						const manager = SessionManager.inMemory(cwd);
+						const runtime = await factory.createRuntimeForSession({ cwd, sessionId: manager.getSessionId() }, manager, {
+							model: null,
+							thinkingLevel: "off",
+							scopedModels: [],
+							activeToolNames: ["read", "codemode"],
+							defaultToolsConfigured: selection.wasConfigured ?? false,
+							extensionFlagValues: new Map(),
+						});
+						try {
+							expect(runtime.session.getActiveToolNames().sort()).toEqual(
+								[...selection.expected, "generate_image"].sort(),
+							);
+							expect(
+								runtime.services.resourceLoader
+									.getExtensions()
+									.extensions.filter((item) => item.tools.has("generate_image"))
+									.map((item) => item.path),
+							).toEqual([extension]);
+						} finally {
+							await runtime.dispose();
+							projects.releasePiRuntimeServices(runtime.services);
+						}
 					}
 				}
 			} finally {

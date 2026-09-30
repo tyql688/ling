@@ -47,9 +47,9 @@ Use the `adapt`, `expose`, `inherited` and `defer` decision rules in the [Pi upg
 
 | Changed surface | Migration and acceptance evidence |
 | --- | --- |
-| Configuration and precedence | Verify global/shared/project sources against the published public config API, including partial disabled overrides and transport-bound credentials. Preserve comments, unknown options, corrupt files and concurrent edits. Never call an upstream writer that silently replaces a failed read with an empty document. |
-| Runtime and tool use | Use a real stdio or HTTP server and a real model turn with an actual approval. Verify lazy discovery, proxy/direct tools, reconnection, resource reload, resume, shutdown and child cleanup. Keep OAuth and connection ownership upstream. |
-| Native presentation | Audit the versioned status event before widening supported versions. Confirm cached catalogs are distinct from connections, and session replacement rejects old status. Test supported community-installed precedence and native command adaptation. |
-| Published assets | Verify the root extension entry, public config/types exports, MCP SDK closure and optional native keyring assets in fresh standalone staged resources. Record platform and external OAuth gaps. |
+| Configuration and precedence | Verify official global/project sources against the published config types, including complete-entry replacement and invalid-entry isolation and transport-bound credentials. Preserve comments, unknown options, corrupt files and concurrent edits. Never call an upstream writer that silently replaces a failed read with an empty document. |
+| Runtime and tool use | Use a real stdio or HTTP server and a real model turn with an actual approval. Verify startup discovery, Codemode, deferred/direct tools, nested permissions and resources, reconnection, resource reload, resume, shutdown and child cleanup. Keep OAuth and connection ownership upstream. |
+| Native presentation | Audit the public command status output before changing its projection. Confirm status timestamps and cached catalogs are distinct from connections, and session replacement rejects old status. Test supported community-installed precedence and native command adaptation. |
+| Published assets | Verify the public built-in factory/config exports, MCP SDK closure and Codemode WASM assets in fresh standalone staged resources. Record platform and external OAuth gaps. |
 
 Keep the evidence with the update or release task. These rows guide source review and real acceptance; they do not justify architecture tests, DOM snapshots, mocks standing in for SDK interactions, or a new maintenance enforcement framework.

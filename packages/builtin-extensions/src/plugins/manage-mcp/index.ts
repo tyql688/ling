@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { mcpToolRequestSchema, type McpToolRequest } from "@ling/contracts/mcp-tool";
+import { MCP_CONFIG_MAX_BYTES } from "@ling/contracts/mcp";
 import type { SessionRef } from "@ling/contracts/session-ref";
 
 export type McpToolHost = (ref: SessionRef, request: McpToolRequest, signal?: AbortSignal) => Promise<string>;
@@ -18,14 +19,14 @@ export function createMcpTools(host: McpToolHost): (pi: ExtensionAPI) => void {
 				"Use configure to merge server fields into an explicit target; env and headers merge by key. " +
 				"removeFields deletes fields before merging, for example command and args when switching to a URL. " +
 				"Changing the connection target requires explicitly removing old connection-bound fields before providing replacements. " +
-				"Other values and credentials are preserved; new services default to approveTools:true. " +
-				"All service mutations require the target's expectedRevision. Targets: global (Pi), global-shared, project (Pi override), project-shared. " +
-				"set_server_enabled changes one service; reset_server_enabled removes that layer's disabled override. " +
+				"Other values and credentials are preserved. Official Pi MCP uses access-mode permission rules for tool calls. " +
+				"All service mutations require the target's expectedRevision. Targets: global (Pi agent directory), project (complete Pi project entry). " +
+				"set_server_enabled changes an existing complete entry; reset_server_enabled removes its enabled field. " +
 				"set_feature_enabled changes Ling's global MCP switch using expectedFeatureRevision, only when the user requested activation/deactivation. " +
-				"Saving configuration does not enable MCP. Enabling or reloading can connect enabled services according to adapter lifecycle. " +
+				"Saving configuration does not enable MCP. Enabling or reloading can connect enabled services at session startup. " +
 				"The switch does not disable independently installed Pi adapters. " +
 				"Mutations reload affected projects/sessions; busy sessions defer until the run ends. Use reload after manual edits. " +
-				"Report saved, pending, failed and connected separately. Use mcp for live discovery/calls after activation. " +
+				"Report saved, pending, failed and connected separately. Use the exposed MCP tools, tool search or Codemode after activation; /mcp opens session status. " +
 				"Only make requested changes. Prefer environment references to secret values. When available, use the ling-and-pi skill for the complete workflow.",
 			promptSnippet: "Configure MCP services and Ling's MCP switch, including while execution is disabled.",
 			// A flat provider-facing schema avoids anyOf action variants rejected by some model APIs.
@@ -41,8 +42,9 @@ export function createMcpTools(host: McpToolHost): (pi: ExtensionAPI) => void {
 						"reload",
 					],
 				}),
-				target: Type.Optional(Type.String({ enum: ["global", "global-shared", "project", "project-shared"] })),
-				name: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
+				target: Type.Optional(Type.String({ enum: ["global", "project"] })),
+				// Stored names also include invalid entries that read/remove can repair.
+				name: Type.Optional(Type.String({ maxLength: MCP_CONFIG_MAX_BYTES })),
 				expectedRevision: Type.Optional(Type.String({ minLength: 64, maxLength: 64 })),
 				expectedFeatureRevision: Type.Optional(Type.Integer({ minimum: 0 })),
 				enabled: Type.Optional(Type.Boolean()),
@@ -52,7 +54,7 @@ export function createMcpTools(host: McpToolHost): (pi: ExtensionAPI) => void {
 						{
 							additionalProperties: true,
 							description:
-								"Partial MCP service configuration: command/args or url, env, headers, approveTools and other adapter fields.",
+								"MCP fields to merge: command/args or url, env, headers, enabled, exposure, toolExposure, timeout and oauth. The resulting entry must describe one complete connection.",
 						},
 					),
 				),

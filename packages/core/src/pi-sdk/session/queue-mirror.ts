@@ -603,9 +603,12 @@ export class PiQueueMirror {
 		const pending: PendingQueueMetadata = { kind, metadata, captured: false };
 		this.pendingMetadata = pending;
 		try {
-			if (kind === "steering") await this.session.steer(text, images ? [...images] : undefined);
-			else await this.session.followUp(text, images ? [...images] : undefined);
-			if (!pending.captured) throw inconsistentQueueMirror("queued message was not captured");
+			const disposition =
+				kind === "steering"
+					? await this.session.steer(text, images ? [...images] : undefined)
+					: await this.session.followUp(text, images ? [...images] : undefined);
+			if (disposition === "queued" && !pending.captured)
+				throw inconsistentQueueMirror("queued message was not captured");
 		} finally {
 			if (this.pendingMetadata === pending) this.pendingMetadata = null;
 		}

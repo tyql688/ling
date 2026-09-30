@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { mcpPatchSchema, mcpServerNameSchema, mcpTargetSchema } from "./mcp";
+import { mcpPatchSchema, mcpServerNameSchema, mcpStoredServerNameSchema, mcpTargetSchema } from "./mcp";
 
 const entry = {
 	target: mcpTargetSchema,
@@ -11,11 +11,11 @@ const entry = {
 export const mcpToolRequestSchema = z.discriminatedUnion("action", [
 	z.strictObject({
 		action: z.literal("read"),
-		name: mcpServerNameSchema.optional(),
+		name: mcpStoredServerNameSchema.optional(),
 		target: mcpTargetSchema.optional(),
 	}),
 	z.strictObject({ action: z.literal("configure"), ...entry, ...mcpPatchSchema.omit({ kind: true }).shape }),
-	z.strictObject({ action: z.literal("remove"), ...entry }),
+	z.strictObject({ action: z.literal("remove"), ...entry, name: mcpStoredServerNameSchema }),
 	z.strictObject({ action: z.literal("set_server_enabled"), ...entry, enabled: z.boolean() }),
 	z.strictObject({ action: z.literal("reset_server_enabled"), ...entry }),
 	z.strictObject({

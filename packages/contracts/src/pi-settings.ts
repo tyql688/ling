@@ -2,6 +2,7 @@ import { z } from "zod";
 import type * as requestSchemas from "./pi-settings-requests";
 import { ABSOLUTE_PATH_MAX_CHARS } from "./path-bounds";
 import type { ThinkingLevel } from "./session";
+import { safeIdSchema } from "./schema-primitives";
 
 // Shell paths use Ling's absolute-path boundary. An npm command is additionally capped
 // at 16 KiB after parsing, with at most 64 wrapper arguments of at most 4 KiB each.
@@ -36,6 +37,17 @@ export const PI_RETRY_BASE_DELAY_MS_MAX = 60_000;
 export const PI_RETRY_MAX_DELAY_MS_MAX = 300_000;
 
 export const PI_CACHE_WARMING_MODES = ["off", "streaming", "idle"] as const;
+export const PI_DEFAULT_TOOL_NAMES = ["read", "bash", "edit", "write"] as const;
+// Bound the generated tool-description budget exposed by the settings editor.
+export const PI_CODEMODE_INLINE_BUDGET_MAX = 128_000;
+export const piCodemodeSettingsSchema = z.strictObject({
+	mode: z.enum(["on", "only"]),
+	inlineBudget: z.number().int().min(0).max(PI_CODEMODE_INLINE_BUDGET_MAX),
+});
+export const piDefaultToolsSchema = z
+	.array(safeIdSchema(256, "Tool name").refine((name) => !/^[+-]/.test(name), "Use resolved tool names"))
+	.max(256)
+	.refine((tools) => new Set(tools).size === tools.length, "Duplicate Pi tool");
 type CacheWarmingMode = (typeof PI_CACHE_WARMING_MODES)[number];
 export const piCompactionModelOverridesSchema = z.record(
 	z.string(),
@@ -79,8 +91,10 @@ export interface PiSettingsSnapshot {
 	httpIdleTimeoutMs: number;
 	/** Expose loaded skills as /skill:name commands (Pi's enableSkillCommands). */
 	enableSkillCommands: boolean;
-	/** Built-in tools every session starts with. Empty means Pi's own default set. */
+	/** Resolved initial tool selection, including Pi's defaults when no selection is saved. */
 	defaultTools: string[];
+	defaultToolsConfigured: boolean;
+	codemode: z.infer<typeof piCodemodeSettingsSchema>;
 }
 
 export type PiSettingsRecoveryStatus =
@@ -92,11 +106,23 @@ export type PiSettingsUpdate = z.infer<typeof requestSchemas.piSettingsUpdateSch
 
 /**
  * Pi's built-in tool names, in the order the settings UI lists them. Pi enables read, bash,
- * edit, and write when `defaultTools` is unset; the rest are opt-in. `powershell`
+ * edit, and write when `defaultTools` is unset. MCP activates codemode/tool_search as required
+ * by server exposure. Other tools are opt-in. `powershell`
  * runs through pwsh/Windows PowerShell, so the UI offers it on Windows only; the schemas keep
  * accepting it everywhere because settings.json can travel between machines.
  */
-export const PI_BUILT_IN_TOOL_NAMES = ["read", "bash", "powershell", "edit", "write", "find", "grep", "ls"] as const;
+export const PI_BUILT_IN_TOOL_NAMES = [
+	"read",
+	"bash",
+	"powershell",
+	"edit",
+	"write",
+	"find",
+	"grep",
+	"ls",
+	"codemode",
+	"tool_search",
+] as const;
 
 /** Mirrors Pi's HTTP idle timeout choices in milliseconds; zero disables the timeout. */
 export const HTTP_IDLE_TIMEOUT_CHOICES_MS = [30_000, 60_000, 120_000, 300_000, 0] as const;

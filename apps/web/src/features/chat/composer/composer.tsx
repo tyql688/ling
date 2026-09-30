@@ -284,7 +284,10 @@ export function Composer({
 			if (hasConversationHistory) onMidConversationModelChange();
 		});
 	};
-	const contextUsage = deriveContextUsage(contextTokens, currentModel?.contextWindow);
+	const contextUsage = deriveContextUsage(
+		contextTokens,
+		modelState?.routedModel?.contextWindow ?? currentModel?.contextWindow,
+	);
 	const hasSendableContent = core.hasSendableContent;
 
 	if (!busy && !modelStateError && modelState?.models.length === 0) return <ModelConnectionPrompt />;

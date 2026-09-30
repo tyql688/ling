@@ -63,6 +63,7 @@ export function createPiModels({
 	catalog,
 	credentials,
 	providerMutations,
+	getPiDeviceId,
 }: {
 	projects: PiProjectModelAccess;
 	modelRuntimes: PiModelRuntimes;
@@ -70,6 +71,7 @@ export function createPiModels({
 	catalog: PiModelCatalog;
 	credentials: PiModelCredentials;
 	providerMutations: PiModelProviderMutations;
+	getPiDeviceId: () => Promise<string>;
 }) {
 	const { withOpenProject } = projects;
 	const { getGlobalModelRuntime } = modelRuntimes;
@@ -315,6 +317,8 @@ export function createPiModels({
 		}
 
 		try {
+			const deviceId = provider === "openai" && method === "oauth" ? await getPiDeviceId() : undefined;
+			const loginOptions = deviceId ? { getDeviceId: () => deviceId } : undefined;
 			const interaction: PiAuthInteraction = {
 				signal: login.controller.signal,
 				prompt: ask,
@@ -323,17 +327,31 @@ export function createPiModels({
 			let synchronization: Awaited<ReturnType<typeof loginWithProvider>>;
 			if (cwd === null) {
 				const runtime = await getGlobalModelRuntime();
-				synchronization = await loginWithProvider(runtime, provider, method, interaction, async () => {
-					await reloadGlobalModelRuntime(login.controller.signal);
-				});
+				synchronization = await loginWithProvider(
+					runtime,
+					provider,
+					method,
+					interaction,
+					async () => {
+						await reloadGlobalModelRuntime(login.controller.signal);
+					},
+					loginOptions,
+				);
 			} else {
 				synchronization = await withOpenProject(cwd, async (services) =>
-					loginWithProvider(services.modelRuntime, provider, method, interaction, async () => {
-						await refreshModelRuntime(services.modelRuntime, {
-							allowNetwork: false,
-							signal: login.controller.signal,
-						});
-					}),
+					loginWithProvider(
+						services.modelRuntime,
+						provider,
+						method,
+						interaction,
+						async () => {
+							await refreshModelRuntime(services.modelRuntime, {
+								allowNetwork: false,
+								signal: login.controller.signal,
+							});
+						},
+						loginOptions,
+					),
 				);
 			}
 			log.info(`${method} login completed for ${provider}${cwd === null ? "" : ` in ${cwd}`}`);

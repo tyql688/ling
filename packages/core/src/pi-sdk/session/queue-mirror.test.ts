@@ -47,11 +47,11 @@ function setup() {
 		},
 		steer: (text, images = []) => {
 			session.agent.steer({ role: "user", content: [{ type: "text", text }, ...images], timestamp: 1 });
-			return Promise.resolve();
+			return Promise.resolve("queued" as const);
 		},
 		followUp: (text, images = []) => {
 			session.agent.followUp({ role: "user", content: [{ type: "text", text }, ...images], timestamp: 1 });
-			return Promise.resolve();
+			return Promise.resolve("queued" as const);
 		},
 		getSteeringMessages: () => steering.filter((message) => message.role === "user").map(text),
 		getFollowUpMessages: () => followUp.filter((message) => message.role === "user").map(text),
@@ -66,6 +66,19 @@ function setup() {
 }
 
 describe("Pi queue mirror", () => {
+	it("accepts input handled by an extension without inventing a queued message", async () => {
+		const h = setup();
+		try {
+			h.session.steer = async () => "handled";
+			h.session.followUp = async () => "handled";
+			await h.mirror.enqueue("steering", "extension input");
+			await h.mirror.enqueue("followUp", "extension input");
+			expect(h.mirror.project()).toMatchObject({ steering: [], followUp: [] });
+		} finally {
+			h.mirror.dispose();
+		}
+	});
+
 	it("shows pending question answers without losing their envelope or shifting editable queue indexes", async () => {
 		const h = setup();
 		const answer: Message = {

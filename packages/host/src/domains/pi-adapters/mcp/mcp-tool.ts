@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { mcpToolRequestSchema } from "@ling/contracts/mcp-tool";
-import type { McpOverview, McpWriteRequest } from "@ling/contracts/mcp";
+import { mcpConfiguredServerSchema, type McpOverview, type McpWriteRequest } from "@ling/contracts/mcp";
 import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiResourceReloadSummary } from "@ling/contracts/session";
 import { parsePiWorkerSessionRef } from "@ling/core/pi-protocol/protocol-validation";
@@ -12,7 +12,7 @@ import type { McpSettings } from "./mcp-settings";
 const TOOL_SERVER_LIMIT = 100;
 
 function inventory(overview: McpOverview, name?: string, target?: string) {
-	const effective = overview.effective?.filter((entry) => name === undefined || entry.name === name) ?? null;
+	const effective = overview.effective.filter((entry) => name === undefined || entry.name === name);
 	return {
 		notices: overview.notices,
 		documents: overview.documents
@@ -31,17 +31,21 @@ function inventory(overview: McpOverview, name?: string, target?: string) {
 					error: document.error,
 					// Values may contain credentials in args, URLs or arbitrary extension options. Never echo them.
 					servers:
-						entries?.slice(0, TOOL_SERVER_LIMIT).map(([name, entry]) => ({
-							name,
-							disabled: entry.disabled ?? null,
-							transport: entry.command ? "stdio" : entry.url ? "http" : entry.socket ? "socket" : "override",
-							fields: Object.keys(entry),
-						})) ?? null,
+						entries?.slice(0, TOOL_SERVER_LIMIT).map(([name, entry]) => {
+							const parsed = mcpConfiguredServerSchema.safeParse(entry);
+							return {
+								name,
+								enabled: parsed.success ? (parsed.data.enabled ?? true) : null,
+								transport: parsed.success ? (parsed.data.command ? "stdio" : "http") : "invalid",
+								fields: typeof entry === "object" && entry !== null ? Object.keys(entry) : [],
+								valid: parsed.success,
+							};
+						}) ?? null,
 					omitted: entries === null ? null : Math.max(0, entries.length - TOOL_SERVER_LIMIT),
 				};
 			}),
-		effective: effective?.slice(0, TOOL_SERVER_LIMIT) ?? null,
-		effectiveOmitted: effective === null ? null : Math.max(0, effective.length - TOOL_SERVER_LIMIT),
+		effective: effective.slice(0, TOOL_SERVER_LIMIT),
+		effectiveOmitted: Math.max(0, effective.length - TOOL_SERVER_LIMIT),
 	};
 }
 
@@ -77,10 +81,10 @@ export function createMcpTool(options: {
 						change = { kind: "remove" };
 						break;
 					case "set_server_enabled":
-						change = { kind: "toggle", disabled: !request.enabled };
+						change = { kind: "toggle", enabled: request.enabled };
 						break;
 					case "reset_server_enabled":
-						change = { kind: "reset-disabled" };
+						change = { kind: "reset-enabled" };
 						break;
 				}
 				reload = await options.settings.write(
@@ -99,11 +103,11 @@ export function createMcpTool(options: {
 				action: request.action,
 				feature: { enabled: feature.enabled.mcp, revision: feature.revision },
 				featureScope:
-					"Ling bundled MCP and native controls; independently installed Pi adapters retain their own lifecycle",
+					"Official Pi MCP and Ling controls; independently installed extensions retain their own lifecycle",
 				...(request.action === "read"
 					? inventory(overview, request.name, request.target)
 					: { saved: request.action !== "reload", reload }),
-				note: "Enabling or reloading may start enabled services according to adapter lifecycle. This result does not verify a connection. Pending sessions apply changes after their current run; check MCP status/tools in the next turn. Configuration edits never change the feature switch.",
+				note: "Enabling or reloading may start enabled services when the official extension starts. This result does not verify a connection. Pending sessions apply changes after their current run; check MCP status/tools in the next turn. Configuration edits never change the feature switch.",
 			});
 		},
 	};

@@ -128,9 +128,8 @@ async function promoteQueuedPrompt(
 	canStart: () => boolean,
 	settleAdmission: (committed: boolean) => void,
 ): Promise<void> {
-	// preflightResult(true) fires when Pi commits the message for delivery; from then on
-	// a turn failure must NOT restore the message (it was delivered — restoring would
-	// duplicate it). Before that point the prompt never happened, so restore in place.
+	// Every reported disposition consumes the input, including extension-handled commands.
+	// Restore a removed draft only when Pi rejects it before admission.
 	let committed = false;
 	let removed = false;
 	try {
@@ -147,9 +146,9 @@ async function promoteQueuedPrompt(
 			// If a run started meanwhile, queue instead of throwing "already processing".
 			streamingBehavior: kind === "steering" ? "steer" : "followUp",
 			...(message.images.length > 0 ? { images: [...message.images] } : {}),
-			preflightResult: (ok: boolean) => {
-				committed = ok;
-				if (ok) settleAdmission(true);
+			preflightResult: () => {
+				committed = true;
+				settleAdmission(true);
 			},
 		});
 	} catch (error) {

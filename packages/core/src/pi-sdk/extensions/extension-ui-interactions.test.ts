@@ -10,7 +10,7 @@ describe("extension UI interaction cancellation", () => {
 		const ref = { cwd: "/project", sessionId: "mcp-session" };
 		try {
 			const copied = { ...owner.createPiExtensionUiContext(ref) };
-			const status = { version: 1 as const, servers: [], totalTools: 3, connectedCount: 1 };
+			const status = { version: 2 as const, text: "demo: connected, 3 tools (codemode)", updatedAt: 1 };
 			owner.mcpUi.status(copied, status);
 			owner.mcpUi.open(copied);
 			expect(bridge.getExtensionUiState(ref).mcpStatus).toEqual(status);

@@ -1,13 +1,19 @@
-import { isPiMcpSource, MCP_BUNDLED_SOURCE } from "@ling/contracts/mcp";
-import { supportsPiMcp, createMcpStatusBridge, type McpUi } from "../mcp/mcp-extension";
-import { DefaultPackageManager } from "@earendil-works/pi-coding-agent";
+import { MCP_BUILTIN_SOURCE } from "@ling/contracts/mcp";
+import { adaptMcpExtension, type McpUi } from "../mcp/mcp-extension";
+import { readPiMcpConfiguration } from "../mcp/pi-mcp";
+import {
+	createCodemodeExtension,
+	createMcpExtension,
+	createToolSearchExtension,
+	DefaultPackageManager,
+} from "@earendil-works/pi-coding-agent";
 import type { PiAdapterPlan } from "@ling/contracts/companions";
 import { PERMISSION_PACKAGE } from "@ling/contracts/permissions";
 import { piPackageSource } from "@ling/contracts/pi-tool-origin";
 import { TODO_BUNDLED_SOURCE, TODO_PACKAGE } from "@ling/contracts/todo";
 import { isPiVoiceSource, VOICE_BUNDLED_SOURCE } from "@ling/contracts/voice";
 import { dirname } from "node:path";
-import type { PiExtensionUiContext, PiLoadExtensionsResult, PiSettingsManager } from "../types";
+import type { PiExtensionUiContext, PiInlineExtension, PiLoadExtensionsResult, PiSettingsManager } from "../types";
 import { restoreToolFiltersOnShutdown } from "./pi-tool-filter-restore";
 import { supportsPiVoice } from "../voice/pi-voice-modules";
 import { createLogger } from "../../logger";
@@ -36,6 +42,7 @@ export async function preparePiAdapters(options: {
 		cwd: options.cwd,
 		agentDir: options.agentDir,
 		settingsManager,
+		builtinExtensions: ["codemode", "tool-search", ...(plan.features.mcp ? ["mcp"] : [])],
 	}).resolve();
 	const trusted = settingsManager.isProjectTrusted();
 	const visible = inventory.extensions.filter((resource) => resource.metadata.scope !== "project" || trusted);
@@ -48,15 +55,11 @@ export async function preparePiAdapters(options: {
 		bundled.set(plan.voice, VOICE_BUNDLED_SOURCE);
 	if (plan.permissions?.enabled && !installed(PERMISSION_PACKAGE))
 		bundled.set(plan.permissions.entry, PERMISSION_BUNDLED_SOURCE);
-	if (plan.mcp && trusted && !visible.some((resource) => isPiMcpSource(sourceOf(resource))))
-		bundled.set(plan.mcp, MCP_BUNDLED_SOURCE);
+
 	// Control catalogs keep installed provider/resource contributions; activation gates session execution.
 	const suppressed =
 		options.loadBundled !== false && plan.permissions && !plan.permissions.enabled ? `npm:${PERMISSION_PACKAGE}` : null;
-	const resources = visible.filter(
-		(resource) =>
-			resource.enabled && sourceOf(resource) !== suppressed && (trusted || !isPiMcpSource(sourceOf(resource))),
-	);
+	const resources = visible.filter((resource) => resource.enabled && sourceOf(resource) !== suppressed);
 	const voicePaths = new Set<string>();
 	if (plan.features.voice && options.openVoiceSettings) {
 		const candidates = [
@@ -71,28 +74,44 @@ export async function preparePiAdapters(options: {
 			}
 		}
 	}
-	const mcpPaths = new Set<string>();
-	if (plan.features.mcp && options.mcpUi) {
-		for (const path of [
-			...resources.filter((resource) => isPiMcpSource(sourceOf(resource))).map((resource) => resource.path),
-			...[...bundled].filter(([, source]) => source === MCP_BUNDLED_SOURCE).map(([path]) => path),
-		]) {
-			try {
-				if (await supportsPiMcp(path)) mcpPaths.add(path);
-			} catch (error) {
-				log.warn("Could not verify MCP compatibility; preserving its original commands", error);
-			}
-		}
+	const factories: PiInlineExtension[] = [
+		{ name: "codemode", builtin: true, replaceable: true, factory: createCodemodeExtension() },
+		{ name: "tool-search", builtin: true, replaceable: true, factory: createToolSearchExtension() },
+	];
+	if (plan.features.mcp) {
+		factories.push({
+			name: "mcp",
+			builtin: true,
+			replaceable: true,
+			factory: async (pi) => {
+				let configuration: Awaited<ReturnType<typeof readPiMcpConfiguration>> | undefined;
+				// Pi awaits session-start listeners in registration order, including after replacement.
+				pi.on("session_start", async () => {
+					configuration = await readPiMcpConfiguration(
+						options.agentDir,
+						settingsManager.isProjectTrusted() ? options.cwd : null,
+					);
+				});
+				await createMcpExtension({
+					loadConfig: () => {
+						if (!configuration) throw new Error("MCP configuration has not loaded for this session.");
+						return configuration.loaded;
+					},
+				})(pi);
+			},
+		});
 	}
 	const revocable = new Set([
 		...resources.filter((resource) => sourceOf(resource) === `npm:${PERMISSION_PACKAGE}`).map((r) => r.path),
 		...(plan.permissions ? [plan.permissions.entry] : []),
 	]);
 	return {
-		factories: mcpPaths.size && options.mcpUi ? [createMcpStatusBridge(options.mcpUi)] : [],
+		factories,
 		paths: [
 			...new Set([
-				...resources.map((resource) => resource.path),
+				...resources
+					.filter((resource) => options.loadBundled !== false || resource.metadata.source !== "builtin")
+					.map((resource) => resource.path),
 				...(options.loadBundled === false ? [] : bundled.keys()),
 			]),
 		],
@@ -100,20 +119,7 @@ export async function preparePiAdapters(options: {
 		bundledEntries: new Map([...bundled].map(([path, source]) => [source, path])),
 		overrides(base: PiLoadExtensionsResult): PiLoadExtensionsResult {
 			for (const extension of base.extensions) {
-				if (mcpPaths.has(extension.path) && options.mcpUi) {
-					const open = options.mcpUi.open;
-					for (const name of ["mcp-adapter", "mcp"]) {
-						const command = extension.commands.get(name);
-						if (command)
-							extension.commands.set(name, {
-								...command,
-								handler: async (args, ctx) => {
-									if (["", "status", "setup", "edit"].includes(args.trim())) open(ctx.ui);
-									else await command.handler(args, ctx);
-								},
-							});
-					}
-				}
+				if (extension.path === MCP_BUILTIN_SOURCE && options.mcpUi) adaptMcpExtension(extension, options.mcpUi);
 				if (revocable.has(extension.path)) restoreToolFiltersOnShutdown(extension, base.runtime);
 				if (voicePaths.has(extension.path) && options.openVoiceSettings) {
 					const open = options.openVoiceSettings;
@@ -129,9 +135,6 @@ export async function preparePiAdapters(options: {
 					extension.handlers.delete("session_start");
 				}
 			}
-			// Pi appends inline factories; observe the first status emitted during MCP startup.
-			const index = base.extensions.findIndex((extension) => extension.path === "<inline:ling-mcp-status>");
-			if (index > 0) base.extensions.unshift(...base.extensions.splice(index, 1));
 			return base;
 		},
 		decorate(base: PiLoadExtensionsResult) {

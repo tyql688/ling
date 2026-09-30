@@ -88,7 +88,9 @@ export function useModelState(ref: SessionRef | null, binding: SessionModelRunti
 				sessionKey(envelope.ref) === refKey &&
 				envelope.runtimeId === binding.runtimeId &&
 				envelope.generation === binding.generation &&
-				envelope.event.type === "commandsChanged"
+				(envelope.event.type === "commandsChanged" ||
+					envelope.event.type === "runFinished" ||
+					(envelope.event.type === "messageEnd" && envelope.event.message.role === "assistant"))
 			) {
 				fetchState();
 			}

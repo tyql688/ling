@@ -34,15 +34,11 @@ export function McpSessionControl({ sessionRef }: { sessionRef: SessionRef }) {
 			size="sm"
 			className="h-7 gap-1 px-1.5 text-xs text-text-muted"
 			onClick={() => navigation.openSettings("mcp")}
-			title={
-				status.servers.length
-					? t("mcp.summary", { connected: status.connectedCount, tools: status.totalTools })
-					: t("mcp.status_not-connected")
-			}
+			title={t("mcp.statusUpdated", { time: new Date(status.updatedAt).toLocaleTimeString() })}
 			aria-label={t("mcp.title")}
 		>
 			<Plug className="size-3.5" aria-hidden="true" />
-			MCP · {status.connectedCount}
+			MCP
 		</Button>
 	);
 }

@@ -69,7 +69,8 @@ export async function readPiExtensionIdentities(services: PiAgentSessionServices
 			tools.add(name);
 			return true;
 		});
-		if (extension.hidden || extension.resolvedPath.startsWith("<")) continue;
+		if (extension.hidden || extension.resolvedPath.startsWith("<") || extension.resolvedPath.startsWith("builtin:"))
+			continue;
 		const record = await readPiResourceIdentity(extension.resolvedPath, extension.sourceInfo);
 		record.tools = ownedTools;
 		result.push(record);

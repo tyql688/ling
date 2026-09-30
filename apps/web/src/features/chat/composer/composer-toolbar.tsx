@@ -476,6 +476,16 @@ export function ComposerToolbar({
 				onThinkingLevelChange={onThinkingLevelChange}
 				additionalSettings={{ label: t("session.followUpMode"), control: followUp }}
 			/>
+			{modelState?.routedModel && (
+				<span
+					className="min-w-0 max-w-48 truncate text-xs text-text-muted"
+					title={t("session.routedModel", {
+						model: `${modelState.routedModel.provider}/${modelState.routedModel.modelId}`,
+					})}
+				>
+					{t("session.routedModel", { model: modelState.routedModel.name })}
+				</span>
+			)}
 		</ComposerToolbarFrame>
 	);
 }

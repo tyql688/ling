@@ -4,6 +4,7 @@ import {
 	HTTP_IDLE_TIMEOUT_CHOICES_MS,
 	PI_BUILT_IN_TOOL_NAMES,
 	PI_CACHE_WARMING_MODES,
+	PI_CODEMODE_INLINE_BUDGET_MAX,
 	PI_RETRY_MAX_DELAY_MS_MAX,
 	PI_RETRY_BASE_DELAY_MS_MAX,
 	PI_RETRY_BASE_DELAY_MS_MIN,
@@ -11,8 +12,6 @@ import {
 	PI_RETRY_MAX_RETRIES_MIN,
 	type DefaultProjectTrust,
 	type MessageDeliveryMode,
-	type PiSettingsRecoveryStatus,
-	type PiSettingsSnapshot,
 	type PiSettingsUpdate,
 } from "@ling/contracts/pi-settings";
 import { piSettingsUpdateSchema } from "@ling/contracts/pi-settings-requests";
@@ -31,149 +30,17 @@ import { isProviderUsable } from "@renderer/features/models/models-navigation";
 import { useProviders } from "@renderer/features/models/use-providers";
 import { GlobalInstructionsSection } from "@renderer/features/settings/global-instructions-section";
 import { NumberSettingRow } from "@renderer/components/ui/number-setting-row";
-import { formatRequestError } from "@renderer/lib/errors";
-import { useDomainApi } from "@renderer/lib/host-api-context";
 import { isWindows } from "@renderer/lib/platform";
 import { Settings2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
+import { usePiSettings, useProxySetting } from "./use-pi-settings";
 import { useTranslation } from "react-i18next";
 import { TextSettingRow } from "@renderer/components/ui/text-setting-row";
 
-type ProxySettingReadResult = { status: "ready"; value: string } | { status: "unavailable"; error: unknown };
-
-type PersistedSettingsMutationResult<Success, Persisted> =
-	| { status: "saved"; value: Success }
-	| {
-			status: "failed";
-			error: unknown;
-			persisted: { status: "ready"; value: Persisted } | { status: "unavailable"; error: unknown };
-	  };
-
-/** A main-process mutation can persist successfully and still reject because live
- * Pi generations failed to reload. Always read the canonical saved value after a
- * rejection so the settings UI never keeps presenting a stale pre-save snapshot. */
-async function runPersistedSettingsMutation<Success, Persisted>(
-	mutate: () => Promise<Success>,
-	readPersisted: () => Promise<Persisted>,
-): Promise<PersistedSettingsMutationResult<Success, Persisted>> {
-	try {
-		return { status: "saved", value: await mutate() };
-	} catch (error) {
-		try {
-			return { status: "failed", error, persisted: { status: "ready", value: await readPersisted() } };
-		} catch (readError) {
-			return { status: "failed", error, persisted: { status: "unavailable", error: readError } };
-		}
-	}
-}
-
-interface PersistedSettingsMutationQueue {
-	run<Success, Persisted>(
-		mutate: () => Promise<Success>,
-		readPersisted: () => Promise<Persisted>,
-	): Promise<{ revision: number; result: PersistedSettingsMutationResult<Success, Persisted> }>;
-	isCurrent(revision: number): boolean;
-	invalidate(): void;
-}
-
-interface SettingsReadFence {
-	begin(): number;
-	isCurrent(revision: number): boolean;
-	invalidate(): void;
-}
-
-/** Prevents an older settings read from publishing after a newer read, edit, or
- * mutation has taken ownership of the visible state. Reads and mutations have
- * separate lifetimes, so this fence deliberately stays independent of the write queue. */
-function createSettingsReadFence(): SettingsReadFence {
-	let latestRevision = 0;
-	return {
-		begin() {
-			latestRevision += 1;
-			return latestRevision;
-		},
-		isCurrent(revision) {
-			return revision === latestRevision;
-		},
-		invalidate() {
-			latestRevision += 1;
-		},
-	};
-}
-
-/** Serializes global settings writes and lets the renderer publish only the newest
- * requested snapshot. Main already serializes disk writes; this closes the separate
- * response-order window in React, including canonical reads after reload failures. */
-function createPersistedSettingsMutationQueue(): PersistedSettingsMutationQueue {
-	let latestRevision = 0;
-	let tail: Promise<void> = Promise.resolve();
-	return {
-		run(mutate, readPersisted) {
-			latestRevision += 1;
-			const revision = latestRevision;
-			const operation = tail.then(() => runPersistedSettingsMutation(mutate, readPersisted));
-			tail = operation.then(
-				() => undefined,
-				() => undefined,
-			);
-			return operation.then((result) => ({ revision, result }));
-		},
-		isCurrent(revision) {
-			return revision === latestRevision;
-		},
-		invalidate() {
-			latestRevision += 1;
-		},
-	};
-}
-
-async function readProxySetting(read: () => Promise<string | null>): Promise<ProxySettingReadResult> {
-	try {
-		return { status: "ready", value: (await read()) ?? "" };
-	} catch (error) {
-		return { status: "unavailable", error };
-	}
-}
-
 /** Proxy absence is Pi's automatic network mode; failed reads stay distinct. */
 function ProxyRow() {
-	const hostNetworkApi = useDomainApi("network");
 	const { t } = useTranslation();
-	const [stored, setStored] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
-	const fence = useRef(createSettingsReadFence()).current;
-	const queue = useRef(createPersistedSettingsMutationQueue()).current;
-	const load = useCallback(async () => {
-		const revision = fence.begin();
-		const result = await readProxySetting(hostNetworkApi.getProxy);
-		if (!fence.isCurrent(revision)) return;
-		if (result.status === "ready") {
-			setStored(result.value);
-			setError(null);
-		} else setError(formatRequestError(result.error, t));
-	}, [hostNetworkApi, fence, t]);
-	useEffect(() => {
-		void load();
-		return () => {
-			fence.invalidate();
-			queue.invalidate();
-		};
-	}, [load, fence, queue]);
-	const save = async (draft: string): Promise<boolean> => {
-		fence.invalidate();
-		const next = draft.trim();
-		const outcome = await queue.run(() => hostNetworkApi.setProxy(next === "" ? null : next), hostNetworkApi.getProxy);
-		if (!queue.isCurrent(outcome.revision)) return outcome.result.status === "saved";
-		const { result } = outcome;
-		if (result.status === "saved") {
-			setStored(next);
-			setError(null);
-			return true;
-		}
-		if (result.persisted.status === "ready") setStored(result.persisted.value ?? "");
-		setError(formatRequestError(result.error, t));
-		return false;
-	};
+	const { stored, error, load, save } = useProxySetting();
 	if (stored === null)
 		return error ? (
 			<SettingsState
@@ -203,79 +70,9 @@ function ProxyRow() {
  * to Pi's global settings.json and refresh every open project's SettingsManager.
  */
 export function PiSettingsView() {
-	const hostPiSettingsApi = useDomainApi("piSettings");
-
 	const { t } = useTranslation();
-	const [snapshot, setSnapshot] = useState<PiSettingsSnapshot | null>(null);
-	const [settingsError, setSettingsError] = useState<string | null>(null);
-	const [recoveryStatus, setRecoveryStatus] = useState<PiSettingsRecoveryStatus | null>(null);
-	const [repairing, setRepairing] = useState(false);
+	const { snapshot, settingsError, recoveryStatus, repairing, load, repairHttpIdleTimeout, apply } = usePiSettings();
 	const { providers, error: providersError, refresh: refreshProviders } = useProviders();
-	const mutationQueueRef = useRef<PersistedSettingsMutationQueue | null>(null);
-	mutationQueueRef.current ??= createPersistedSettingsMutationQueue();
-	const mutationQueue = mutationQueueRef.current;
-	const readFenceRef = useRef<SettingsReadFence | null>(null);
-	readFenceRef.current ??= createSettingsReadFence();
-	const readFence = readFenceRef.current;
-	useEffect(
-		() => () => {
-			readFence.invalidate();
-			mutationQueue.invalidate();
-		},
-		[mutationQueue, readFence],
-	);
-
-	const load = useCallback(async () => {
-		const revision = readFence.begin();
-		try {
-			const nextSnapshot = await hostPiSettingsApi.get();
-			if (!readFence.isCurrent(revision)) return;
-			setSnapshot(nextSnapshot);
-			setSettingsError(null);
-			setRecoveryStatus(null);
-		} catch (cause) {
-			if (!readFence.isCurrent(revision)) return;
-			const nextError = formatRequestError(cause, t);
-			try {
-				const nextRecoveryStatus = await hostPiSettingsApi.getRecoveryStatus();
-				if (!readFence.isCurrent(revision)) return;
-				setSettingsError(nextError);
-				setRecoveryStatus(nextRecoveryStatus);
-			} catch {
-				if (!readFence.isCurrent(revision)) return;
-				setSettingsError(nextError);
-				setRecoveryStatus({ status: "unavailable", code: "PI_SETTINGS_READ_FAILED" });
-			}
-		}
-	}, [hostPiSettingsApi, readFence, t]);
-
-	useEffect(() => {
-		void load();
-	}, [load]);
-
-	const repairHttpIdleTimeout = async () => {
-		readFence.invalidate();
-		setRepairing(true);
-		try {
-			const outcome = await mutationQueue.run(hostPiSettingsApi.repairHttpIdleTimeout, hostPiSettingsApi.get);
-			if (!mutationQueue.isCurrent(outcome.revision)) return;
-			const { result } = outcome;
-			if (result.status === "saved") {
-				setSnapshot(result.value);
-				setSettingsError(null);
-				setRecoveryStatus(null);
-			} else {
-				if (result.persisted.status === "ready") {
-					setSnapshot(result.persisted.value);
-					setRecoveryStatus(null);
-				}
-				setSettingsError(formatRequestError(result.error, t));
-			}
-		} finally {
-			setRepairing(false);
-		}
-	};
-
 	const usableProviders = useMemo(
 		() => (providers ?? []).filter((provider) => isProviderUsable(provider) && provider.models.length > 0),
 		[providers],
@@ -293,24 +90,6 @@ export function PiSettingsView() {
 			),
 		[usableProviders],
 	);
-
-	const apply = async (update: PiSettingsUpdate | (() => PiSettingsUpdate)): Promise<boolean> => {
-		readFence.invalidate();
-		const outcome = await mutationQueue.run(
-			() => hostPiSettingsApi.update(typeof update === "function" ? update() : update),
-			hostPiSettingsApi.get,
-		);
-		if (!mutationQueue.isCurrent(outcome.revision)) return outcome.result.status === "saved";
-		const { result } = outcome;
-		if (result.status === "saved") {
-			setSnapshot(result.value);
-			setSettingsError(null);
-			return true;
-		}
-		if (result.persisted.status === "ready") setSnapshot(result.persisted.value);
-		setSettingsError(formatRequestError(result.error, t));
-		return false;
-	};
 
 	if (!snapshot) {
 		return (
@@ -448,33 +227,69 @@ export function PiSettingsView() {
 						>
 							{/* Each column leaves room for the Windows powershell label and its selection mark. */}
 							<div className="grid grid-cols-1 gap-2 @min-[18rem]/default-tools:grid-cols-2 @min-[34rem]/default-tools:grid-cols-4">
-								{PI_BUILT_IN_TOOL_NAMES.filter((tool) => tool !== "powershell" || isWindows).map((tool) => {
-									const selected = snapshot.defaultTools.includes(tool);
-									return (
-										<ChoiceButton
-											key={tool}
-											type="button"
-											selected={selected}
-											onClick={() =>
-												void apply(() =>
-													piSettingsUpdateSchema.parse({
-														type: "defaultTools",
-														tools: selected
-															? snapshot.defaultTools.filter((name) => name !== tool)
-															: [...snapshot.defaultTools, tool],
-													}),
-												)
-											}
-											className="w-full justify-between font-mono text-xs"
-										>
-											<span className="min-w-0 break-all text-start">{tool}</span>
-										</ChoiceButton>
-									);
-								})}
+								{[...new Set([...PI_BUILT_IN_TOOL_NAMES, ...snapshot.defaultTools])]
+									.filter((tool) => tool !== "powershell" || isWindows)
+									.map((tool) => {
+										const selected = snapshot.defaultTools.includes(tool);
+										return (
+											<ChoiceButton
+												key={tool}
+												type="button"
+												selected={selected}
+												onClick={() =>
+													void apply((current) =>
+														piSettingsUpdateSchema.parse({
+															type: "defaultTools",
+															tools: current.defaultTools.includes(tool)
+																? current.defaultTools.filter((name) => name !== tool)
+																: [...current.defaultTools, tool],
+														}),
+													)
+												}
+												className="w-full justify-between font-mono text-xs"
+											>
+												<span className="min-w-0 break-all text-start">{tool}</span>
+											</ChoiceButton>
+										);
+									})}
 							</div>
+							<Button
+								className="mt-2"
+								variant="ghost"
+								size="sm"
+								disabled={!snapshot.defaultToolsConfigured}
+								onClick={() => void apply({ type: "defaultTools", tools: null })}
+							>
+								{t("settings.defaultToolsReset")}
+							</Button>
 						</div>
 					)}
 				</SettingsFieldRow>
+			</SettingsSection>
+
+			<SettingsSection title="Codemode">
+				<SettingsFieldRow label={t("settings.codemodeMode")} description={t("settings.codemodeModeDescription")}>
+					{({ labelId, descriptionId }) => (
+						<Segmented
+							value={snapshot.codemode.mode}
+							onChange={(mode) => void apply({ type: "codemode", settings: { mode } })}
+							ariaLabelledBy={labelId}
+							ariaDescribedBy={descriptionId}
+							options={(["on", "only"] as const).map((value) => ({
+								value,
+								label: t(`settings.codemodeMode_${value}`),
+							}))}
+						/>
+					)}
+				</SettingsFieldRow>
+				<NumberSettingRow
+					label={t("settings.codemodeInlineBudget")}
+					description={t("settings.codemodeInlineBudgetDescription")}
+					value={snapshot.codemode.inlineBudget}
+					min={0}
+					max={PI_CODEMODE_INLINE_BUDGET_MAX}
+					onSave={(inlineBudget) => apply({ type: "codemode", settings: { inlineBudget } })}
+				/>
 			</SettingsSection>
 
 			<SettingsSection title={t("settings.piBehavior")}>

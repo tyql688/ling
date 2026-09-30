@@ -54,6 +54,7 @@ function captureRuntimeGenerationState(
 			...(entry.thinkingLevel ? { thinkingLevel: entry.thinkingLevel } : {}),
 		})),
 		activeToolNames: session.getActiveToolNames(),
+		defaultToolsConfigured: session.settingsManager.getDefaultTools() !== undefined,
 		extensionFlagValues: new Map(extensionFlagValues),
 	};
 }

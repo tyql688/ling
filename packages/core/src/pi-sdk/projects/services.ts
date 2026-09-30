@@ -4,7 +4,6 @@ import type { PiModelRuntimes } from "../models/model-runtime";
 import { createPiToolOriginRecorder } from "../extensions/pi-tool-origin";
 import { readPiExtensionIdentities } from "../extensions/pi-resource-identity";
 import { preparePiAdapters } from "../extensions/pi-adapters";
-import { createPiTodoReconciliation } from "../extensions/pi-todo-reconciliation";
 import type { PiAdapterPlan } from "@ling/contracts/companions";
 import type { BuiltinFeatureFlags } from "@ling/contracts/builtin-features";
 import type { PiTurnLifecycle } from "../session/turn-lifecycle";
@@ -15,23 +14,23 @@ import type {
 	PiSettingsManager,
 	PiExtensionUiContext,
 } from "../types";
-import {
-	createAgentSessionServices,
-	DefaultResourceLoader,
-	type ModelRuntime,
-	SettingsManager,
-} from "@earendil-works/pi-coding-agent";
+import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { realpath, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { toCommandError } from "../../command-resolver";
 import { requestCancelled, throwAggregateFailures, throwIfOperationAborted } from "../../ling-error";
 import { createLogger } from "../../logger";
 import { pathIdentity } from "../../paths";
 import { assertNoBlockingDiagnostics, collectServiceDiagnostics } from "../diagnostics";
 import { reconcilePiExtensionFlagValues } from "../extensions/extension-flags";
-import { assertPiModelsJsonWithinReadBound } from "../models/model-config-file";
 import type { LingSkillResources } from "../resources/skill-toggles";
 import { createSettingsManager } from "../sdk-factories";
+
+import {
+	createBoundedAgentSessionServices,
+	prepareFreshProjectExtensionGeneration,
+	type PiProjectResourceContext,
+} from "./project-resources";
 
 const log = createLogger("pi-sdk-services");
 
@@ -64,34 +63,6 @@ type ProjectTrustResolver = (cwd: string) => Promise<boolean>;
 
 function invalidateServiceExtensionRuntime(services: PiAgentSessionServices, message: string): void {
 	services.resourceLoader.getExtensions().runtime.invalidate(message);
-}
-
-/**
- * Pi caches compiled extension factories by cwd. A newly constructed ResourceLoader
- * intentionally reuses that cache, so rebuilding a project graph for the same cwd
- * would otherwise keep the pre-reload extension modules. Switch the SDK cache through
- * an inert cwd first; the following createAgentSessionServices() call then switches
- * back and imports a fresh project generation without mutating the live loader.
- */
-async function prepareFreshProjectExtensionGeneration(cwd: string, agentDir: string): Promise<void> {
-	const firstResetCwd = join(agentDir, ".ling-extension-cache-reset");
-	const resetCwd =
-		resolve(firstResetCwd) === resolve(cwd) ? join(agentDir, ".ling-extension-cache-reset-2") : firstResetCwd;
-	const loader = new DefaultResourceLoader({
-		cwd: resetCwd,
-		agentDir,
-		settingsManager: SettingsManager.inMemory({}),
-		noExtensions: true,
-		noSkills: true,
-		noPromptTemplates: true,
-		noThemes: true,
-		noContextFiles: true,
-	});
-	try {
-		await loader.reload();
-	} finally {
-		loader.getExtensions().runtime.invalidate("This inert extension runtime only resets Pi's cwd-scoped module cache.");
-	}
 }
 
 function createProjectSlot(cwd: string): ProjectSlot {
@@ -161,19 +132,11 @@ type PiProjectServicesStateDependencies = {
 	skillResources: LingSkillResources;
 };
 
-interface PiProjectServicesState {
-	loadCatalogResources: boolean;
-	readAdapterPlan: PiProjectServicesStateDependencies["readAdapterPlan"];
-	openVoiceSettings: PiProjectServicesStateDependencies["openVoiceSettings"];
-	mcpUi: PiProjectServicesStateDependencies["mcpUi"];
+interface PiProjectServicesState extends PiProjectResourceContext {
 	agentDir: PiProjectServicesStateDependencies["agentDir"];
-	builtinExtensions: PiProjectServicesStateDependencies["builtinExtensions"];
-	projectTrustResolver: PiProjectServicesStateDependencies["resolveProjectTrust"];
-	createLingSkillToggles: PiProjectServicesStateDependencies["skillResources"]["createLingSkillToggles"];
 	stopping: boolean;
 	disposal: Promise<void> | null;
 	createCwdModelRuntime: PiProjectServicesStateDependencies["modelRuntimes"]["createCwdModelRuntime"];
-	createProviderScopeClassifyingOverride: PiProjectServicesStateDependencies["modelRuntimes"]["createProviderScopeClassifyingOverride"];
 	disposeCredentialRuntime: PiProjectServicesStateDependencies["modelRuntimes"]["disposeCredentialRuntime"];
 	getCredentialRuntimeRegistry: PiProjectServicesStateDependencies["modelRuntimes"]["getCredentialRuntimeRegistry"];
 	createPiTurnLifecycleResourceOptions: PiProjectServicesStateDependencies["turnLifecycle"]["createPiTurnLifecycleResourceOptions"];
@@ -181,7 +144,6 @@ interface PiProjectServicesState {
 	projectAliases: Map<string, string>;
 	pendingProjectOpens: Set<PendingProjectOpen>;
 	runtimeServiceOwners: WeakMap<PiAgentSessionServices, ProjectSlot>;
-	bundledAdapters: WeakMap<PiAgentSessionServices, ReadonlyMap<string, string>>;
 	projectLifecycleSequence: number;
 	modelCatalogChangedListeners: Set<() => void>;
 	activeReload: Promise<void> | null;
@@ -338,107 +300,6 @@ function hasProjectProviderCredentialConflict(owner: PiProjectServicesState, cwd
 	return owner.getCredentialRuntimeRegistry(services.agentDir).isProviderAmbiguous(services.modelRuntime, providerId);
 }
 
-async function createBoundedAgentSessionServices(
-	owner: PiProjectServicesState,
-	options: Parameters<typeof createAgentSessionServices>[0] & {
-		agentDir: string;
-		settingsManager: PiSettingsManager;
-		includeBuiltinExtensions?: boolean;
-	},
-	signal?: AbortSignal,
-): ReturnType<typeof createAgentSessionServices> {
-	// Pi performs another models.json refresh after applying extension provider
-	// registrations. Recheck immediately before handing control to that SDK path.
-	await assertPiModelsJsonWithinReadBound(options.agentDir, signal);
-	throwIfOperationAborted(signal);
-	const resourceLoaderOptions = options.resourceLoaderOptions;
-	const { includeBuiltinExtensions, ...serviceOptions } = options;
-	// Resolve Ling's existing trust decision before routing any project path through Pi's explicit-path loader.
-	options.settingsManager.setProjectTrusted(await owner.projectTrustResolver(options.cwd));
-	await options.settingsManager.reload();
-	const trusted = options.settingsManager.isProjectTrusted();
-	const createServices = async (modelRuntimeSignal?: AbortSignal) => {
-		if (!owner.loadCatalogResources && !includeBuiltinExtensions) {
-			// A session worker needs canonical cwd, trusted settings and a project lifecycle owner.
-			// Its actual runtime loads the complete extension/provider graph below. The control
-			// worker remains the catalog owner, so this shell must not execute every extension twice.
-			return createAgentSessionServices({
-				...serviceOptions,
-				resourceLoaderReloadOptions: { resolveProjectTrust: async () => trusted },
-				resourceLoaderOptions: {
-					noExtensions: true,
-					noSkills: true,
-					noPromptTemplates: true,
-					noThemes: true,
-					noContextFiles: true,
-				},
-				...(modelRuntimeSignal ? { modelRuntimeSignal } : {}),
-			});
-		}
-		const plan = await owner.readAdapterPlan(options.cwd);
-		const adapters = await preparePiAdapters({
-			cwd: options.cwd,
-			agentDir: options.agentDir,
-			settingsManager: options.settingsManager,
-			plan,
-			loadBundled: includeBuiltinExtensions === true,
-			...(owner.openVoiceSettings ? { openVoiceSettings: owner.openVoiceSettings } : {}),
-			...(owner.mcpUi ? { mcpUi: owner.mcpUi } : {}),
-		});
-		throwIfOperationAborted(signal);
-		const installSkillToggles = owner.createLingSkillToggles(options.settingsManager, options.agentDir);
-		const classify = owner.createProviderScopeClassifyingOverride(
-			options.agentDir,
-			options.modelRuntime,
-			resourceLoaderOptions?.extensionsOverride,
-			adapters.bundledPaths,
-		);
-		const services = await createAgentSessionServices({
-			...serviceOptions,
-			resourceLoaderReloadOptions: { resolveProjectTrust: async () => trusted },
-			resourceLoaderOptions: {
-				...resourceLoaderOptions,
-				extensionFactories: [
-					...(includeBuiltinExtensions ? adapters.factories : []),
-					...(includeBuiltinExtensions ? owner.builtinExtensions(plan.features) : []),
-					...(includeBuiltinExtensions && plan.features.todo ? [createPiTodoReconciliation()] : []),
-					...(resourceLoaderOptions?.extensionFactories ?? []),
-				],
-				noExtensions: true,
-				additionalExtensionPaths: adapters.paths,
-				extensionsOverride: (base: Parameters<typeof classify>[0]) => classify(adapters.overrides(base)),
-			},
-			...(modelRuntimeSignal ? { modelRuntimeSignal } : {}),
-		});
-		try {
-			adapters.decorate(services.resourceLoader.getExtensions());
-			owner.bundledAdapters.set(services, adapters.bundledEntries);
-			installSkillToggles(services.resourceLoader);
-		} catch (error) {
-			services.resourceLoader.getExtensions().runtime.invalidate("Ling Pi extension setup failed");
-			throw error;
-		}
-		return services;
-	};
-	const runtime = options.modelRuntime;
-	if (!signal || !runtime) return createServices();
-
-	// The SDK's service factory accepts a create-time model signal, but an injected
-	// ModelRuntime is refreshed without it. This runtime is not published yet, so bind
-	// the project-open signal around the factory and restore the instance method before
-	// the candidate can escape.
-	const refresh = runtime.refresh;
-	const ownsRefresh = Object.hasOwn(runtime, "refresh");
-	runtime.refresh = (refreshOptions = {}) =>
-		refresh.call(runtime, refreshOptions.signal === undefined ? { ...refreshOptions, signal } : refreshOptions);
-	try {
-		return await createServices(signal);
-	} finally {
-		if (ownsRefresh) runtime.refresh = refresh;
-		else Reflect.deleteProperty(runtime, "refresh");
-	}
-}
-
 function rememberProjectAlias(owner: PiProjectServicesState, alias: string, canonicalCwd: string): void {
 	owner.projectAliases.set(pathIdentity(resolve(alias)), canonicalCwd);
 	owner.projectAliases.set(pathIdentity(resolve(canonicalCwd)), canonicalCwd);
@@ -521,7 +382,6 @@ async function createProjectServices(
 	owner: PiProjectServicesState,
 	slot: ProjectSlot,
 	generation: number,
-	resolveTrust: ProjectTrustResolver,
 	signal: AbortSignal,
 ): Promise<PiAgentSessionServices> {
 	let modelRuntime: ModelRuntime | null = null;
@@ -540,7 +400,6 @@ async function createProjectServices(
 				agentDir: owner.agentDir,
 				modelRuntime,
 				settingsManager,
-				resourceLoaderReloadOptions: { resolveProjectTrust: () => resolveTrust(slot.cwd) },
 			},
 			signal,
 		);
@@ -602,7 +461,7 @@ function openCanonicalProject(
 	slot.state = "opening";
 	const controller = new AbortController();
 	slot.openingController = controller;
-	const promise = createProjectServices(owner, slot, slot.generation, owner.projectTrustResolver, controller.signal);
+	const promise = createProjectServices(owner, slot, slot.generation, controller.signal);
 	slot.openPromise = promise;
 	return promise;
 }
@@ -769,7 +628,6 @@ function acquirePiRuntimeServices(
 	if (slot?.state !== "open" || slot.services !== projectServices) {
 		return Promise.reject(projectLifecycleError(projectServices.cwd, slot?.state ?? "closed"));
 	}
-	const resolveTrust = owner.projectTrustResolver;
 	const generation = slot.generation;
 	const barrier = slot.resourceReloadBarrier;
 
@@ -807,7 +665,6 @@ function acquirePiRuntimeServices(
 				modelRuntime,
 				settingsManager: projectServices.settingsManager,
 				resourceLoaderOptions,
-				resourceLoaderReloadOptions: { resolveProjectTrust: () => resolveTrust(projectServices.cwd) },
 			});
 			if (options.extensionFlagValues) {
 				// Pi's public extensionFlagValues option represents CLI argv: a boolean
@@ -984,7 +841,6 @@ async function reloadProjectSettingsNow(
 			},
 		];
 	});
-	const resolveTrust = owner.projectTrustResolver;
 
 	// Start in a microtask so every target publishes its barrier before this pass
 	// can reach the first mutable settings/provider step. All projects remain fenced
@@ -1027,7 +883,6 @@ async function reloadProjectSettingsNow(
 					agentDir: services.agentDir,
 					modelRuntime: candidateModelRuntime,
 					settingsManager: candidateSettingsManager,
-					resourceLoaderReloadOptions: { resolveProjectTrust: () => resolveTrust(services.cwd) },
 				});
 				if (!isCurrentOpen(slot, generation, services)) continue;
 				if (candidateServices.cwd !== services.cwd) {

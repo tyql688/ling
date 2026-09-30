@@ -1,7 +1,6 @@
 import { MODEL_ID_MAX_CHARS, MODEL_PROVIDER_ID_MAX_CHARS } from "@ling/contracts/model";
 import {
 	HTTP_IDLE_TIMEOUT_CHOICES_MS,
-	PI_BUILT_IN_TOOL_NAMES,
 	PI_COMPACTION_TOKEN_MAX,
 	PI_COMPACTION_TOKEN_MIN,
 	PI_CACHE_WARMING_MODES,
@@ -13,6 +12,8 @@ import {
 	PI_SETTINGS_NPM_COMMAND_MAX_CHARS,
 	PI_SETTINGS_SHELL_PATH_MAX_CHARS,
 	PI_SETTINGS_SHELL_PREFIX_MAX_CHARS,
+	piCodemodeSettingsSchema,
+	piDefaultToolsSchema,
 } from "@ling/contracts/pi-settings";
 import { THINKING_LEVELS } from "@ling/contracts/session";
 import { parseNpmCommand } from "@ling/contracts/npm-command";
@@ -118,12 +119,11 @@ export function createPiSettingsUpdateSchema(
 				]),
 			}),
 			z.strictObject({ type: z.literal("enableSkillCommands"), enabled: z.boolean() }),
+			z.strictObject({ type: z.literal("codemode"), settings: piCodemodeSettingsSchema.partial() }),
 			z.strictObject({
 				type: z.literal("defaultTools"),
-				tools: z
-					.array(z.enum(PI_BUILT_IN_TOOL_NAMES))
-					.max(PI_BUILT_IN_TOOL_NAMES.length)
-					.refine((tools) => new Set(tools).size === tools.length, "Duplicate Pi built-in tool"),
+				// Null restores Pi's defaults; an empty array selects no built-in tools.
+				tools: piDefaultToolsSchema.nullable(),
 			}),
 		]),
 	);

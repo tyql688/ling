@@ -1,4 +1,11 @@
-import { mcpServerNameSchema, mcpServerSchema, type McpServer } from "@ling/contracts/mcp";
+import {
+	mcpServerNameSchema,
+	mcpServerSchema,
+	mcpConfiguredServerSchema,
+	mcpExposureSchema,
+	type McpServer,
+	type McpStoredServer,
+} from "@ling/contracts/mcp";
 import { Button } from "@renderer/components/ui/button";
 import {
 	Dialog,
@@ -19,7 +26,7 @@ import { useTranslation } from "react-i18next";
 
 export function McpServerEditor({
 	name: originalName,
-	server,
+	server: storedServer,
 	path,
 	busy,
 	error,
@@ -31,39 +38,41 @@ export function McpServerEditor({
 	onClose,
 }: {
 	name: string | null;
-	server: McpServer | null;
+	server: McpStoredServer | null;
 	path: string;
 	busy: boolean;
 	error: string | null;
 	conflict: boolean;
 	refreshed: boolean;
-	latestServer: McpServer | null;
+	latestServer: McpStoredServer | null;
 	onRefresh(): void;
 	onSave(name: string, server: McpServer): void;
 	onClose(): void;
 }) {
 	const { t } = useTranslation();
 	const id = useId();
+	const inspected = mcpServerSchema.safeParse(storedServer);
+	const server = inspected.success ? inspected.data : null;
 	const advancedDetails = useRef<HTMLDetailsElement>(null);
 	const [name, setName] = useState(originalName ?? "");
 	// Empty arguments and embedded newlines need JSON to remain unambiguous.
-	const initialTransport = server?.args?.some((arg) => arg === "" || /[\r\n]/.test(arg))
-		? "advanced"
-		: server?.url
-			? "http"
-			: server?.command || !server
-				? "stdio"
-				: "advanced";
+	const initialTransport =
+		(storedServer !== null && !inspected.success) || server?.args?.some((arg) => arg === "" || /[\r\n]/.test(arg))
+			? "advanced"
+			: server?.url
+				? "http"
+				: server?.command || !server
+					? "stdio"
+					: "advanced";
 	const [transport, setTransport] = useState(initialTransport);
 	const [command, setCommand] = useState(server?.command ?? "");
 	const [args, setArgs] = useState(server?.args?.join("\n") ?? "");
 	const [url, setUrl] = useState(server?.url ?? "");
-	const [httpTransport, setHttpTransport] = useState(server?.httpTransport ?? "streamable-http");
 	const [advanced, setAdvanced] = useState(() => {
-		if (!server) return '{\n  "approveTools": true\n}';
-		if (initialTransport === "advanced") return JSON.stringify(server, null, 2);
+		if (storedServer === null) return "{}";
+		if (initialTransport === "advanced") return JSON.stringify(storedServer, null, 2);
 		const rest = { ...server };
-		for (const key of ["command", "args", "url", "httpTransport"]) delete rest[key];
+		for (const key of ["command", "args", "url"]) delete rest[key];
 		return JSON.stringify(rest, null, 2);
 	});
 	const [invalid, setInvalid] = useState<{ field: string; message: string } | null>(null);
@@ -75,27 +84,21 @@ export function McpServerEditor({
 			return null;
 		}
 	}, [advanced]);
-	const approval = parsedAdvanced?.success ? parsedAdvanced.data.approveTools : undefined;
-	const approvalMode = Array.isArray(approval) ? "custom" : approval === undefined ? "inherit" : String(approval);
+	const exposure = parsedAdvanced?.success ? (parsedAdvanced.data.exposure ?? "codemode") : "codemode";
 	function fail(field: string, message: string) {
 		setInvalid({ field, message });
 		if (field === "advanced" && advancedDetails.current) advancedDetails.current.open = true;
 		document.getElementById(`${id}-${field}`)?.focus();
 	}
-	function changeApproval(next: string) {
+	function changeExposure(next: string) {
 		if (!parsedAdvanced?.success) {
 			fail("advanced", t("mcp.invalidJson"));
 			return;
 		}
 		const value = { ...parsedAdvanced.data };
-		if (next === "inherit") delete value.approveTools;
-		else value.approveTools = next === "custom" ? [] : next === "true";
+		value.exposure = mcpExposureSchema.parse(next);
 		setAdvanced(JSON.stringify(value, null, 2));
 		setInvalid(null);
-		if (next === "custom" && advancedDetails.current) {
-			advancedDetails.current.open = true;
-			document.getElementById(`${id}-advanced`)?.focus();
-		}
 	}
 	function applyConnection(value: McpServer) {
 		if (transport === "stdio") {
@@ -104,9 +107,6 @@ export function McpServerEditor({
 		}
 		if (transport === "http") {
 			value.url = url.trim();
-			// Opening and saving an existing service must not materialize omitted defaults.
-			if (server?.httpTransport !== undefined || !server || httpTransport !== "streamable-http")
-				value.httpTransport = httpTransport;
 		}
 	}
 	function changeTransport(next: string) {
@@ -122,8 +122,9 @@ export function McpServerEditor({
 				if (value.command) setCommand(value.command);
 				if (value.args) setArgs(value.args.join("\n"));
 				if (value.url) setUrl(value.url);
-				if (value.httpTransport) setHttpTransport(value.httpTransport);
-				for (const key of ["command", "args", "url", "httpTransport", "socket"]) delete value[key];
+				for (const key of ["command", "args", "url", "type"]) delete value[key];
+			} else {
+				delete value.type;
 			}
 			setAdvanced(JSON.stringify(value, null, 2));
 			setTransport(next);
@@ -154,7 +155,7 @@ export function McpServerEditor({
 			}
 			const value = mcpServerSchema.parse(extra);
 			applyConnection(value);
-			const parsed = mcpServerSchema.parse(value);
+			const parsed = mcpConfiguredServerSchema.parse(value);
 			setInvalid(null);
 			onSave(parsedName.data, parsed);
 		} catch (cause) {
@@ -308,42 +309,24 @@ export function McpServerEditor({
 										onChange={(event) => setUrl(event.target.value)}
 									/>
 								</div>
-								<Select
-									value={httpTransport}
-									disabled={busy}
-									onValueChange={(value) => setHttpTransport(value as typeof httpTransport)}
-								>
-									<SelectTrigger className="w-full" aria-label={t("mcp.httpTransport")}>
-										<SelectValue>{httpTransport === "sse" ? "SSE" : "Streamable HTTP"}</SelectValue>
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="streamable-http">Streamable HTTP</SelectItem>
-										<SelectItem value="sse">SSE</SelectItem>
-									</SelectContent>
-								</Select>
 							</>
 						)}
 						<div className="flex flex-col gap-1.5">
-							<span className="text-sm font-medium">{t("mcp.approval")}</span>
-							<Select value={approvalMode} disabled={busy || !parsedAdvanced?.success} onValueChange={changeApproval}>
-								<SelectTrigger
-									className="w-full"
-									aria-label={t("mcp.approval")}
-									aria-describedby={`${id}-approval-hint`}
-								>
-									<SelectValue>{t(`mcp.approval_${approvalMode}`)}</SelectValue>
+							<span className="text-sm font-medium">{t("mcp.exposure")}</span>
+							<Select value={exposure} disabled={busy || !parsedAdvanced?.success} onValueChange={changeExposure}>
+								<SelectTrigger className="w-full" aria-label={t("mcp.exposure")}>
+									<SelectValue>{t(`mcp.exposure_${exposure}`)}</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
-									{["true", "false", "inherit", "custom"].map((value) => (
+									{mcpExposureSchema.options.map((value) => (
 										<SelectItem key={value} value={value}>
-											{t(`mcp.approval_${value}`)}
+											{t(`mcp.exposure_${value}`)}
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
-							<p id={`${id}-approval-hint`} className="text-xs leading-relaxed text-text-muted">
-								{t(approvalMode === "custom" ? "mcp.approvalCustomHint" : "mcp.approvalHint")}
-							</p>
+							<p className="text-xs leading-relaxed text-text-muted">{t("mcp.exposureHint")}</p>
+							<p className="text-xs leading-relaxed text-text-muted">{t("mcp.permissionHint")}</p>
 						</div>
 						<details ref={advancedDetails} open={transport === "advanced" || undefined}>
 							<summary className="cursor-pointer text-sm font-medium">{t("mcp.advanced")}</summary>

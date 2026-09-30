@@ -7,6 +7,36 @@ import { projectPiBranchMessages, summarizePiBranchMessages } from "./session-me
 
 afterEach(() => vi.useRealTimers());
 
+it("retains a nested execution's parent through progress updates", () => {
+	const h = streamingAdapter();
+	try {
+		for (const event of [
+			{
+				type: "tool_execution_start" as const,
+				toolCallId: "child",
+				toolName: "read",
+				parentToolCallId: "outer",
+				args: { path: "a.ts" },
+			},
+			{
+				type: "tool_execution_update" as const,
+				toolCallId: "child",
+				toolName: "read",
+				parentToolCallId: "outer",
+				args: { path: "a.ts" },
+				partialResult: { content: [{ type: "text" as const, text: "partial" }], details: {} },
+			},
+		]) {
+			expect(h.adapter.adapt(event)).toMatchObject({
+				type: "toolExecutionChanged",
+				progress: { toolCallId: "child", parentToolCallId: "outer" },
+			});
+		}
+	} finally {
+		h.adapter.dispose();
+	}
+});
+
 function streamingAdapter() {
 	const events: LingSessionEvent[] = [];
 	const transform = vi.fn((text: string) => text);

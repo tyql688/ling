@@ -179,6 +179,7 @@ const ToolStepView = memo(
 					</button>
 					{reviewPath && <ReviewFileButton onClick={() => onOpenFileReview?.(reviewPath)} />}
 				</div>
+				{!step.result && <NestedToolProgress session={key} parentId={step.call.id} expanded={expanded} />}
 				{expanded && (
 					<div
 						className={cn(
@@ -203,6 +204,42 @@ const ToolStepView = memo(
 		prev.toolsExpanded === next.toolsExpanded &&
 		prev.manualExpanded === next.manualExpanded,
 );
+
+/** Nested execution stays under its calling tool while final results own the durable call tree. */
+function NestedToolProgress({ session, parentId, expanded }: { session: string; parentId: string; expanded: boolean }) {
+	const progressAtom = useMemo(
+		() =>
+			atom((get) => {
+				const running = get(sessionToolExecutionsFamily(session));
+				const parents = new Set([parentId]);
+				// The live store is bounded; repeated passes also handle children arriving before their parent.
+				for (let size = 0; size !== parents.size;) {
+					size = parents.size;
+					for (const item of running)
+						if (item.parentToolCallId && parents.has(item.parentToolCallId)) parents.add(item.toolCallId);
+				}
+				return running.filter((item) => item.toolCallId !== parentId && parents.has(item.toolCallId));
+			}),
+		[session, parentId],
+	);
+	const nested = useAtomValue(progressAtom);
+	const { t } = useTranslation();
+	if (nested.length === 0) return null;
+	return (
+		<div className="ml-7 flex min-w-0 flex-col gap-2 border-l border-border-subtle pl-3">
+			{nested.map((item) => (
+				<div key={item.toolCallId} className="min-w-0">
+					<div className="flex items-center gap-2 text-xs text-text-muted">
+						<StatusGlyph status="active" />
+						<span className="font-mono">{item.toolName}</span>
+						<span className="sr-only">{t("session.toolRunning")}</span>
+					</div>
+					{expanded && <ToolProgressBlock progress={item} />}
+				</div>
+			))}
+		</div>
+	);
+}
 
 /** The file path an editing tool targeted, for the jump-to-review affordance. */
 function editToolPath(call: ToolStep["call"]): string | null {

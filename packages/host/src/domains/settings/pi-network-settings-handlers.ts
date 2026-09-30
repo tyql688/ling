@@ -5,10 +5,9 @@ import { piResourceReloadError, type ResourceReloadCoordinator } from "@ling/hos
 import type { PiWorkerClient } from "@ling/host/workers/pi/pi-worker-client";
 import type { HostDomain, HostHandlers } from "../../transport/host-domain";
 
-/** The only settings mutation that changes loaded resources: skill commands are part
- * of every session's command catalog, so live generations must actually rebuild. */
+/** Command catalogs and active tool sets belong to each session's resource generation. */
 function isResourceAffectingSettingsUpdate(update: { type: string }): boolean {
-	return update.type === "enableSkillCommands";
+	return update.type === "enableSkillCommands" || update.type === "defaultTools";
 }
 
 export function createPiSettingsDomain({

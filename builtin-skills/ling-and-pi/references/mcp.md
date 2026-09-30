@@ -1,51 +1,51 @@
 # MCP configuration in Ling
 
-Use this workflow for configuring MCP servers, including when the user asks in a conversation. The `ling_mcp` tool owns Ling configuration changes; the adapter's `mcp` gateway owns live status, discovery, authentication and calls. Check actual tool availability instead of assuming either exists. Use `ling_plugins` for a requested Pi package installation, update or removal; adding an MCP server does not require installing another adapter.
+Use `ling_mcp` for configuration changes and Settings → MCP services for live status, reconnect, sign-in and sign-out. Pi's built-in MCP extension owns discovery, authentication, connections, resources and tool calls. Check actual tool availability. Installing an MCP server does not require another Pi adapter; use `ling_plugins` only for an explicitly requested package operation.
 
 ## Identify the switches
 
 | Control | Meaning |
 | --- | --- |
-| Ling MCP feature switch | Global, off by default. Controls the bundled adapter and Ling's native MCP controls. `ling_mcp` remains available to inspect and prepare configuration while off. |
-| A server's `disabled` field | Controls that server through the configuration layers. A project override can disable an inherited server without copying its credentials or changing the global entry. |
-| A separately installed Pi adapter | Takes precedence over the bundled copy. Turning Ling MCP off does not disable or uninstall that package; it can continue exposing its original tools. |
-| Built-in skills master switch and `ling-and-pi` switch | Control whether this guidance is loaded. They do not activate MCP or disable its configuration tool. A same-name user/project skill can shadow this one. |
+| Ling MCP feature switch | Global, off by default. Controls the official built-in extension and Ling's native controls. `ling_mcp` remains available while execution is off. |
+| A server's `enabled` field | `false` disables that complete server entry. Absence means enabled. |
+| Pi extension selection | `-builtin:mcp` disables the official extension. An installed extension that owns `/mcp` takes precedence; it retains its own commands and lifecycle. |
+| Built-in skills switches | Control whether this guidance is loaded, independently of MCP activation. A same-name user/project skill can shadow it. |
 
-Start with `ling_mcp` action `read`. It returns `feature.enabled`, `feature.revision`, document paths/revisions, service field names, and effective project configuration. Service values are intentionally omitted because credentials can appear in URLs, arguments, environment variables or custom fields. An error or null effective result is not an empty configuration. Narrow a truncated inventory by `name` or `target`.
+Start with `ling_mcp` action `read`. The result includes feature state/revision, file paths/revisions, service field names, validity diagnostics and the effective project configuration. Values are omitted because credentials can occur in URLs, arguments, environment variables and custom fields. An error or null result is not an empty configuration. Narrow truncated inventories by `name` or `target`.
 
-Saving configuration never turns on Ling MCP. Keep it off when the user asks to prepare configuration without using it. Use `set_feature_enabled` only when the user authorizes enabling or disabling the global feature, with `expectedFeatureRevision` from a fresh read. A request to configure and use a service can include activation; an ambiguous scope or an explicit instruction to keep MCP off must not be broadened. Do not edit `builtin-features.json`, install a second adapter, or change Pi trust files to bypass a switch.
+Saving configuration preserves the feature switch. Use `set_feature_enabled` with a fresh `expectedFeatureRevision` only when activation or deactivation is authorized. A request to configure and use a service can include activation. Do not bypass a disabled feature or declined trust decision by editing Ling's state files or installing another adapter.
 
 ## Select the configuration layer
 
-The current conversation supplies the project. Tool arguments cannot select a different project. Honor project trust; the management tool rejects requests from an untrusted project. Global changes affect all applicable projects, while project changes affect this project.
+The conversation supplies the project; tool arguments cannot select another project. Management requests require an open, trusted project. Global changes reconcile all open projects; project changes reconcile that project.
 
 | Tool target | File | Use |
 | --- | --- | --- |
-| `global` | `<agent-dir>/mcp.json` | Personal Pi/Ling configuration, shared with the Pi CLI using that agent directory |
-| `global-shared` | `~/.config/mcp/mcp.json` | Explicitly requested user-wide shared MCP configuration |
-| `project` | `<project>/.pi/mcp.json` | Pi/Ling project configuration and overrides of inherited services |
-| `project-shared` | `<project>/.mcp.json` | Explicitly requested repository/team shared configuration |
+| `global` | `<agent-dir>/mcp.json` | Personal Pi/Ling configuration shared with the CLI using that agent directory |
+| `project` | `<project>/.pi/mcp.json` | A complete project-specific server entry, replacing a same-name global entry |
 
-Resolve `<agent-dir>` from the current environment; it defaults to `~/.pi/agent` and can be overridden by `PI_CODING_AGENT_DIR`. Use paths returned by the tool, especially in remote/browser sessions where files belong to the Host machine. For a repository-specific request without a scope preference, use `project`; for a user-wide request, use `global`. Use shared files when the user wants other MCP clients or teammates to use them. Keep credentials out of committed project files.
+Resolve the agent directory from returned paths. It defaults to `~/.pi/agent`; `PI_CODING_AGENT_DIR` can override it. Paths belong to the Host machine in browser sessions. Default a repository-specific request to `project` and a user-wide request to `global`. Keep credentials out of committed files.
 
-In normal discovery, precedence increases through global shared, `~/.agents/mcp.json`, `~/.agents/mcp/mcp.json`, Pi global, project shared, and Pi project. Explicit ancestor discovery and imported sources belong to the adapter. Inspect the effective result and its source; the last file edited is not necessarily the winning entry. Do not overwrite an external host's configuration to import a service.
+Files use strict JSON with an `mcpServers` object and optional `autoEnableCodemode` boolean. Project entries replace complete global entries, so a project-only `{ "enabled": false }` is invalid. To disable an inherited server locally, obtain an explicitly configured complete project entry without copying secret values into model context. Legacy and shared-client files are visible as import sources; import only requested services and preserve the source files. Incompatible fields produce diagnostics and require explicit correction before the service runs. An invalid project entry prevents a same-name global service from activating in that project.
 
-## Apply only the requested change
+## Configure a service
 
-Every service mutation requires `target`, `name`, and the selected document's `expectedRevision`. Read again after each mutation before another write to that file. On `MCP_CONFIG_CHANGED`, reread, preserve the user's intended change and review the new state before retrying. Never fabricate a revision or retry a stale value indefinitely.
+Supply exactly one transport: `command` with optional `args`, `env` and `cwd`, or an HTTP `url` with optional `headers` and `oauth`. Names allow letters, digits, `_` and `-`. `timeout` is a positive number of seconds. Environment/header values can reference `${SERVICE_TOKEN}` from the Host environment. URLs must be literal HTTP(S) URLs. Preserve authentication values without reading them into the model context.
 
-- `configure`: supply `server` as one service object, not an entire `mcpServers` document. Existing top-level fields are preserved; `env` and `headers` merge by key. `removeFields` explicitly deletes fields before merging. To change transport, remove obsolete transport fields such as `command` and `args` before setting `url`. Changing a URL, executable or socket also requires explicitly clearing existing connection-bound fields listed by the tool (such as headers, environment or OAuth) through `removeFields`; supply replacements only for the new target. This prevents silently forwarding the old target's credentials. Removing `env` or `headers` clears that entire map; only do so when requested. New transport entries default to `approveTools: true` unless explicitly set.
-- `set_server_enabled`: pass `enabled: false` to disable a server at the chosen layer. To disable a global service only here, use `target: "project"`; it writes only the disabled override. `enabled: true` explicitly enables at that layer.
-- `reset_server_enabled`: removes only that layer's disabled override and retains its other fields. The effective state then inherits from lower layers and can still be disabled.
-- `remove`: removes that layer's whole entry. Removing an override may reveal a lower-priority service; it is not the same as disabling the effective service everywhere.
-- `reload`: reconciles resources after authorized manual configuration edits. Tool mutations already do this; avoid redundant reloads.
+`exposure` controls discovery: `codemode` (default) exposes typed tools through Codemode, `codemode-deferred` enables search-assisted Codemode discovery, `deferred` uses tool search, `direct` exposes tools directly, and `hidden` hides tools. `toolExposure` selects exposure per tool or pattern. Tool calls, including Codemode's nested calls, pass through Ling's access-mode permission rules. Server configuration is not a grant to run arbitrary tools.
 
-Keep the requested command and arguments as separate fields. Use environment references such as `${SERVICE_TOKEN}` for secrets, with the variable available to the Host process. Do not place real tokens in chat, tool arguments, committed files or diagnostic output. Preserve existing authentication fields without reading their values into the model context. If a service needs OAuth, use the available runtime authentication flow after activation; do not report it connected while authorization is pending. Installing a service does not authorize arbitrary calls to it.
+Every service mutation requires `target`, `name` and a fresh document `expectedRevision`. Reread after each mutation. On `MCP_CONFIG_CHANGED`, preserve the user's draft, reread and review the concurrent change before retrying.
+
+- `configure` accepts one server object. Existing fields are preserved and `env`/`headers` merge by key. `removeFields` explicitly deletes fields before merging. When changing a URL or executable, explicitly clear connection-bound fields listed by the tool, including credentials, and supply replacements only for the new endpoint. A saved entry must describe a complete transport.
+- `set_server_enabled` changes `enabled` on an existing complete entry. It does not create a partial project override.
+- `reset_server_enabled` removes that entry's `enabled` field, restoring the default enabled state for that complete entry.
+- `remove` removes the selected entry. Removing a project entry may expose a global service with the same name.
+- `reload` reconciles resources after manual edits. Tool mutations already request reconciliation.
 
 ## Verify activation
 
-The result distinguishes the saved switch/configuration from `reload`. Inspect `projectError`, `sessionError`, `sessions.failed` and `sessions.deferred`. Enabling or reloading can connect enabled services for discovery according to the adapter lifecycle, even without an explicit connect/tool call. Keep the feature or service off when the user requires no connection. Busy sessions apply changes after the current run; finish the turn and check in the next turn rather than looping on reload or using stale tools. Disabling during a run can likewise remain pending until that run ends. Preserve unrelated service configuration and session history.
+Inspect `projectError`, `sessionError`, `sessions.failed` and `sessions.deferred` in the reload result. Enabled services connect for discovery at session startup. Keep the feature or server off when no connection is authorized. Busy sessions apply changes after their current turn; verify the next turn instead of looping on reload.
 
-When the feature is off, report that configuration was saved and that the bundled adapter remains off. If a community adapter is installed, describe its independent state instead of claiming all MCP execution stopped. When enabled and reloaded, inspect live `mcp` status, connect/discover the intended service, and use only an authorized harmless check. A successful file save, cached tool list or scheduled reload is not proof of a live connection. Keep connection failures, missing environment variables and pending OAuth visible.
+Refresh the current conversation's status in Settings → MCP services, or run `/mcp` to open the same view. The timestamp identifies a snapshot of Pi's own connection report. Reconnect, sign-in and sign-out use that session's official command. Check a permitted harmless tool call or resource read to verify execution. Saved configuration, an exposed tool name and a scheduled reload do not prove a live connection. Report failures and pending OAuth explicitly. A separately installed extension retains its independent state when Ling's MCP switch is off.
 
-If `ling_mcp` is unavailable in an older host, use Settings → MCP services when UI control is available. Otherwise complete authorized file edits without changing the feature switch and identify the remaining UI enable/reload step. The adapter's optional URL-install action can add and connect a remote endpoint in the current session, but does not replace Ling's full configuration management or prove other sessions reloaded. Prefer `ling_mcp` whenever available, including for URL services.
+If `ling_mcp` is unavailable, use Settings → MCP services or complete authorized file edits and identify the remaining reload/live check. Do not claim an unavailable control was exercised.

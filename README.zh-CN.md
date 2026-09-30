@@ -53,7 +53,7 @@ Host 默认只监听本机回环地址。认证、设置和会话文件仍由 Pi
 | 领域 | 技术与库 |
 | --- | --- |
 | 语言与工作区 | TypeScript、pnpm workspaces；TypeScript 7 用于编译与语言服务，另保留 TypeScript 6 兼容依赖供 ESLint 使用 |
-| 智能体运行时 | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent)；内置 [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme)、[`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme)、[`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme)、[`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter#readme) 适配 |
+| 智能体运行时 | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent)；内置 [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme)、[`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme)、[`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme)、[official Pi MCP / Codemode / tool search](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/mcp.md) 适配 |
 | 桌面端 | Electron、electron-vite、electron-builder、electron-updater、node-mac-permissions |
 | Web 与状态 | React 19、Vite、Jotai、jotai-family |
 | 界面 | Tailwind CSS 4、Radix UI、Floating UI、Motion、cmdk、react-resizable-panels |

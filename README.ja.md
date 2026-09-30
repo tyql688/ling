@@ -53,7 +53,7 @@ Host は既定でループバックアドレスのみを使用します。Pi の
 | 分野 | 技術とライブラリ |
 | --- | --- |
 | 言語とワークスペース | TypeScript、pnpm workspaces。コンパイルと言語サービスには TypeScript 7、ESLint の互換性維持には別の TypeScript 6 依存関係を使用 |
-| エージェント実行環境 | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent)、組み込みの [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme)、[`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme)、[`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme)、[`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter#readme) のアダプター |
+| エージェント実行環境 | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent)、組み込みの [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme)、[`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme)、[`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme)、[official Pi MCP / Codemode / tool search](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/mcp.md) のアダプター |
 | デスクトップ | Electron、electron-vite、electron-builder、electron-updater、node-mac-permissions |
 | Web と状態管理 | React 19、Vite、Jotai、jotai-family |
 | UI | Tailwind CSS 4、Radix UI、Floating UI、Motion、cmdk、react-resizable-panels |

@@ -7,7 +7,7 @@
 		"./*": "./src/*.ts"
 	},
 	"dependencies": {
-		"@earendil-works/pi-coding-agent": "0.87.1",
+		"@earendil-works/pi-coding-agent": "0.99.1",
 		"@ling/builtin-extensions": "workspace:*",
 		"@ling/contracts": "workspace:*",
 		"@ling/node-runtime": "workspace:*",
@@ -15,7 +15,6 @@
 		"jiti": "2.7.0",
 		"jsonc-parser": "3.3.1",
 		"p-limit": "^7.3.3",
-		"pi-mcp-adapter": "3.1.0",
 		"proper-lockfile": "4.1.2",
 		"undici": "8.11.2",
 		"which": "^6.0.1",

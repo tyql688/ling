@@ -47,6 +47,7 @@ export async function loginWithProvider(
 	method: PiAuthMethod,
 	interaction: PiAuthInteraction,
 	reconcileRuntime: () => Promise<void>,
+	options?: Parameters<ModelRuntime["login"]>[3],
 ): Promise<CredentialSynchronizationOutcome> {
 	const provider = runtime.getProvider(providerId);
 	if (!provider) throw new Error(`Unknown provider: ${providerId}`);
@@ -55,7 +56,11 @@ export async function loginWithProvider(
 	} else {
 		if (!provider.auth.apiKey?.login) throw new Error(`${provider.name} does not support api_key login`);
 	}
-	return runCredentialOperation(providerId, () => runtime.login(providerId, method, interaction), reconcileRuntime);
+	return runCredentialOperation(
+		providerId,
+		() => runtime.login(providerId, method, interaction, options),
+		reconcileRuntime,
+	);
 }
 
 export function createPiModelCredentials({

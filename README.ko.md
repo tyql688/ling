@@ -53,7 +53,7 @@ Host는 기본적으로 루프백 주소에서만 수신합니다. Pi의 인증 
 | 영역 | 기술과 라이브러리 |
 | --- | --- |
 | 언어와 작업 공간 | TypeScript, pnpm workspaces. 컴파일과 언어 서비스에는 TypeScript 7, ESLint 호환성 유지에는 별도의 TypeScript 6 의존성 사용 |
-| 에이전트 실행 환경 | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent), 내장 [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme), [`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme), [`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme), [`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter#readme) 어댑터 |
+| 에이전트 실행 환경 | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent), 내장 [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme), [`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme), [`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme), [official Pi MCP / Codemode / tool search](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/mcp.md) 어댑터 |
 | 데스크톱 | Electron, electron-vite, electron-builder, electron-updater, node-mac-permissions |
 | Web과 상태 관리 | React 19, Vite, Jotai, jotai-family |
 | UI | Tailwind CSS 4, Radix UI, Floating UI, Motion, cmdk, react-resizable-panels |

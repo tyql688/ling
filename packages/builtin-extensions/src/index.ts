@@ -3,6 +3,7 @@ import bashGuard from "./plugins/bash-guard/index.ts";
 import type { BuiltinFeatureFlags } from "@ling/contracts/builtin-features";
 import { createCompanionTools, type CompanionToolHost } from "./plugins/companion-tools/index.ts";
 import { createPluginTools, type PluginToolHost } from "./plugins/manage-plugins/index.ts";
+export { createImageGenerationExtension } from "./plugins/generate-image/index.ts";
 
 /** Pi loads inline factories after user extensions; register Ling policy and Host-backed capabilities. */
 export function lingExtensionFactories(

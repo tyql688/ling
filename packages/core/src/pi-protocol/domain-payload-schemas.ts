@@ -7,7 +7,8 @@ import {
 import { ABSOLUTE_PATH_MAX_CHARS } from "@ling/contracts/path-bounds";
 import type { PiSettingsSnapshot } from "@ling/contracts/pi-settings";
 import {
-	PI_BUILT_IN_TOOL_NAMES,
+	piDefaultToolsSchema,
+	piCodemodeSettingsSchema,
 	PI_COMPACTION_TOKEN_MAX,
 	PI_COMPACTION_TOKEN_MIN,
 	PI_CACHE_WARMING_MODES,
@@ -267,7 +268,9 @@ export const settingsSchema: z.ZodType<PiSettingsSnapshot> = z.strictObject({
 	analytics: z.boolean(),
 	httpIdleTimeoutMs: z.number().nonnegative(),
 	enableSkillCommands: z.boolean(),
-	defaultTools: z.array(z.enum(PI_BUILT_IN_TOOL_NAMES)).max(PI_BUILT_IN_TOOL_NAMES.length),
+	defaultTools: piDefaultToolsSchema,
+	defaultToolsConfigured: z.boolean(),
+	codemode: piCodemodeSettingsSchema,
 });
 export const settingsRecoverySchema = z.discriminatedUnion("status", [
 	z.strictObject({ status: z.literal("ready") }),

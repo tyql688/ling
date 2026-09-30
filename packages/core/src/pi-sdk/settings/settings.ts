@@ -12,7 +12,10 @@ import {
 	PI_RETRY_MAX_RETRIES_MIN,
 	PI_SETTINGS_NPM_COMMAND_MAX_CHARS,
 	PI_SETTINGS_SHELL_PREFIX_MAX_CHARS,
+	PI_CODEMODE_INLINE_BUDGET_MAX,
+	PI_DEFAULT_TOOL_NAMES,
 } from "@ling/contracts/pi-settings";
+import { z } from "zod";
 import { assertNpmCommandParts, parseNpmCommand } from "@ling/contracts/npm-command";
 import { homedir } from "node:os";
 import { createLogger } from "../../logger";
@@ -133,18 +136,13 @@ export function createPiSettings(agentDir: string) {
 		return command[0];
 	}
 
-	/** The configured built-in tool floor, or null when Pi should apply its own default set. */
-	function getPiDefaultTools(): string[] | null {
-		const configured = manager().getDefaultTools();
-		return configured && configured.length > 0 ? [...configured] : null;
-	}
-
 	async function getPiSettings(): Promise<PiSettingsSnapshot> {
 		return enqueueGlobalSettingsMutation(async () => {
 			// Async reads must not contend with Pi's synchronous lock retry on this same thread.
 			const settings = createInMemorySettingsManager(await globalSettingsStore.read());
 			assertNoSettingsErrors(settings, "load");
 			const retrySettings = settings.getRetrySettings();
+			const codemode = settings.getSettings().codemode;
 			const compactionModelOverrides = piCompactionModelOverridesSchema.parse(
 				settings.getGlobalSettings().compaction?.modelOverrides ?? {},
 			);
@@ -177,9 +175,17 @@ export function createPiSettings(agentDir: string) {
 				analytics: settings.getEnableAnalytics(),
 				httpIdleTimeoutMs: settings.getHttpIdleTimeoutMs(),
 				enableSkillCommands: settings.getEnableSkillCommands(),
-				// Absent means "Pi decides"; the UI shows that as its own default-set state rather than
-				// as an empty selection, which would mean "no built-in tools at all".
-				defaultTools: settings.getDefaultTools() ?? [],
+				defaultTools: settings.getDefaultTools() ?? [...PI_DEFAULT_TOOL_NAMES],
+				defaultToolsConfigured: settings.getDefaultTools() !== undefined,
+				codemode: {
+					mode: codemode?.mode === "only" ? "only" : "on",
+					inlineBudget:
+						typeof codemode?.inlineBudget === "number" &&
+						Number.isFinite(codemode.inlineBudget) &&
+						codemode.inlineBudget >= 0
+							? clampSetting(codemode.inlineBudget, 0, PI_CODEMODE_INLINE_BUDGET_MAX)
+							: 3000,
+				},
 			};
 		});
 	}
@@ -205,6 +211,15 @@ export function createPiSettings(agentDir: string) {
 	}
 
 	async function persistPiSettingsUpdate(update: PiSettingsUpdate): Promise<void> {
+		if (update.type === "codemode") {
+			await globalSettingsStore.update((settings) => {
+				const current = settings.codemode;
+				if (current !== undefined && (typeof current !== "object" || current === null || Array.isArray(current)))
+					throw new Error("Pi codemode settings must contain a JSON object");
+				settings.codemode = { ...current, ...update.settings };
+			});
+			return;
+		}
 		if (update.type === "compactionModel") {
 			await globalSettingsStore.update((settings) => {
 				const compaction = settings.compaction === undefined ? (settings.compaction = {}) : settings.compaction;
@@ -234,14 +249,12 @@ export function createPiSettings(agentDir: string) {
 			return;
 		}
 		if (update.type === "defaultTools") {
-			// Pi's SettingsManager exposes getDefaultTools but no setter, so write the key directly.
-			// An empty selection removes the key so Pi falls back to its own default set instead of
-			// starting every session with no built-in tools.
+			// Pi's SettingsManager exposes getDefaultTools but no setter, so write the canonical key.
 			await globalSettingsStore.update((settings) => {
-				if (update.tools.length === 0) delete settings.defaultTools;
+				if (update.tools === null) delete settings.defaultTools;
 				else settings.defaultTools = [...update.tools];
 			});
-			log.info(`updated defaultTools (${update.tools.length} selected)`);
+			log.info(`updated defaultTools (${update.tools === null ? "default" : update.tools.length})`);
 			return;
 		}
 		if (update.type === "retryTuning") {
@@ -320,11 +333,25 @@ export function createPiSettings(agentDir: string) {
 		// The worker request boundary has parsed the owning settings schema before entering this queue.
 		await enqueueGlobalSettingsMutation(() => persistPiSettingsUpdate(update));
 	}
+
+	/** Shares Pi's installation identity across project logins under its canonical settings lock. */
+	function getPiDeviceId(): Promise<string> {
+		return enqueueGlobalSettingsMutation(() =>
+			globalSettingsStore.transact(async (settings) => {
+				const manager = createInMemorySettingsManager(settings);
+				const id = z.uuid().parse(manager.getOrCreateDeviceId());
+				await manager.flush();
+				if (settings.deviceId === id) return { commit: false, result: id };
+				settings.deviceId = id;
+				return { commit: true, result: id };
+			}),
+		);
+	}
 	return {
+		getPiDeviceId,
 		getPiSettingsRecoveryStatus,
 		repairPiHttpIdleTimeout,
 		getPiNpmCommandExecutable,
-		getPiDefaultTools,
 		getPiSettings,
 		updatePiSettings,
 		network,

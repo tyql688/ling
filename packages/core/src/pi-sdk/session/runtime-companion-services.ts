@@ -165,8 +165,8 @@ export function createRuntimeCompanionServices(host: {
 					await session.prompt(text, {
 						source: "extension",
 						expandPromptTemplates: false,
-						preflightResult(ok) {
-							if (ok) {
+						preflightResult(disposition) {
+							if (disposition === "started") {
 								if (run.cancel) throw new Error("Automatic run cancelled during preflight");
 								admitted = true;
 								run.admitted = true;

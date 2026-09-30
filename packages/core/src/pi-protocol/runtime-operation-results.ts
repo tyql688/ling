@@ -40,6 +40,15 @@ export const modelStateSchema = z.strictObject({
 		.max(COLLECTION_MAX_ITEMS),
 	currentProvider: fieldSchema.optional(),
 	currentModelId: fieldSchema.optional(),
+	routedModel: z
+		.strictObject({
+			provider: fieldSchema,
+			modelId: fieldSchema,
+			name: fieldSchema,
+			contextWindow: countSchema,
+			thinkingLevel: thinkingLevelSchema.optional(),
+		})
+		.optional(),
 	thinkingLevel: thinkingLevelSchema,
 	availableThinkingLevels: z.array(thinkingLevelSchema).max(THINKING_LEVELS.length),
 });

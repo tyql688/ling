@@ -43,10 +43,9 @@ export default defineConfig({
 		},
 	},
 	ssr: {
-		// pi-mcp-adapter stays a real package because Pi loads its extension entry from disk.
 		// Atomic publication uses write-file-atomic's CommonJS filename for collision-resistant temporary names.
 		// Jiti resolves its compiler relative to its installed entry file.
-		external: ["pi-mcp-adapter", "write-file-atomic", "@typescript/native", "jiti"],
+		external: ["write-file-atomic", "@typescript/native", "jiti"],
 	},
 	build: {
 		target: "node22",

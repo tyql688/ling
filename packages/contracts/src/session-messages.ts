@@ -3,6 +3,26 @@ import type { BoundedJson, BoundedJsonObject } from "./bounded-json";
 import type { PiToolOrigin } from "./pi-tool-origin";
 import { z } from "zod";
 
+/** Persisted nested calls retain their bounded arguments, outcome and completeness marker. */
+export const SESSION_NESTED_CALL_MAX_ITEMS = 256;
+export const nestedToolCallsSchema = z.object({
+	calls: z
+		.array(
+			z.object({
+				id: z.string().max(512),
+				name: z.string().max(256),
+				status: z.enum(["ok", "error", "unfinished"]),
+				arguments: z.json().optional(),
+				argumentsBytes: z.number().nonnegative().optional(),
+				durationMs: z.number().nonnegative().optional(),
+				error: z.string().max(1024).optional(),
+			}),
+		)
+		.max(SESSION_NESTED_CALL_MAX_ITEMS),
+	complete: z.boolean(),
+});
+export type NestedToolCalls = z.infer<typeof nestedToolCallsSchema>;
+
 export const generationDurationMsSchema = z.number().positive();
 
 export type ImageAttachment = NonNullable<SendMessageRequest["images"]>[number];
@@ -98,6 +118,7 @@ export interface ToolResultSessionMessage extends SessionMessageIdentity {
 	toolOrigin?: PiToolOrigin;
 	isError: boolean;
 	rendered?: RenderedTextSnapshot;
+	nestedCalls?: NestedToolCalls;
 	/** Provider usage reported by SDK-backed tools, when the tool performed a billed model call. */
 	usage?: AssistantUsage;
 	details?: BoundedJson;

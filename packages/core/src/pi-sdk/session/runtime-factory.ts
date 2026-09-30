@@ -10,7 +10,6 @@ import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
 import { createLogger } from "../../logger";
 import { getPiAgentDir } from "../agent-info";
 import { assertNoBlockingDiagnostics, collectServiceDiagnostics } from "../diagnostics";
-import type { PiSettings } from "../settings/settings";
 import type {
 	PiAgentSession,
 	PiAgentSessionServices,
@@ -44,6 +43,7 @@ export interface RuntimeGenerationState {
 	thinkingLevel: PiAgentSession["thinkingLevel"];
 	scopedModels: { provider: string; id: string; thinkingLevel?: PiAgentSession["thinkingLevel"] }[];
 	activeToolNames: string[];
+	defaultToolsConfigured: boolean;
 	extensionFlagValues: Map<string, boolean | string>;
 }
 
@@ -54,23 +54,18 @@ export interface InitialRuntimeSelection {
 
 type PiSessionStartEvent = NonNullable<Parameters<PiCreateAgentSessionRuntimeFactory>[0]["sessionStartEvent"]>;
 
-function restoreReloadToolSelection(
-	session: PiAgentSession,
-	previousActiveToolNames: readonly string[],
-	configuredBuiltIns: string[] | null,
-): void {
+function restoreReloadToolSelection(session: PiAgentSession, previous: RuntimeGenerationState): void {
+	// The SDK resolves global/project selections, including +/- entries and inactive extension tools.
+	// Restoring defaults also uses that resolution instead of retaining a configured session's old set.
+	if (previous.defaultToolsConfigured || session.settingsManager.getDefaultTools() !== undefined) return;
 	const tools = session.getAllTools();
 	const availableNames = new Set(tools.map((tool) => tool.name));
-	// `defaultTools` is a global floor, not a seed: a session that reloads must land on the
-	// configured built-in set even if the user had toggled tools inside it, otherwise the
-	// setting would silently apply to new sessions only and drift per session from there.
-	const activeNames = configuredBuiltIns
-		? configuredBuiltIns.filter((name) => availableNames.has(name))
-		: previousActiveToolNames.filter((name) => availableNames.has(name));
-	// Either way, keep tools contributed by newly loaded extensions: `defaultTools` only
-	// governs Pi's built-ins, and dropping extension tools would disable them on every reload.
+	const activeNames = previous.activeToolNames.filter((name) => availableNames.has(name));
+	const initiallyActive = new Set(session.getActiveToolNames());
+	// Preserve newly loaded extensions' default activation without activating opt-in tools.
 	for (const tool of tools) {
-		if (tool.sourceInfo.source !== "builtin" && tool.sourceInfo.source !== "sdk") activeNames.push(tool.name);
+		if (tool.sourceInfo.source !== "builtin" && tool.sourceInfo.source !== "sdk" && initiallyActive.has(tool.name))
+			activeNames.push(tool.name);
 	}
 	session.setActiveToolsByName([...new Set(activeNames)]);
 }
@@ -133,11 +128,9 @@ export function runtimeDiagnostics(runtime: PiAgentSessionRuntime): PiDiagnostic
 export function createPiRuntimeFactory({
 	projects,
 	modelProjection,
-	getPiDefaultTools,
 }: {
 	projects: PiRuntimeServiceAccess;
 	modelProjection: PiModelProjection;
-	getPiDefaultTools: PiSettings["getPiDefaultTools"];
 }) {
 	const { acquirePiRuntimeServices, releasePiRuntimeServices } = projects;
 	const { projectAvailableModels } = modelProjection;
@@ -252,8 +245,7 @@ export function createPiRuntimeFactory({
 					...(scopedModels ? { scopedModels } : {}),
 				});
 				installNextTurnAbortGuard(sessionResult.session);
-				if (generation)
-					restoreReloadToolSelection(sessionResult.session, generation.activeToolNames, getPiDefaultTools());
+				if (generation) restoreReloadToolSelection(sessionResult.session, generation);
 				return { ...sessionResult, services, diagnostics: services.diagnostics };
 			} catch (error) {
 				releasePiRuntimeServices(services);

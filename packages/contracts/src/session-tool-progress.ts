@@ -9,6 +9,7 @@ const MAX_TOOL_PROGRESS_ITEMS = 128;
 export interface ToolExecutionProgress {
 	toolCallId: string;
 	toolName: string;
+	parentToolCallId?: string;
 	text: string;
 	truncated: boolean;
 	rendered?: RenderedTextSnapshot;

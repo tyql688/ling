@@ -53,7 +53,7 @@ The table lists the main technologies and their actual roles. Exact direct depen
 | Area | Technologies and libraries |
 | --- | --- |
 | Language and workspace | TypeScript, pnpm workspaces; TypeScript 7 for compilation and language services, a separate TypeScript 6 compatibility dependency for ESLint |
-| Agent runtime | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent); bundled [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme), [`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme), [`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme) and [`pi-mcp-adapter`](https://github.com/nicobailon/pi-mcp-adapter#readme) adapters |
+| Agent runtime | [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi/tree/main/packages/coding-agent); bundled [`@juicesharp/rpiv-todo`](https://github.com/juicesharp/rpiv-mono/tree/main/packages/rpiv-todo#readme), [`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system#readme), [`@earendil-works/pi-voice`](https://github.com/earendil-works/pi-voice#readme) and [official Pi MCP / Codemode / tool search](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/mcp.md) adapters |
 | Desktop | Electron, electron-vite, electron-builder, electron-updater, node-mac-permissions |
 | Web and state | React 19, Vite, Jotai, jotai-family |
 | Interface | Tailwind CSS 4, Radix UI, Floating UI, Motion, cmdk, react-resizable-panels |

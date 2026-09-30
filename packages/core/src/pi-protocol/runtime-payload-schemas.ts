@@ -9,7 +9,7 @@ import { TOOL_PROGRESS_MAX_CHARS } from "@ling/contracts/session-tool-progress";
 import { absolutePathSchema as createAbsolutePathSchema, nativeSessionRefSchema } from "../paths";
 import { z } from "zod";
 import { piToolOriginSchema } from "@ling/contracts/pi-tool-origin";
-import { generationDurationMsSchema } from "@ling/contracts/session-messages";
+import { generationDurationMsSchema, nestedToolCallsSchema } from "@ling/contracts/session-messages";
 
 const TRANSPORT_TEXT_MAX_CHARS = 64 * 1024 * 1024;
 const FIELD_MAX_CHARS = 1_048_576;
@@ -125,6 +125,7 @@ export const sessionMessageSchema = z.discriminatedUnion("role", [
 		toolCallId: idSchema,
 		toolName: idSchema,
 		toolOrigin: piToolOriginSchema.optional(),
+		nestedCalls: nestedToolCallsSchema.optional(),
 		isError: z.boolean(),
 		rendered: renderedTextSchema.optional(),
 		usage: usageSchema.optional(),
@@ -341,6 +342,7 @@ export const runtimeEventSchema = z.discriminatedUnion("type", [
 			.strictObject({
 				toolCallId: idSchema,
 				toolName: idSchema,
+				parentToolCallId: idSchema.optional(),
 				text: z.string().max(TOOL_PROGRESS_MAX_CHARS),
 				truncated: z.boolean(),
 				rendered: renderedTextSchema.optional(),

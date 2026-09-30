@@ -1,73 +1,64 @@
-import { dirname, join } from "node:path";
-import { MCP_STATUS_EVENT } from "pi-mcp-adapter/types";
-import { isPiMcpSource, MCP_PACKAGE, mcpStatusSchema, type McpCommand, type McpStatus } from "@ling/contracts/mcp";
-import { piPackageSource } from "@ling/contracts/pi-tool-origin";
-import { readUtf8FileBounded } from "../../store/atomic-file-store";
-import { createLogger } from "../../logger";
-import type { PiAgentSession, PiExtensionUiContext, PiInlineExtension } from "../types";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { MCP_BUILTIN_SOURCE, MCP_STATUS_MAX_CHARS, type McpCommand, type McpStatus } from "@ling/contracts/mcp";
+import type { PiAgentSession, PiExtensionUiContext, PiLoadExtensionsResult } from "../types";
 
-const log = createLogger("mcp-ui");
 export interface McpUi {
 	open(ui: PiExtensionUiContext): void;
 	status(ui: PiExtensionUiContext, value: McpStatus | null): void;
 }
 
-/** Native controls only dispatch a verified extension command, never a model prompt. */
+/** Dispatches the verified official command in the current idle runtime. */
 export async function runMcpCommand(session: PiAgentSession, input: McpCommand): Promise<void> {
-	if (!session.isIdle) throw new Error("Wait for the current session operation before connecting MCP.");
+	if (!session.isIdle) throw new Error("Wait for the current session operation before managing MCP.");
 	const runner = session.extensionRunner;
-	const names = input.action === "authenticate" ? ["mcp-auth"] : ["mcp-adapter", "mcp"];
-	const commands = runner.getRegisteredCommands();
-	const command = names
-		.map((name) =>
-			commands.find((command) => command.name === name && isPiMcpSource(piPackageSource(command.sourceInfo.source))),
-		)
-		.find((command) => command !== undefined);
-	if (!command) throw new Error("The MCP adapter is no longer active. Refresh its settings and try again.");
-	await command.handler(
-		input.action === "authenticate" ? input.name : `reconnect ${input.name}`,
-		runner.createCommandContext(),
-	);
+	const command = runner
+		.getRegisteredCommands()
+		.find((command) => command.name === "mcp" && command.sourceInfo.path === MCP_BUILTIN_SOURCE);
+	if (!command)
+		throw new Error(
+			"Official Pi MCP is unavailable. Check its feature switch and Pi extension settings; an installed /mcp extension takes precedence.",
+		);
+	const args =
+		input.action === "status"
+			? "status"
+			: `${input.action === "authenticate" ? "login" : input.action === "connect" ? "reconnect" : "logout"} ${input.name}`;
+	await command.handler(args, runner.createCommandContext());
 }
 
-export async function supportsPiMcp(entry: string): Promise<boolean> {
-	const source = await readUtf8FileBounded(join(dirname(entry), "package.json"), 256 * 1024);
-	if (source === undefined) return false;
-	const value: unknown = JSON.parse(source);
-	return (
-		typeof value === "object" &&
-		value !== null &&
-		"name" in value &&
-		"version" in value &&
-		value.name === MCP_PACKAGE &&
-		(value.version === "2.37.0" || value.version === "3.1.0")
-	);
-}
-
-/** Subscription belongs to one live session and is revoked before the adapter shuts down. */
-export function createMcpStatusBridge(ui: McpUi): PiInlineExtension {
-	return {
-		name: "ling-mcp-status",
-		hidden: true,
-		factory(pi) {
-			let release: (() => void) | undefined;
-			pi.on("session_start", (_event, ctx) => {
-				release?.();
-				ui.status(ctx.ui, null);
-				release = pi.events.on(MCP_STATUS_EVENT, (value) => {
-					const parsed = mcpStatusSchema.safeParse(value);
-					if (!parsed.success) {
-						log.warn("Ignoring an incompatible MCP status event");
-						return;
-					}
-					ui.status(ctx.ui, parsed.data);
-				});
+/** Keeps OAuth and connections in Pi while presenting its public status output in Ling. */
+export function adaptMcpExtension(extension: PiLoadExtensionsResult["extensions"][number], ui: McpUi) {
+	const command = extension.commands.get("mcp");
+	if (!command) throw new Error("Official Pi MCP did not register its management command.");
+	extension.commands.set("mcp", {
+		...command,
+		handler: async (args, ctx) => {
+			const input = args.trim();
+			if (input !== "" && input !== "status") await command.handler(args, ctx);
+			await command.handler("", {
+				...ctx,
+				mode: "rpc",
+				ui: {
+					...ctx.ui,
+					notify(message, type) {
+						if (type === "error" || type === "warning") ctx.ui.notify(message, type);
+						// Keep a bounded complete prefix and disclose clipping of unusually large status reports.
+						const text =
+							message.length > MCP_STATUS_MAX_CHARS
+								? `${message.slice(0, MCP_STATUS_MAX_CHARS - 32)}\n[Status output truncated]`
+								: message;
+						ui.status(ctx.ui, { version: 2, text, updatedAt: Date.now() });
+					},
+				},
 			});
-			pi.on("session_shutdown", (_event, ctx) => {
-				release?.();
-				release = undefined;
-				ui.status(ctx.ui, null);
-			});
+			if (input === "") ui.open(ctx.ui);
 		},
-	};
+	});
+	extension.handlers.set("session_start", [
+		...(extension.handlers.get("session_start") ?? []),
+		async (_event, ctx) => ui.status((ctx as ExtensionContext).ui, null),
+	]);
+	extension.handlers.set("session_shutdown", [
+		...(extension.handlers.get("session_shutdown") ?? []),
+		async (_event, ctx) => ui.status((ctx as ExtensionContext).ui, null),
+	]);
 }

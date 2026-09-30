@@ -15,7 +15,7 @@ const documentation: Record<BuiltinFeatureId, string> = {
 		"https://github.com/tyql688/ling/blob/main/docs/architecture.md#built-in-features-and-pi-adapters",
 	schedules: "https://github.com/tyql688/ling/blob/main/docs/architecture.md#built-in-features-and-pi-adapters",
 	voice: "https://github.com/earendil-works/pi-voice#readme",
-	mcp: "https://github.com/nicobailon/pi-mcp-adapter#readme",
+	mcp: "https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/mcp.md",
 };
 
 export function BuiltinFeatureDocumentation({

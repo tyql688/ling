@@ -214,6 +214,14 @@ export interface ModelState {
 	currentModelId?: string;
 	thinkingLevel: ThinkingLevel;
 	availableThinkingLevels: ThinkingLevel[];
+	/** Physical model selected by the virtual model for its most recent response. */
+	routedModel?: {
+		provider: string;
+		modelId: string;
+		name: string;
+		contextWindow: number;
+		thinkingLevel?: ThinkingLevel;
+	};
 }
 
 /** Adapter switches refresh catalog metadata; configuration also reloads skills/settings; full reads fresh code. */

@@ -26,6 +26,11 @@ describe("Pi settings write policy", () => {
 	it("preserves the tool-set and shell-prefix rules previously enforced by the SDK settings owner", () => {
 		expect(schema.safeParse({ type: "defaultTools", tools: [] }).success).toBe(true);
 		expect(schema.safeParse({ type: "defaultTools", tools: ["read", "bash"] }).success).toBe(true);
+		expect(
+			schema.safeParse({ type: "defaultTools", tools: ["read", "codemode", "tool_search", "custom_extension_tool"] })
+				.success,
+		).toBe(true);
+		expect(schema.safeParse({ type: "defaultTools", tools: ["+codemode"] }).success).toBe(false);
 		expect(schema.safeParse({ type: "defaultTools", tools: ["read", "read"] }).success).toBe(false);
 		expect(schema.safeParse({ type: "shellCommandPrefix", prefix: null }).success).toBe(true);
 		expect(schema.safeParse({ type: "shellCommandPrefix", prefix: "source env.sh\n" }).success).toBe(true);

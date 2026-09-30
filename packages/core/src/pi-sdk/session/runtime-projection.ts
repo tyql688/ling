@@ -222,6 +222,7 @@ export function createPiRuntimeProjection(modelProjection: PiModelProjection) {
 	function projectPiRuntimeModelState(session: PiAgentSession): ModelState {
 		const models = projectSessionModels(session);
 		const currentModel = session.model;
+		const routed = session.routedModel;
 		const currentAvailable =
 			currentModel !== undefined &&
 			models.some((model) => model.provider === currentModel.provider && model.id === currentModel.id);
@@ -235,6 +236,17 @@ export function createPiRuntimeProjection(modelProjection: PiModelProjection) {
 				: {}),
 			thinkingLevel: session.thinkingLevel,
 			availableThinkingLevels: currentAvailable ? session.getAvailableThinkingLevels() : [],
+			...(routed
+				? {
+						routedModel: {
+							provider: routed.model.provider,
+							modelId: routed.model.id,
+							name: routed.model.name,
+							contextWindow: routed.model.contextWindow,
+							...(routed.thinkingLevel ? { thinkingLevel: routed.thinkingLevel } : {}),
+						},
+					}
+				: {}),
 		};
 	}
 

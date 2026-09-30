@@ -3,7 +3,7 @@ import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { temporaryDirectory } from "../../../../../../test/temporary-directory";
 import { createMcpConfigFile } from "@ling/core/pi-sdk/mcp/mcp-config";
-import type { McpOverview } from "@ling/contracts/mcp";
+import { mcpServerSchema, type McpOverview } from "@ling/contracts/mcp";
 import { createBuiltinFeatures } from "../../companions/builtin-features";
 import { changeBuiltinFeature } from "../../companions/builtin-feature-change";
 import { createResourceReloadCoordinator } from "../../resources/resource-reload";
@@ -132,14 +132,16 @@ it("allows configuration while off, keeps values out of inventory and reports de
 		target: "project",
 		name: "remote",
 		expectedRevision: read.documents[0].revision,
-		server: { approveTools: true },
+		server: { exposure: "direct" },
 	});
 	expect(result).toMatchObject({
 		saved: true,
 		feature: { enabled: false },
 		reload: { sessions: { deferred: 1 } },
 	});
-	expect((await f.file.read()).servers.remote?.headers?.Authorization).toBe("fixture-header-secret");
+	expect(mcpServerSchema.parse((await f.file.read()).servers.remote).headers?.Authorization).toBe(
+		"fixture-header-secret",
+	);
 	expect(f.changed).toEqual([]);
 	expect(f.reloaded).toEqual([]);
 	expect(f.sessions).toEqual([[f.ref.cwd]]);
@@ -150,7 +152,7 @@ it("allows configuration while off, keeps values out of inventory and reports de
 		target: "project",
 		name: "remote",
 		expectedRevision: saved.revision,
-		server: { approveTools: true },
+		server: { exposure: "direct" },
 	});
 	expect(f.reloaded).toEqual([]);
 	expect(f.sessions).toEqual([[f.ref.cwd]]);
@@ -187,16 +189,16 @@ it("changes the master switch explicitly, checks revisions, and retains partial 
 
 it("preserves other project fields when resetting a service switch and rejects a stale remove", async () => {
 	const f = await fixture();
-	await writeFile(f.path, '{"mcpServers":{"inherited":{"env":{"MODE":"test"}}}}');
+	await writeFile(f.path, '{"mcpServers":{"inherited":{"command":"node","env":{"MODE":"test"}}}}');
 	const request = { target: "project", name: "inherited" };
 	const original = (await f.file.read()).revision;
 	await f.run({ ...request, action: "set_server_enabled", enabled: false, expectedRevision: original });
-	expect((await f.file.read()).servers.inherited?.disabled).toBe(true);
+	expect(mcpServerSchema.parse((await f.file.read()).servers.inherited).enabled).toBe(false);
 	await expect(f.run({ ...request, action: "remove", expectedRevision: original })).rejects.toMatchObject({
 		code: "MCP_CONFIG_CHANGED",
 	});
 	await f.run({ ...request, action: "reset_server_enabled", expectedRevision: (await f.file.read()).revision });
-	expect((await f.file.read()).servers.inherited).toEqual({ env: { MODE: "test" } });
+	expect((await f.file.read()).servers.inherited).toEqual({ command: "node", env: { MODE: "test" } });
 });
 
 it("rejects foreign project arguments, whole config documents, untrusted projects and closed sessions", async () => {

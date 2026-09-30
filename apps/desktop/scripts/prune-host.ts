@@ -36,12 +36,12 @@ const SOURCE_ONLY_EXTENSIONS = new Set([".map", ".c", ".h", ".cc", ".cpp", ".gyp
 const BUILTINS = new Set(builtinModules);
 
 /**
- * Pi 0.87.1's provider bundles guard these optional integrations at their call sites. Every other
+ * Pi 0.99.1's provider bundles guard these optional integrations at their call sites. Every other
  * literal external import must resolve. Reaudit this list with the SDK bundle on a Pi upgrade.
  */
 const OPTIONAL_BUNDLE_IMPORTS = new Set(["supports-color", "kerberos", "bufferutil", "utf-8-validate"]);
 
-/** SDK 0.87.1 supplies these peers to Pi extension factories through its virtual module registry. */
+/** SDK 0.99.1 supplies these peers to Pi extension factories through its virtual module registry. */
 const PI_VIRTUAL_PEERS = new Set([
 	"typebox",
 	"@sinclair/typebox",
@@ -91,7 +91,15 @@ async function readBundleDependencies(directory: string): Promise<Set<string>> {
 			if (
 				ts.isCallExpression(node) &&
 				(node.expression.kind === ts.SyntaxKind.ImportKeyword ||
-					(ts.isIdentifier(node.expression) && /^(?:__)?require\d*$/.test(node.expression.text)))
+					(ts.isIdentifier(node.expression) && /^(?:__)?require\d*$/.test(node.expression.text)) ||
+					// File-backed runtime assets are resolved without importing their package.
+					(ts.isPropertyAccessExpression(node.expression) &&
+						node.expression.name.text === "resolve" &&
+						((ts.isIdentifier(node.expression.expression) &&
+							/^(?:__)?require\d*$/.test(node.expression.expression.text)) ||
+							(ts.isCallExpression(node.expression.expression) &&
+								ts.isIdentifier(node.expression.expression.expression) &&
+								/^createRequire\d*$/.test(node.expression.expression.expression.text)))))
 			)
 				argument = node.arguments[0];
 			if (argument && ts.isStringLiteralLike(argument) && !BUILTINS.has(argument.text)) {

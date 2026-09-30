@@ -554,6 +554,7 @@ function adaptToolEvent(
 				progress: {
 					toolCallId: event.toolCallId,
 					toolName: event.toolName,
+					...(event.parentToolCallId === undefined ? {} : { parentToolCallId: event.parentToolCallId }),
 					text: "",
 					truncated: false,
 				},
@@ -582,6 +583,7 @@ function adaptToolEvent(
 				progress: {
 					toolCallId: event.toolCallId,
 					toolName: event.toolName,
+					...(event.parentToolCallId === undefined ? {} : { parentToolCallId: event.parentToolCallId }),
 					text: text.slice(-TOOL_PROGRESS_MAX_CHARS),
 					truncated: text.length > TOOL_PROGRESS_MAX_CHARS,
 					...(rendered === undefined ? {} : { rendered }),

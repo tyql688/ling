@@ -123,6 +123,7 @@ function DeferredToolResult(props: ToolResultProps) {
 }
 
 function LoadedToolResult(props: ToolResultProps) {
+	const { t } = useTranslation();
 	const rendered = props.message.rendered?.error
 		? null
 		: selectCustomMessageRenderedLines(props.message.rendered, true);
@@ -133,6 +134,40 @@ function LoadedToolResult(props: ToolResultProps) {
 				<RenderedTerminalLines lines={rendered.lines} inline={props.variant === "inline"} />
 			) : (
 				<ToolResultContent {...props} />
+			)}
+			{message.nestedCalls && (
+				<details className="mt-3 text-xs">
+					<summary className="cursor-pointer text-text-muted">
+						{t("session.nestedCalls", { count: message.nestedCalls.calls.length })}
+					</summary>
+					<div className="mt-2 flex flex-col gap-2">
+						{message.nestedCalls.calls.map((call) => (
+							<details key={call.id} className="rounded-control border border-border-subtle px-3 py-2">
+								<summary className="cursor-pointer break-all">
+									<span className="font-mono">{call.name}</span>
+									<span className={cn("ml-2", call.status === "error" ? "text-danger" : "text-text-muted")}>
+										{t(`session.nestedStatus_${call.status}`)}
+									</span>
+									{call.durationMs !== undefined && (
+										<span className="ml-2 tabular-nums text-text-muted">{call.durationMs} ms</span>
+									)}
+								</summary>
+								{call.arguments !== undefined && (
+									<pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words">
+										{JSON.stringify(call.arguments, null, 2)}
+									</pre>
+								)}
+								{call.argumentsBytes !== undefined && (
+									<p className="mt-2 text-text-muted">
+										{t("session.nestedArgumentsOmitted", { count: call.argumentsBytes })}
+									</p>
+								)}
+								{call.error && <p className="mt-2 whitespace-pre-wrap text-danger">{call.error}</p>}
+							</details>
+						))}
+						{!message.nestedCalls.complete && <p className="text-text-muted">{t("session.nestedIncomplete")}</p>}
+					</div>
+				</details>
 			)}
 		</TodoToolResult>
 	);

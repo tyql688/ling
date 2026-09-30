@@ -5,6 +5,65 @@ import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { createPiSettings } from "./settings";
 import { createPiSkillCatalog } from "../resources/skills";
 import { createLingSkillResources } from "../resources/skill-toggles";
+import { settingsSchema } from "../../pi-protocol/domain-payload-schemas";
+
+it("preserves canonical tool selection, Codemode siblings and the installation identity across writers", async () => {
+	const agentDir = await temporaryDirectory("pi-feature-settings");
+	const owner = createPiSettings(agentDir);
+	const second = createPiSettings(agentDir);
+	const path = join(agentDir, "settings.json");
+	try {
+		expect(await owner.getPiSettings()).toMatchObject({
+			defaultTools: ["read", "bash", "edit", "write"],
+			defaultToolsConfigured: false,
+		});
+		await writeFile(
+			path,
+			JSON.stringify({
+				defaultTools: ["+codemode", "-write", "+extension_tool"],
+				codemode: { inlineBudget: 100, custom: true },
+				custom: "preserved",
+			}),
+		);
+		expect(settingsSchema.parse(await owner.getPiSettings()).defaultTools).toEqual([
+			"read",
+			"bash",
+			"edit",
+			"codemode",
+			"extension_tool",
+		]);
+		const [id, other] = await Promise.all([
+			owner.getPiDeviceId(),
+			second.getPiDeviceId(),
+			owner.updatePiSettings({ type: "codemode", settings: { mode: "only" } }),
+			second.updatePiSettings({ type: "codemode", settings: { inlineBudget: 0 } }),
+		]);
+		expect(id).toMatch(/^[0-9a-f-]{36}$/);
+		expect(other).toBe(id);
+		expect(await owner.getPiDeviceId()).toBe(id);
+		expect(JSON.parse(await readFile(path, "utf8"))).toMatchObject({
+			deviceId: id,
+			codemode: { mode: "only", inlineBudget: 0, custom: true },
+			custom: "preserved",
+		});
+		await owner.updatePiSettings({ type: "defaultTools", tools: [] });
+		expect(settingsSchema.parse(await owner.getPiSettings())).toMatchObject({
+			defaultTools: [],
+			defaultToolsConfigured: true,
+		});
+		await owner.updatePiSettings({ type: "defaultTools", tools: ["codemode", "extension_tool"] });
+		expect(settingsSchema.parse(await owner.getPiSettings()).defaultTools).toEqual(["codemode", "extension_tool"]);
+		await owner.updatePiSettings({ type: "defaultTools", tools: null });
+		expect(JSON.parse(await readFile(path, "utf8"))).not.toHaveProperty("defaultTools");
+		expect(settingsSchema.parse(await owner.getPiSettings())).toMatchObject({
+			defaultTools: ["read", "bash", "edit", "write"],
+			defaultToolsConfigured: false,
+		});
+	} finally {
+		await Promise.all([owner.dispose(), second.dispose()]);
+		await rm(agentDir, { recursive: true, force: true });
+	}
+});
 
 it("skips unchanged skill switches without rewriting shared Pi settings", async () => {
 	const agentDir = await temporaryDirectory("skill-switches");

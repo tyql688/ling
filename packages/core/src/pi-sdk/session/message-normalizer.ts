@@ -1,7 +1,12 @@
 import { questionAnswerText } from "./question-answer-message";
 import { record } from "@ling/contracts/records";
 import { piToolOriginSchema } from "@ling/contracts/pi-tool-origin";
-import { generationDurationMsSchema } from "@ling/contracts/session-messages";
+import {
+	generationDurationMsSchema,
+	nestedToolCallsSchema,
+	SESSION_NESTED_CALL_MAX_ITEMS,
+	type NestedToolCalls,
+} from "@ling/contracts/session-messages";
 import {
 	type AssistantContentPart,
 	type AssistantSessionMessage,
@@ -51,6 +56,7 @@ interface JsonBudget {
 	nodes: number;
 	bytes: number;
 	exhausted: boolean;
+	truncated: boolean;
 	seen: WeakSet<object>;
 }
 
@@ -74,10 +80,12 @@ function safeString(value: unknown, fallback: string, max = MAX_STRING_LENGTH): 
 
 function boundedJsonString(value: string, budget: JsonBudget, max = MAX_STRING_LENGTH): string {
 	if (budget.exhausted) return "[byte limit exceeded]";
+	if (value.length > max) budget.truncated = true;
 	const normalized = boundedString(value, max);
 	const bytes = Buffer.byteLength(normalized, "utf8");
 	if (budget.bytes + bytes > MAX_BOUNDED_JSON_BYTES) {
 		budget.exhausted = true;
+		budget.truncated = true;
 		return "[byte limit exceeded]";
 	}
 	budget.bytes += bytes;
@@ -100,21 +108,40 @@ function observationTime(value: number): number {
 
 function toBoundedJsonValue(value: unknown, budget: JsonBudget, depth: number): BoundedJson {
 	budget.nodes += 1;
-	if (budget.nodes > MAX_NODES) return "[node limit exceeded]";
+	if (budget.nodes > MAX_NODES) {
+		budget.truncated = true;
+		return "[node limit exceeded]";
+	}
 	if (budget.exhausted) return "[byte limit exceeded]";
 	if (value === null || typeof value === "boolean") return value;
 	if (typeof value === "string") return boundedJsonString(value, budget);
-	if (typeof value === "number") return Number.isFinite(value) ? value : null;
-	if (typeof value !== "object") return `[unsupported ${typeof value}]`;
-	if (depth >= MAX_DEPTH) return "[depth limit exceeded]";
-	if (budget.seen.has(value)) return "[circular]";
+	if (typeof value === "number") {
+		if (Number.isFinite(value)) return value;
+		budget.truncated = true;
+		return null;
+	}
+	if (typeof value !== "object") {
+		budget.truncated = true;
+		return `[unsupported ${typeof value}]`;
+	}
+	if (depth >= MAX_DEPTH) {
+		budget.truncated = true;
+		return "[depth limit exceeded]";
+	}
+	if (budget.seen.has(value)) {
+		budget.truncated = true;
+		return "[circular]";
+	}
 	budget.seen.add(value);
 	try {
 		if (Array.isArray(value)) {
+			if (value.length > MAX_ARRAY_ITEMS) budget.truncated = true;
 			return value.slice(0, MAX_ARRAY_ITEMS).map((item) => toBoundedJsonValue(item, budget, depth + 1));
 		}
 		const result: Record<string, BoundedJson> = {};
-		for (const [key, item] of Object.entries(value).slice(0, MAX_KEYS)) {
+		const entries = Object.entries(value);
+		if (entries.length > MAX_KEYS) budget.truncated = true;
+		for (const [key, item] of entries.slice(0, MAX_KEYS)) {
 			result[boundedJsonString(key, budget, 256)] = toBoundedJsonValue(item, budget, depth + 1);
 		}
 		return result;
@@ -125,10 +152,35 @@ function toBoundedJsonValue(value: unknown, budget: JsonBudget, depth: number): 
 
 function toBoundedJson(value: unknown): BoundedJson {
 	try {
-		return toBoundedJsonValue(value, { nodes: 0, bytes: 0, exhausted: false, seen: new WeakSet<object>() }, 0);
+		return toBoundedJsonValue(
+			value,
+			{ nodes: 0, bytes: 0, exhausted: false, truncated: false, seen: new WeakSet<object>() },
+			0,
+		);
 	} catch {
 		return "[unserializable value]";
 	}
+}
+
+/** A damaged or clipped child record must remain visible as an incomplete tree, preserving the parent output. */
+function normalizeNestedToolCalls(value: unknown): NestedToolCalls {
+	const nested = record(value);
+	if (!nested || !Array.isArray(nested.calls)) return { calls: [], complete: false };
+	const budget: JsonBudget = { nodes: 0, bytes: 0, exhausted: false, truncated: false, seen: new WeakSet<object>() };
+	const calls: NestedToolCalls["calls"] = [];
+	for (const value of nested.calls.slice(0, SESSION_NESTED_CALL_MAX_ITEMS)) {
+		const call = record(value);
+		if (!call) continue;
+		const parsed = nestedToolCallsSchema.shape.calls.element.safeParse({
+			...call,
+			...(call.arguments === undefined ? {} : { arguments: toBoundedJsonValue(call.arguments, budget, 0) }),
+		});
+		if (parsed.success) calls.push(parsed.data);
+	}
+	return {
+		calls,
+		complete: nested.complete === true && calls.length === nested.calls.length && !budget.truncated,
+	};
 }
 
 type ContentPart = UserContentPart | ToolResultContentPart;
@@ -141,8 +193,8 @@ interface ContentBudget {
 	omittedImages: number;
 }
 
-function createContentBudget(): ContentBudget {
-	return { remainingBytes: MESSAGE_CONTENT_BUDGET_BYTES, omittedImages: 0 };
+function createContentBudget(metadataBytes = 0): ContentBudget {
+	return { remainingBytes: Math.max(0, MESSAGE_CONTENT_BUDGET_BYTES - metadataBytes), omittedImages: 0 };
 }
 
 /** An image part that already carries its address, from a message being normalized a second time
@@ -286,9 +338,13 @@ function normalizeAssistantContent(value: unknown): AssistantContentPart[] | nul
 	return parts;
 }
 
-function normalizeToolResultContent(value: unknown, entryId: string | null): ToolResultContentPart[] | null {
+function normalizeToolResultContent(
+	value: unknown,
+	entryId: string | null,
+	metadataBytes: number,
+): ToolResultContentPart[] | null {
 	if (!Array.isArray(value)) return null;
-	const budget = createContentBudget();
+	const budget = createContentBudget(metadataBytes);
 	const parts: ToolResultContentPart[] = [];
 	const textParts: string[] = [];
 	for (const [index, candidate] of value.slice(0, MAX_ARRAY_ITEMS).entries()) {
@@ -421,7 +477,12 @@ function normalizePiMessageValue(value: unknown, options: NormalizePiMessageOpti
 		} satisfies AssistantSessionMessage;
 	}
 	if (source.role === "toolResult") {
-		const content = normalizeToolResultContent(source.content, messageIdentity.entryId);
+		const nestedCalls = source.nestedCalls === undefined ? undefined : normalizeNestedToolCalls(source.nestedCalls);
+		const content = normalizeToolResultContent(
+			source.content,
+			messageIdentity.entryId,
+			nestedCalls ? Buffer.byteLength(JSON.stringify(nestedCalls), "utf8") : 0,
+		);
 		const usage = source.usage === undefined ? undefined : normalizeUsage(source.usage);
 		if (
 			!content ||
@@ -441,6 +502,7 @@ function normalizePiMessageValue(value: unknown, options: NormalizePiMessageOpti
 			toolCallId: boundedString(source.toolCallId, MAX_ID_LENGTH),
 			toolName: boundedString(source.toolName, 256),
 			...(source.toolOrigin === undefined ? {} : { toolOrigin: piToolOriginSchema.parse(source.toolOrigin) }),
+			...(nestedCalls === undefined ? {} : { nestedCalls }),
 			isError: source.isError,
 			...(rendered ? { rendered } : {}),
 			...(usage ? { usage } : {}),

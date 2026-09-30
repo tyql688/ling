@@ -4,6 +4,125 @@ import { normalizePiMessage } from "./message-normalizer";
 const options = { messageId: "live-1", entryId: "entry-1", occurredAt: 100 };
 
 describe("Pi message normalization", () => {
+	it("retains parent output and valid nested calls when another nested record is malformed", () => {
+		const message = normalizePiMessage(
+			{
+				role: "toolResult",
+				toolCallId: "outer",
+				toolName: "codemode",
+				isError: false,
+				content: [{ type: "text", text: "completed output" }],
+				nestedCalls: {
+					complete: true,
+					calls: [
+						{ id: "good", name: "read", status: "ok", arguments: { path: "README.md" } },
+						{ id: "bad", name: "read", status: "invalid" },
+					],
+				},
+			},
+			options,
+		);
+		expect(message).toMatchObject({
+			role: "toolResult",
+			content: [{ type: "text", text: "completed output" }],
+			nestedCalls: { complete: false, calls: [{ id: "good" }] },
+		});
+	});
+
+	it("marks nested arguments incomplete when a structural limit clips valid SDK arguments", () => {
+		const message = normalizePiMessage(
+			{
+				role: "toolResult",
+				toolCallId: "outer",
+				toolName: "codemode",
+				isError: false,
+				content: [],
+				nestedCalls: {
+					complete: true,
+					calls: [{ id: "child", name: "probe", status: "ok", arguments: { values: Array(600).fill(0) } }],
+				},
+			},
+			options,
+		);
+		expect(message).toMatchObject({ role: "toolResult", nestedCalls: { complete: false } });
+	});
+
+	it("reserves nested metadata only for results that carry it", () => {
+		const image = { type: "image", mimeType: "image/png", data: "A".repeat(5 * 1024 * 1024) };
+		for (const value of [
+			{ role: "user", content: [image] },
+			{ role: "toolResult", toolCallId: "outer", toolName: "generate_image", isError: false, content: [image] },
+		]) {
+			expect(normalizePiMessage(value, { ...options, entryId: null })).toMatchObject({
+				role: value.role,
+				content: [{ type: "image", data: image.data }],
+			});
+		}
+		const crowded = normalizePiMessage(
+			{
+				role: "toolResult",
+				toolCallId: "outer",
+				toolName: "codemode",
+				isError: true,
+				content: [image, { type: "text", text: "Completed with child failures" }],
+				details: { text: "x".repeat(64 * 1024) },
+				nestedCalls: {
+					complete: true,
+					calls: Array.from({ length: 256 }, (_, index) => ({
+						id: String(index),
+						name: "read",
+						status: "error",
+						error: "错".repeat(1024),
+					})),
+				},
+			},
+			{ ...options, entryId: null },
+		);
+		expect(crowded).toMatchObject({ role: "toolResult", nestedCalls: { complete: true } });
+		expect(JSON.stringify(crowded)).toContain("Completed with child failures");
+		expect(Buffer.byteLength(JSON.stringify(crowded), "utf8")).toBeLessThan(6 * 1024 * 1024);
+	});
+
+	it("retains nested Codemode calls and incomplete records in persisted tool results", () => {
+		const nestedCalls = {
+			complete: false,
+			calls: [
+				{ id: "child-1", name: "mcp_echo", status: "ok", arguments: { text: "hello" }, durationMs: 15 },
+				{ id: "child-2", name: "bash", status: "error", error: "Permission denied" },
+				{ id: "child-3", name: "read", status: "unfinished", argumentsBytes: 10000 },
+			],
+		};
+		const message = normalizePiMessage(
+			{
+				role: "toolResult",
+				toolCallId: "outer",
+				toolName: "codemode",
+				isError: false,
+				content: [{ type: "text", text: "done" }],
+				nestedCalls,
+			},
+			options,
+		);
+		expect(message).toMatchObject({ role: "toolResult", nestedCalls, entryId: "entry-1" });
+		const bounded = normalizePiMessage(
+			{
+				role: "toolResult",
+				toolCallId: "outer",
+				toolName: "codemode",
+				isError: false,
+				content: [],
+				nestedCalls: {
+					complete: true,
+					calls: Array.from({ length: 257 }, (_, index) => ({ id: String(index), name: "read", status: "ok" })),
+				},
+			},
+			options,
+		);
+		if (bounded.role !== "toolResult") throw new Error("Expected a tool result");
+		expect(bounded.nestedCalls?.calls).toHaveLength(256);
+		expect(bounded.nestedCalls?.complete).toBe(false);
+	});
+
 	it("displays persisted images independently of provider size and format limits", () => {
 		for (const mimeType of ["image/png", "image/avif", "image/svg+xml"]) {
 			const message = normalizePiMessage(

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { argumentsOf, event, request, returns } from "./procedure";
 import {
 	mcpCommandSchema,
@@ -10,7 +11,11 @@ import {
 import type { PiResourceReloadSummary } from "./session";
 import { createSessionRequestSchemas } from "./session-requests";
 
-const commandRequest = createSessionRequestSchemas().sessionRuntimeBindingRequestSchema.extend(mcpCommandSchema.shape);
+const binding = createSessionRequestSchemas().sessionRuntimeBindingRequestSchema;
+const commandRequest = z.discriminatedUnion("action", [
+	mcpCommandSchema.options[0].extend(binding.shape),
+	mcpCommandSchema.options[1].extend(binding.shape),
+]);
 
 export const mcpProcedures = {
 	onChanged: event("mcp:changed", returns<null>()),

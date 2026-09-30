@@ -11,7 +11,7 @@ Ling embeds Pi and shares its configured agent directory with the CLI. Pi's inst
 
 ## Configure MCP from a conversation
 
-Read [references/mcp.md](references/mcp.md) when adding, changing, removing, enabling or troubleshooting MCP services. Prefer the `ling_mcp` management tool when available. It stays available while built-in MCP execution is off; configuration edits preserve that switch. Read the current feature state and target file revision before changes, use the user's intended scope, and report saved configuration, pending reloads and live connection checks separately. The runtime `mcp` gateway and the `ling-and-pi` skill each have independent availability: neither a loaded skill nor a saved server enables MCP.
+Read [references/mcp.md](references/mcp.md) when adding, changing, removing, enabling or troubleshooting MCP services. Prefer the `ling_mcp` management tool when available. It stays available while built-in MCP execution is off; configuration edits preserve that switch. Read the current feature state and target file revision before changes, use the user's intended scope, and report saved configuration, pending reloads and live connection checks separately. Pi's runtime MCP tools and the `ling-and-pi` skill each have independent availability: neither a loaded skill nor a saved server enables MCP.
 
 ## Locate the effective configuration
 
@@ -22,7 +22,7 @@ Resolve the current project and the actual Pi agent directory before editing. `<
 | Global Pi settings | `<agent-dir>/settings.json`; Ling's Pi Settings controls edit this scope |
 | Project Pi settings | `<project>/.pi/settings.json`; trusted project values override global values, including nested settings |
 | Project Pi Config panel | A read-only view of that project's settings; edit the file with normal file tools |
-| MCP configuration | `ling_mcp` or Settings → MCP services; see the MCP reference for Pi-specific and shared global/project layers |
+| MCP configuration | `ling_mcp` or Settings → MCP services; see the MCP reference for official global/project configuration |
 | Global instructions | `<agent-dir>/AGENTS.md`, `SYSTEM.md`, and `APPEND_SYSTEM.md`; Ling provides editors for these files |
 | Credentials and models | Pi's `auth.json` and `models.json` under `<agent-dir>`; use Ling's credential/model controls when available and never print secrets |
 | Session history | Pi files under `<agent-dir>/sessions`; locate the actual session rather than reconstructing its filename or editing a live log |

@@ -1,4 +1,3 @@
-import type { PiSettings } from "../settings/settings";
 import type { PiSessionProjectAccess } from "./runtime-factory";
 import type { PiTurnLifecycle } from "./turn-lifecycle";
 import type { PiModelProjection } from "../models/model-projection";
@@ -27,18 +26,15 @@ export function createPiSessionRuntimes({
 	projects,
 	turnLifecycle,
 	modelProjection,
-	settings,
 }: {
 	extensionUi: PiExtensionUi;
 	projects: PiSessionProjectAccess;
 	turnLifecycle: PiTurnLifecycle;
 	modelProjection: PiModelProjection;
-	settings: PiSettings;
 }) {
 	const runtimeFactory = createPiRuntimeFactory({
 		projects,
 		modelProjection,
-		getPiDefaultTools: settings.getPiDefaultTools,
 	});
 	const projections = createPiRuntimeProjection(modelProjection);
 	const runtimeServices = { extensionUi, projects, turnLifecycle, modelProjection, runtimeFactory, projections };

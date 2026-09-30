@@ -8,6 +8,44 @@ import { createPiRuntimeOperationCoordinator } from "./runtime-operations";
 import { createRuntimeCompanionServices } from "./runtime-companion-services";
 
 describe("companion session services", () => {
+	it("rejects extension-handled automatic prompts and releases admission for the next run", async () => {
+		const manager = SessionManager.inMemory("/project");
+		const unsubscribed = new Set<string>();
+		let currentRun = "";
+		const session = {
+			sessionManager: manager,
+			isIdle: true,
+			pendingMessageCount: 0,
+			subscribe: () => {
+				const run = currentRun;
+				return () => unsubscribed.add(run);
+			},
+			prompt: async (_text: string, options: Parameters<PiAgentSession["prompt"]>[1]) => {
+				options?.preflightResult?.(currentRun === "handled" ? "handled" : "started");
+			},
+		} as unknown as PiAgentSession;
+		const service = createRuntimeCompanionServices({
+			session: () => session,
+			operations: createPiRuntimeOperationCoordinator({
+				assertCanStart() {},
+				getActiveReload: () => null,
+				assertCanRunSynchronously() {},
+				onReleased() {},
+			}),
+			isBusy: () => false,
+			emitSnapshotChanged() {},
+		});
+		currentRun = "handled";
+		await expect(service.startCompanionRun(currentRun, "Extension input", {})).rejects.toThrow(
+			"The prompt did not start a model run",
+		);
+		expect(unsubscribed.has("handled")).toBe(true);
+		currentRun = "started";
+		expect(await service.startCompanionRun(currentRun, "Model input", {})).toMatchObject({ status: "running" });
+		expect(await service.waitCompanionRun(currentRun)).toMatchObject({ status: "completed" });
+		expect(unsubscribed.has("started")).toBe(true);
+	});
+
 	it("reads finalized tool details before append and resolves older results against their own branch", async () => {
 		const manager = SessionManager.inMemory("/project");
 		const origin = {

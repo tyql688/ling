@@ -13,14 +13,15 @@ allowBuilds:
   koffi: false # native voice uses the shipped platform package; the install script is a source-build fallback
 minimumReleaseAgeExclude:
   - "@earendil-works/pi-voice@0.1.0"
-  - "@earendil-works/chord@0.87.1"
-  - "@earendil-works/pi-agent-core@0.87.1"
-  - "@earendil-works/pi-ai@0.87.1"
-  - "@earendil-works/pi-coding-agent@0.87.1"
-  - "@earendil-works/pi-telemetry@0.87.1"
-  - "@earendil-works/pi-tui@0.87.1"
-  - "@gotgenes/pi-permission-system@35.0.1"
-  - pi-mcp-adapter@3.1.0
+  - "@earendil-works/chord@0.99.1"
+  - "@earendil-works/pi-agent-core@0.99.1"
+  - "@earendil-works/pi-ai@0.99.1"
+  - "@earendil-works/pi-coding-agent@0.99.1"
+  - "@earendil-works/pi-codemode@0.99.1"
+  - "@earendil-works/pi-mcp@0.99.1"
+  - "@earendil-works/pi-telemetry@0.99.1"
+  - "@earendil-works/pi-tui@0.99.1"
+  - "@gotgenes/pi-permission-system@36.1.0"
 overrides:
   "ansi-to-react>linkify-it": 5.0.2
   "minimatch@3.1.5>brace-expansion": 1.1.18

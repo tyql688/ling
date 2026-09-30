@@ -32,7 +32,7 @@ async function fixture(): Promise<string> {
 			dependencies: {
 				[SDK]: "1",
 				"@ling/core": "workspace:*",
-				"pi-mcp-adapter": "1",
+				"fixture-extension": "1",
 				ws: "1",
 				"node-pty": "1",
 				npm: "1",
@@ -67,15 +67,15 @@ async function fixture(): Promise<string> {
 	await pkg("esbuild", {});
 	await pkg("@silvia-odwyer/photon-node", {});
 	await pkg("jiti", {});
-	await pkg("pi-mcp-adapter", {
+	await pkg("fixture-extension", {
 		pi: { extensions: ["index.ts"] },
 		dependencies: { zod: "1", recheck: "1", undici: "1" },
 		peerDependencies: { "@earendil-works/pi-ai": "*", typebox: "*", "runtime-peer": "1" },
 	});
-	await write(join(modules, "pi-mcp-adapter/index.ts"));
-	await write(join(modules, "pi-mcp-adapter/docs/usage.md"));
-	await pkg("pi-mcp-adapter/node_modules/undici", { dependencies: { "fast-uri": "1" } });
-	await pkg("pi-mcp-adapter/node_modules/typebox", {});
+	await write(join(modules, "fixture-extension/index.ts"));
+	await write(join(modules, "fixture-extension/docs/usage.md"));
+	await pkg("fixture-extension/node_modules/undici", { dependencies: { "fast-uri": "1" } });
+	await pkg("fixture-extension/node_modules/typebox", {});
 	await pkg("undici", { dependencies: { "unreachable-child": "1" } });
 	await pkg("unreachable-child", {});
 	await pkg("runtime-peer", {});
@@ -127,7 +127,7 @@ it("keeps declared and bundle-imported packages with their closures and strips t
 		"openai",
 		"undici",
 		"unreachable-child",
-		"pi-mcp-adapter/node_modules/typebox",
+		"fixture-extension/node_modules/typebox",
 	])
 		expect(existsSync(join(modules, removed)), removed).toBe(false);
 	for (const kept of [
@@ -139,8 +139,8 @@ it("keeps declared and bundle-imported packages with their closures and strips t
 		"jiti",
 		"node-pty",
 		"npm",
-		"pi-mcp-adapter",
-		"pi-mcp-adapter/node_modules/undici",
+		"fixture-extension",
+		"fixture-extension/node_modules/undici",
 		"runtime-peer",
 		"recheck",
 		"recheck-jar",
@@ -176,8 +176,8 @@ it("keeps declared and bundle-imported packages with their closures and strips t
 	expect(existsSync(join(modules, "zod/THIRD_PARTY_LICENSES.md"))).toBe(true);
 	expect(notices).not.toContain("@ling/core");
 
-	expect(existsSync(join(modules, "pi-mcp-adapter/index.ts"))).toBe(true);
-	expect(existsSync(join(modules, "pi-mcp-adapter/docs/usage.md"))).toBe(true);
+	expect(existsSync(join(modules, "fixture-extension/index.ts"))).toBe(true);
+	expect(existsSync(join(modules, "fixture-extension/docs/usage.md"))).toBe(true);
 	expect(existsSync(join(modules, "fast-uri/LICENSE.md"))).toBe(true);
 	expect(existsSync(join(modules, "zod/index.js"))).toBe(true);
 	expect(existsSync(join(modules, "zod/index.d.ts"))).toBe(false);
@@ -201,7 +201,7 @@ it("rejects missing required dependencies before modifying the deploy", async ()
 	const modules = join(root, "node_modules");
 	await rm(join(modules, "fast-uri"), { recursive: true });
 	await expect(pruneStagedHost({ hostRoot: root, platform: "darwin", arch: "arm64" })).rejects.toThrow(
-		/Required dependency fast-uri .*pi-mcp-adapter/,
+		/Required dependency fast-uri .*fixture-extension/,
 	);
 	expect(existsSync(join(modules, "openai/LICENSE"))).toBe(true);
 	await write(join(modules, "fast-uri/package.json"), "{}");
@@ -230,6 +230,26 @@ it("fails on new missing bundle imports instead of silently omitting them", asyn
 	await expect(pruneStagedHost({ hostRoot: root, platform: "darwin", arch: "arm64" })).rejects.toThrow(
 		/Required dependency new-required-package/,
 	);
+});
+
+it("retains resolved WASM assets and rejects missing runtime asset packages", async () => {
+	const root = await fixture();
+	const modules = join(root, "node_modules");
+	const script = join(modules, SDK, "dist/bundle/chunks/wasm.js");
+	await write(
+		script,
+		'createRequire(import.meta.url).resolve("quickjs-wasi/quickjs.wasm"); require2.resolve("asset-package/data.bin"); path.resolve("not-a-package");',
+	);
+	await write(join(modules, "quickjs-wasi/package.json"), "{}");
+	await write(join(modules, "quickjs-wasi/quickjs.wasm"), "wasm fixture");
+	await expect(pruneStagedHost({ hostRoot: root, platform: "darwin", arch: "arm64" })).rejects.toThrow(
+		/Required dependency asset-package/,
+	);
+	await write(join(modules, "asset-package/package.json"), "{}");
+	await write(join(modules, "asset-package/data.bin"), "data");
+	await pruneStagedHost({ hostRoot: root, platform: "darwin", arch: "arm64" });
+	expect(existsSync(join(modules, "quickjs-wasi/quickjs.wasm"))).toBe(true);
+	expect(existsSync(join(modules, "asset-package/data.bin"))).toBe(true);
 });
 
 it("retains the bundle's nested dependency and ordinary peers with their own closures", async () => {

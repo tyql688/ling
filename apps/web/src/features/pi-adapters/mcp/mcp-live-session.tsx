@@ -1,4 +1,4 @@
-import { mcpCommandSchema, type McpCommand, type McpOverview } from "@ling/contracts/mcp";
+import type { McpCommand, McpOverview } from "@ling/contracts/mcp";
 import { sessionKey, type SessionRef } from "@ling/contracts/session-ref";
 import { Button } from "@renderer/components/ui/button";
 import { SettingsRow, SettingsSection } from "@renderer/components/ui/settings-list";
@@ -19,7 +19,7 @@ export function McpLiveSession({
 }: {
 	sessionRef: SessionRef;
 	configuring: boolean;
-	configured: NonNullable<McpOverview["effective"]>;
+	configured: McpOverview["effective"];
 }) {
 	const { t } = useTranslation();
 	const api = useDomainApi("mcp");
@@ -31,13 +31,13 @@ export function McpLiveSession({
 	const [pending, setPending] = useState(false);
 	const running = useRef(false);
 	const status = snapshot?.state.mcpStatus;
-	const blocked = busy || pending || configuring || features.busy || !features.value?.enabled.mcp;
+	const blocked = !snapshot || busy || pending || configuring || features.busy || !features.value?.enabled.mcp;
 	async function execute(command: McpCommand) {
 		if (!snapshot || blocked || running.current) return;
 		running.current = true;
 		setPending(true);
 		try {
-			await navigation.openSession(sessionRef);
+			if (command.action !== "status") await navigation.openSession(sessionRef);
 			await api.run({ ref: sessionRef, runtimeId: snapshot.runtimeId, generation: snapshot.generation, ...command });
 		} catch (cause) {
 			feedback.show({ tone: "danger", title: t("mcp.actionFailed"), description: formatRequestError(cause) });
@@ -48,72 +48,69 @@ export function McpLiveSession({
 	}
 	if (!features.value?.enabled.mcp)
 		return <p className="text-xs leading-relaxed text-text-muted">{t("mcp.runtimeOff")}</p>;
-	if (!status) return <p className="text-xs leading-relaxed text-text-muted">{t("mcp.noLiveStatus")}</p>;
-	// The adapter can defer initialization from cached metadata without emitting server status.
-	// Keep configured services reachable while reporting no connection or tool-count claims.
-	const servers = status.servers.length
-		? status.servers
-		: configured.map((server) => ({
-				name: server.name,
-				disabled: server.disabled,
-				status: server.disabled ? ("disabled" as const) : ("not-connected" as const),
-				toolCount: null,
-				blockedReason: undefined,
-			}));
 	return (
-		<SettingsSection
-			title={t("mcp.live")}
-			description={
-				status.servers.length
-					? t("mcp.summary", { connected: status.connectedCount, tools: status.totalTools })
-					: t("mcp.status_not-connected")
-			}
-		>
-			{(busy || configuring) && (
-				<p className="px-5 py-3 text-xs leading-relaxed text-text-muted">{t("mcp.waitForIdle")}</p>
-			)}
-			{servers.map((server) => {
-				const supportsCommand = mcpCommandSchema.shape.name.safeParse(server.name).success;
-				return (
+		<SettingsSection title={t("mcp.live")} description={t("mcp.statusHint")}>
+			<div className="flex flex-col gap-3 px-5 py-4">
+				<div className="flex flex-wrap items-center justify-between gap-2">
+					<span className="text-xs text-text-muted">
+						{status
+							? t("mcp.statusUpdated", { time: new Date(status.updatedAt).toLocaleTimeString() })
+							: t("mcp.noLiveStatus")}
+					</span>
+					<Button variant="outline" size="sm" disabled={blocked} onClick={() => void execute({ action: "status" })}>
+						{t("mcp.refreshStatus")}
+					</Button>
+				</div>
+				{status && (
+					<pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs leading-relaxed">
+						{status.text}
+					</pre>
+				)}
+				{(busy || configuring) && <p className="text-xs text-text-muted">{t("mcp.waitForIdle")}</p>}
+			</div>
+			{configured
+				.filter((server) => !server.disabled)
+				.map((server) => (
 					<SettingsRow
 						key={server.name}
 						label={<span className="break-all">{server.name}</span>}
-						description={
-							<>
-								{t(`mcp.status_${server.status}`)}
-								{server.blockedReason && <span className="mt-1 block">{server.blockedReason}</span>}
-								{!supportsCommand && !server.disabled && <span className="mt-1 block">{t("mcp.commandNameHint")}</span>}
-							</>
-						}
+						description={t(`mcp.exposure_${server.exposure}`)}
 					>
 						<div className="flex flex-wrap items-center gap-2">
-							{server.toolCount !== null && (
-								<span className="text-xs tabular-nums text-text-muted">
-									{t("mcp.tools", { count: server.toolCount })}
-								</span>
-							)}
-							{!server.disabled && (
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={blocked || !supportsCommand}
-									aria-label={t(server.status === "needs-auth" ? "mcp.authenticateNamed" : "mcp.connectNamed", {
-										name: server.name,
-									})}
-									onClick={() =>
-										void execute({
-											action: server.status === "needs-auth" ? "authenticate" : "connect",
-											name: server.name,
-										})
-									}
-								>
-									{t(server.status === "needs-auth" ? "mcp.authenticate" : "mcp.connect")}
-								</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={blocked}
+								aria-label={t("mcp.connectNamed", { name: server.name })}
+								onClick={() => void execute({ action: "connect", name: server.name })}
+							>
+								{t("mcp.connect")}
+							</Button>
+							{server.transport === "http" && (
+								<>
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={blocked}
+										aria-label={t("mcp.authenticateNamed", { name: server.name })}
+										onClick={() => void execute({ action: "authenticate", name: server.name })}
+									>
+										{t("mcp.authenticate")}
+									</Button>
+									<Button
+										variant="ghost"
+										size="sm"
+										disabled={blocked}
+										aria-label={t("mcp.logoutNamed", { name: server.name })}
+										onClick={() => void execute({ action: "logout", name: server.name })}
+									>
+										{t("mcp.logout")}
+									</Button>
+								</>
 							)}
 						</div>
 					</SettingsRow>
-				);
-			})}
+				))}
 		</SettingsSection>
 	);
 }

@@ -1,8 +1,10 @@
-import { readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { createMcpConfigFile } from "./mcp-config";
+import { readPiMcpConfiguration } from "./pi-mcp";
+import { mcpConfiguredServerSchema, mcpServerSchema, mcpWriteRequestSchema } from "@ling/contracts/mcp";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -15,35 +17,80 @@ async function fixture() {
 	return { root, path, file: createMcpConfigFile(path), signal: new AbortController().signal };
 }
 
-it("preserves comments, unknown options and unrelated credentials while disabling one service", async () => {
+it("isolates malformed MCP options and names while keeping valid services editable", async () => {
+	const f = await fixture();
+	const oversizedName = "x".repeat(201);
+	await writeFile(
+		f.path,
+		JSON.stringify({
+			autoEnableCodemode: "false",
+			mcpServers: { good: { command: "node" }, [oversizedName]: { command: "node" }, "": { command: "node" } },
+		}),
+	);
+	const snapshot = await readPiMcpConfiguration(f.root, null);
+	expect(snapshot.loaded.servers.map((server) => server.name)).toEqual(["good"]);
+	expect(snapshot.loaded.errors).toHaveLength(3);
+	expect(snapshot.documents[0]?.error).toBeNull();
+	for (const name of [oversizedName, ""]) {
+		const input = mcpWriteRequestSchema.parse({
+			cwd: null,
+			target: "global",
+			expectedRevision: (await f.file.read()).revision,
+			name,
+			change: { kind: "remove" },
+		});
+		await f.file.write(input, f.signal);
+	}
+	expect((await f.file.read()).servers).toEqual({ good: { command: "node" } });
+});
+
+it("rejects OAuth callbacks whose configured ports disagree", () => {
+	expect(
+		mcpConfiguredServerSchema.safeParse({
+			url: "https://example.com/mcp",
+			oauth: { callbackUrl: "http://localhost:43210/callback", callbackPort: 43211 },
+		}).success,
+	).toBe(false);
+});
+
+it("preserves formatting, unknown options and unrelated credentials while disabling one service", async () => {
 	const f = await fixture();
 	await writeFile(
 		f.path,
-		'{\n  // shared with Pi\n  "settings": {"futureOption": 42},\n  "mcpServers": {"remote": {"url":"https://example.com/mcp","headers":{"Authorization":"fixture-secret"}}, "local": {"command":"node","customOption":true}}\n}\n',
+		'{\n  "futureOptions": {"futureOption": 42},\n  "mcpServers": {"remote": {"url":"https://example.com/mcp","headers":{"Authorization":"fixture-secret"}}, "local": {"command":"node","customOption":true}}\n}\n',
 	);
 	const before = await f.file.read();
 	await f.file.write(
-		{ expectedRevision: before.revision, name: "local", change: { kind: "toggle", disabled: true } },
+		{ expectedRevision: before.revision, name: "local", change: { kind: "toggle", enabled: false } },
 		f.signal,
 	);
 	const after = await f.file.read();
 	expect(after.servers.remote).toEqual(before.servers.remote);
-	expect(after.servers.local).toEqual({ command: "node", customOption: true, disabled: true });
+	expect(after.servers.local).toEqual({ command: "node", customOption: true, enabled: false });
 	const source = await readFile(f.path, "utf8");
-	expect(source).toContain("// shared with Pi");
 	expect(source).toContain('"futureOption": 42');
 });
 
-it("creates private project overrides without copying inherited credentials and removes only that entry", async () => {
+it("creates private complete entries and removes only the selected service", async () => {
 	const f = await fixture();
 	const before = await f.file.read();
 	expect(before.exists).toBe(false);
+	await expect(
+		f.file.write(
+			{ expectedRevision: before.revision, name: "remote", change: { kind: "toggle", enabled: false } },
+			f.signal,
+		),
+	).rejects.toThrow();
 	await f.file.write(
-		{ expectedRevision: before.revision, name: "remote", change: { kind: "toggle", disabled: true } },
+		{
+			expectedRevision: before.revision,
+			name: "remote",
+			change: { kind: "save", server: { command: "node", enabled: false } },
+		},
 		f.signal,
 	);
 	const after = await f.file.read();
-	expect(after.servers).toEqual({ remote: { disabled: true } });
+	expect(after.servers).toEqual({ remote: { command: "node", enabled: false } });
 	if (process.platform !== "win32") expect((await stat(f.path)).mode & 0o777).toBe(0o600);
 	await f.file.write({ expectedRevision: after.revision, name: "remote", change: { kind: "remove" } }, f.signal);
 	expect((await f.file.read()).servers).toEqual({});
@@ -63,21 +110,21 @@ it("rejects stale and concurrent edits instead of losing the previous write", as
 	await expect(f.file.write(inputs[1]!, f.signal)).rejects.toMatchObject({ code: "MCP_CONFIG_CHANGED" });
 });
 
-it("keeps unchanged JSONC untouched and reports no mutation for saves, patches and overrides", async () => {
+it("keeps unchanged JSON untouched and reports no mutation for saves, patches and overrides", async () => {
 	const f = await fixture();
-	const source = '{ "mcpServers": { "local": { "disabled": true, /* keep */ "command": "node" } } }\n';
+	const source = '{ "mcpServers": { "local": { "enabled": false, "command": "node" } } }\n';
 	await writeFile(f.path, source);
 	const before = await f.file.read();
 	for (const change of [
-		{ kind: "save" as const, server: { command: "node", disabled: true } },
+		{ kind: "save" as const, server: { command: "node", enabled: false } },
 		{ kind: "patch" as const, server: { command: "node" }, removeFields: [] },
-		{ kind: "toggle" as const, disabled: true },
+		{ kind: "toggle" as const, enabled: false },
 	]) {
 		await expect(f.file.write({ expectedRevision: before.revision, name: "local", change }, f.signal)).resolves.toBe(
 			false,
 		);
 	}
-	for (const kind of ["remove", "reset-disabled"] as const)
+	for (const kind of ["remove", "reset-enabled"] as const)
 		await expect(
 			f.file.write({ expectedRevision: before.revision, name: "missing", change: { kind } }, f.signal),
 		).resolves.toBe(false);
@@ -85,7 +132,7 @@ it("keeps unchanged JSONC untouched and reports no mutation for saves, patches a
 	expect((await f.file.read()).revision).toBe(before.revision);
 	await expect(
 		f.file.write(
-			{ expectedRevision: before.revision, name: "local", change: { kind: "toggle", disabled: false } },
+			{ expectedRevision: before.revision, name: "local", change: { kind: "toggle", enabled: true } },
 			f.signal,
 		),
 	).resolves.toBe(true);
@@ -113,17 +160,17 @@ it("merges conversation patches without exposing or replacing saved credentials"
 			name: "remote",
 			change: {
 				kind: "patch",
-				server: { headers: { Accept: "application/json" }, env: { MODE: "test" }, approveTools: true },
+				server: { headers: { Accept: "application/json" }, env: { MODE: "test" }, exposure: "direct" as const },
 				removeFields: [],
 			},
 		},
 		f.signal,
 	);
 	expect((await f.file.read()).servers.remote).toEqual({
-		...before.servers.remote,
+		...mcpServerSchema.parse(before.servers.remote),
 		headers: { Authorization: "fixture-secret", Accept: "application/json" },
 		env: { TOKEN: "another-secret", MODE: "test" },
-		approveTools: true,
+		exposure: "direct" as const,
 	});
 	const latest = await f.file.read();
 	await expect(
@@ -143,7 +190,7 @@ it("merges conversation patches without exposing or replacing saved credentials"
 	expect((await f.file.read()).revision).toBe(latest.revision);
 });
 
-it("requires an explicit transport removal and defaults new services to approval", async () => {
+it("requires explicit transport and credential removal before changing connection targets", async () => {
 	const f = await fixture();
 	await f.file.write(
 		{
@@ -158,7 +205,7 @@ it("requires an explicit transport removal and defaults new services to approval
 		f.signal,
 	);
 	const before = await f.file.read();
-	expect(before.servers.local?.approveTools).toBe(true);
+	expect(before.servers.local).toEqual({ command: "node", args: ["fixture.js"] });
 	await expect(
 		f.file.write(
 			{
@@ -186,27 +233,32 @@ it("requires an explicit transport removal and defaults new services to approval
 		},
 		f.signal,
 	);
-	expect((await f.file.read()).servers.local).toEqual({ url: "https://example.com/mcp", approveTools: true });
+	expect((await f.file.read()).servers.local).toEqual({ url: "https://example.com/mcp" });
 });
 
-it("restores inherited enable state without dropping other project options", async () => {
+it("resets the official enable setting while keeping complete connection options", async () => {
 	const f = await fixture();
 	await writeFile(
 		f.path,
-		'{ // keep project options\n "mcpServers": {"partial":{"disabled":true,"env":{"MODE":"test"}},"only":{"disabled":false}}}\n',
+		'{ "mcpServers": {"partial":{"command":"node","enabled":false,"env":{"MODE":"test"}},"only":{"command":"node","enabled":true}}}\n',
 	);
 	for (const name of ["partial", "only", "missing"]) {
 		const current = await f.file.read();
-		await f.file.write({ expectedRevision: current.revision, name, change: { kind: "reset-disabled" } }, f.signal);
+		await f.file.write({ expectedRevision: current.revision, name, change: { kind: "reset-enabled" } }, f.signal);
 	}
-	expect((await f.file.read()).servers).toEqual({ partial: { env: { MODE: "test" } } });
-	expect(await readFile(f.path, "utf8")).toContain("// keep project options");
+	expect((await f.file.read()).servers).toEqual({
+		partial: { command: "node", env: { MODE: "test" } },
+		only: { command: "node" },
+	});
 });
 
 it("saves a retained draft against a refreshed revision without replacing another service", async () => {
 	const f = await fixture();
 	const before = await f.file.read();
-	const draft = { name: "draft", change: { kind: "save" as const, server: { command: "node", approveTools: true } } };
+	const draft = {
+		name: "draft",
+		change: { kind: "save" as const, server: { command: "node", exposure: "direct" as const } },
+	};
 	await writeFile(f.path, '{"mcpServers":{"external":{"url":"https://example.com/mcp"}}}\n');
 	await expect(f.file.write({ ...draft, expectedRevision: before.revision }, f.signal)).rejects.toMatchObject({
 		code: "MCP_CONFIG_CHANGED",
@@ -216,22 +268,26 @@ it("saves a retained draft against a refreshed revision without replacing anothe
 	expect((await f.file.read()).servers).toEqual({ external: latest.servers.external, draft: draft.change.server });
 });
 
-it.each(["{broken", '{"mcpServers":{"bad":{"command":false}}}', '{"mcpServers":[]}'])(
-	"does not overwrite unreadable configuration: %s",
-	async (source) => {
-		const f = await fixture();
-		const before = await f.file.read();
-		await writeFile(f.path, source);
-		await expect(f.file.read()).rejects.toThrow();
-		await expect(
-			f.file.write(
-				{ expectedRevision: before.revision, name: "new", change: { kind: "save", server: { command: "node" } } },
-				f.signal,
-			),
-		).rejects.toThrow();
-		expect(await readFile(f.path, "utf8")).toBe(source);
-	},
-);
+it.each([
+	"{broken",
+	'{"mcpServers":[]}',
+	'{ /* comment */ "mcpServers": {} }',
+	'{"mcpServers":{},}',
+	'\uFEFF{"mcpServers":{}}',
+	"",
+])("does not overwrite unreadable configuration: %s", async (source) => {
+	const f = await fixture();
+	const before = await f.file.read();
+	await writeFile(f.path, source);
+	await expect(f.file.read()).rejects.toThrow();
+	await expect(
+		f.file.write(
+			{ expectedRevision: before.revision, name: "new", change: { kind: "save", server: { command: "node" } } },
+			f.signal,
+		),
+	).rejects.toThrow();
+	expect(await readFile(f.path, "utf8")).toBe(source);
+});
 
 it("keeps a dotfile symlink when editing its target", async () => {
 	const f = await fixture();
@@ -247,48 +303,62 @@ it("keeps a dotfile symlink when editing its target", async () => {
 	expect((await f.file.read()).servers.local).toEqual({ command: "node" });
 });
 
-it("retains upstream aliases, trailing commas and environment references without creating a shadow map", async () => {
+it("reports incompatible entries and preserves valid siblings with complete project precedence", async () => {
 	const f = await fixture();
-	await writeFile(f.path, '{ // existing Pi configuration\n "mcp-servers": { "我的 MCP": {"url":"${MCP_URL}",}, }, }');
-	const before = await f.file.read();
-	expect(before.servers["我的 MCP"]).toEqual({ url: "${MCP_URL}" });
-	await f.file.write(
-		{ expectedRevision: before.revision, name: "我的 MCP", change: { kind: "toggle", disabled: true } },
-		f.signal,
+	const cwd = join(f.root, "project");
+	await mkdir(join(cwd, ".pi"), { recursive: true });
+	await writeFile(
+		f.path,
+		JSON.stringify({
+			autoEnableCodemode: false,
+			mcpServers: {
+				shared: { url: "https://example.com/mcp", headers: { Authorization: "global-secret" } },
+				valid: { command: "node" },
+				unsafe: { command: "node" },
+				malformed: 3,
+				legacy: { command: "node", disabled: true },
+				approval: { command: "node", approveTools: true },
+			},
+		}),
 	);
-	expect((await f.file.read()).servers["我的 MCP"]).toEqual({ url: "${MCP_URL}", disabled: true });
-	expect(await readFile(f.path, "utf8")).not.toContain('"mcpServers"');
+	await writeFile(
+		join(cwd, ".pi", "mcp.json"),
+		JSON.stringify({
+			mcpServers: {
+				shared: { command: "python", enabled: false },
+				invalid: { enabled: false },
+				unsafe: { disabled: true },
+			},
+		}),
+	);
+	const global = await readPiMcpConfiguration(f.root, null);
+	expect(global.loaded.servers.find((entry) => entry.name === "shared")?.config).toEqual({
+		url: "https://example.com/mcp",
+		headers: { Authorization: "global-secret" },
+	});
+	const result = await readPiMcpConfiguration(f.root, cwd);
+	expect(result.loaded.servers.map((entry) => entry.name)).toEqual(["valid", "shared"]);
+	expect(result.loaded.servers.find((entry) => entry.name === "shared")?.config).toEqual({
+		command: "python",
+		enabled: false,
+	});
+	expect(result.loaded.autoEnableCodemode).toBe(false);
+	expect(result.loaded.errors).toHaveLength(5);
+	expect(result.documents[0]?.servers?.malformed).toBe(3);
+	expect(result.loaded.errors.join(" ")).not.toContain("global-secret");
 });
 
-it("preserves the BOM and comments while rejecting edits based on an earlier revision", async () => {
+it("preserves invalid siblings while repairing one service", async () => {
 	const f = await fixture();
+	await writeFile(f.path, '{"mcpServers":{"bad":{"command":false},"old":{"command":"node","disabled":true}}}');
 	const before = await f.file.read();
-	const source = '\uFEFF{ // retained comment\n "mcpServers": {}, "settings": {"custom": true}}';
-	await writeFile(f.path, source);
-	const legacy = createMcpConfigFile(f.path, { allowBom: false });
-	await expect(legacy.read()).rejects.toThrow("does not support a UTF-8 BOM");
-	await expect(
-		legacy.write(
-			{ expectedRevision: before.revision, name: "local", change: { kind: "toggle", disabled: true } },
-			f.signal,
-		),
-	).rejects.toThrow("does not support a UTF-8 BOM");
-	const current = await f.file.read();
-	expect(current.servers).toEqual({});
-	await expect(
-		f.file.write(
-			{ expectedRevision: before.revision, name: "local", change: { kind: "toggle", disabled: true } },
-			f.signal,
-		),
-	).rejects.toThrow("MCP configuration changed");
-	expect(await readFile(f.path, "utf8")).toBe(source);
 	await f.file.write(
-		{ expectedRevision: current.revision, name: "local", change: { kind: "toggle", disabled: true } },
+		{
+			expectedRevision: before.revision,
+			name: "old",
+			change: { kind: "save", server: { command: "node", enabled: false } },
+		},
 		f.signal,
 	);
-	const updated = await readFile(f.path, "utf8");
-	expect(updated.startsWith("\uFEFF")).toBe(true);
-	expect(updated).toContain("// retained comment");
-	expect(updated).toContain('"custom": true');
-	expect((await f.file.read()).servers.local).toEqual({ disabled: true });
+	expect((await f.file.read()).servers).toEqual({ bad: { command: false }, old: { command: "node", enabled: false } });
 });

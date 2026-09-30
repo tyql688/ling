@@ -1,4 +1,12 @@
-import type { McpDocument, McpOverview, McpServer, McpTarget, McpWriteRequest } from "@ling/contracts/mcp";
+import {
+	mcpConfiguredServerSchema,
+	mcpServerSchema,
+	type McpDocument,
+	type McpOverview,
+	type McpStoredServer,
+	type McpTarget,
+	type McpWriteRequest,
+} from "@ling/contracts/mcp";
 import type { OpenProjectInfo } from "@ling/contracts/project";
 import { errorCode } from "@ling/contracts/ling-error";
 import type { PiResourceReloadSummary } from "@ling/contracts/session";
@@ -81,9 +89,11 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 	const [loading, setLoading] = useState(true);
 	const [busy, setBusy] = useState(false);
 	const [target, setTarget] = useState<McpTarget>(cwd ? "project" : "global");
-	const [editor, setEditor] = useState<{ name: string | null; server: McpServer | null; document: McpDocument } | null>(
-		null,
-	);
+	const [editor, setEditor] = useState<{
+		name: string | null;
+		server: McpStoredServer | null;
+		document: McpDocument;
+	} | null>(null);
 	const [editorConflict, setEditorConflict] = useState(false);
 	const [editorRefreshed, setEditorRefreshed] = useState(false);
 	const [removing, setRemoving] = useState<{ name: string; document: McpDocument } | null>(null);
@@ -122,12 +132,11 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 		};
 	}, [refresh, api]);
 	const document = overview?.documents.find((item) => item.target === target);
-	const projectDocument = overview?.documents.find((item) => item.target === "project");
 	const writable = canWrite(document);
 	function canWrite(owner: McpDocument | undefined) {
 		return !!owner?.revision && !owner.error && !loading && !busy && !error;
 	}
-	function openEditor(name: string | null, server: McpServer | null, owner: McpDocument) {
+	function openEditor(name: string | null, server: McpStoredServer | null, owner: McpDocument) {
 		setError(null);
 		setEditorConflict(false);
 		setEditorRefreshed(false);
@@ -186,7 +195,7 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 						<SelectValue>{t(`mcp.target_${target}`)}</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
-						{(cwd ? (["project", "project-shared"] as const) : (["global", "global-shared"] as const)).map((value) => (
+						{(cwd ? (["project", "global"] as const) : (["global"] as const)).map((value) => (
 							<SelectItem value={value} key={value}>
 								{t(`mcp.target_${value}`)}
 							</SelectItem>
@@ -234,50 +243,55 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 					{Object.entries(document.servers).length === 0 && (
 						<p className="px-5 py-5 text-sm text-text-muted">{t("mcp.empty")}</p>
 					)}
-					{Object.entries(document.servers).map(([name, server]) => (
-						<SettingsRow
-							key={name}
-							label={<span className="break-all">{name}</span>}
-							description={
-								server.command
-									? t("mcp.transport_stdio")
-									: server.url
-										? t("mcp.transport_http")
-										: t("mcp.transport_advanced")
-							}
-						>
-							<div className="flex items-center gap-1">
-								<Button
-									variant="ghost"
-									size="icon"
-									disabled={!writable}
-									aria-label={t("mcp.editNamed", { name })}
-									onClick={() => openEditor(name, server, document)}
-								>
-									<Pencil className="size-3.5" aria-hidden="true" />
-								</Button>
-								<Button
-									variant="ghost"
-									size="icon"
-									disabled={!writable}
-									aria-label={t("mcp.removeNamed", { name })}
-									onClick={() => setRemoving({ name, document })}
-								>
-									<Trash2 className="size-3.5" aria-hidden="true" />
-								</Button>
-								<Switch
-									checked={!server.disabled}
-									disabled={!writable}
-									aria-label={t("mcp.enableNamed", { name })}
-									onCheckedChange={(enabled) => void write(name, { kind: "toggle", disabled: !enabled })}
-								/>
-							</div>
-						</SettingsRow>
-					))}
+					{Object.entries(document.servers).map(([name, stored]) => {
+						const parsed = mcpServerSchema.safeParse(stored);
+						const server = parsed.success ? parsed.data : null;
+						const valid = mcpConfiguredServerSchema.safeParse(stored).success;
+						return (
+							<SettingsRow
+								key={name}
+								label={<span className="break-all">{name}</span>}
+								description={
+									server?.command
+										? t("mcp.transport_stdio")
+										: server?.url
+											? t("mcp.transport_http")
+											: t("mcp.transport_advanced")
+								}
+							>
+								<div className="flex items-center gap-1">
+									<Button
+										variant="ghost"
+										size="icon"
+										disabled={!writable}
+										aria-label={t("mcp.editNamed", { name })}
+										onClick={() => openEditor(name, stored, document)}
+									>
+										<Pencil className="size-3.5" aria-hidden="true" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										disabled={!writable}
+										aria-label={t("mcp.removeNamed", { name })}
+										onClick={() => setRemoving({ name, document })}
+									>
+										<Trash2 className="size-3.5" aria-hidden="true" />
+									</Button>
+									<Switch
+										checked={valid && server?.enabled !== false}
+										disabled={!writable || !valid}
+										aria-label={t("mcp.enableNamed", { name })}
+										onCheckedChange={(enabled) => void write(name, { kind: "toggle", enabled })}
+									/>
+								</div>
+							</SettingsRow>
+						);
+					})}
 				</SettingsSection>
 			)}
 			{reload && <ResourceReloadFeedback summary={reload} successMessage={t("mcp.saved")} />}
-			{cwd && overview?.effective && (
+			{cwd && overview && (
 				<>
 					<SettingsSection title={t("mcp.effective")} description={t("mcp.effectiveHint")}>
 						{overview.effective.length === 0 && (
@@ -287,32 +301,11 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 							<SettingsRow
 								key={server.name}
 								label={<span className="break-all">{server.name}</span>}
-								description={<span className="break-all">{server.source ?? t("mcp.externalSource")}</span>}
+								description={<span className="break-all">{server.source}</span>}
 							>
 								<div className="flex flex-wrap items-center gap-2">
 									<span className="text-xs text-text-muted">{t(server.disabled ? "mcp.disabled" : "mcp.enabled")}</span>
-									{projectDocument?.servers?.[server.name]?.disabled !== undefined && (
-										<Button
-											variant="ghost"
-											size="sm"
-											disabled={!canWrite(projectDocument)}
-											onClick={() => void write(server.name, { kind: "reset-disabled" }, projectDocument)}
-										>
-											{t("mcp.resetDisabled")}
-										</Button>
-									)}
-									{(server.source !== document?.path || document?.target !== "project") && (
-										<Button
-											variant="outline"
-											size="sm"
-											disabled={!canWrite(projectDocument)}
-											onClick={() =>
-												void write(server.name, { kind: "toggle", disabled: !server.disabled }, projectDocument)
-											}
-										>
-											{t(server.disabled ? "mcp.enableHere" : "mcp.disableHere")}
-										</Button>
-									)}
+									<span className="text-xs text-text-muted">{t(`mcp.exposure_${server.exposure}`)}</span>
 								</div>
 							</SettingsRow>
 						))}

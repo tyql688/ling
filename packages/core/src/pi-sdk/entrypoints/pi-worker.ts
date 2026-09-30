@@ -258,6 +258,7 @@ export function startPiWorkerServer(options: StartPiWorkerServerOptions): PiWork
 		});
 		const configuration = createPiModelConfiguration({ projects: modelProjects, config: modelConfig });
 		const models = createPiModels({
+			getPiDeviceId: settings.getPiDeviceId,
 			projects: modelProjects,
 			modelRuntimes,
 			config: modelConfig,
@@ -285,7 +286,6 @@ export function startPiWorkerServer(options: StartPiWorkerServerOptions): PiWork
 			},
 			turnLifecycle,
 			modelProjection,
-			settings,
 		});
 		const runtimeService = createPiWorkerRuntimeService({
 			projects,

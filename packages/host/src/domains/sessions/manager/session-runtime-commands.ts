@@ -581,8 +581,7 @@ export function createSessionRuntimeCommands({
 	return {
 		runMcpCommand(request: McpCommandRequest) {
 			return requireRuntimeRequestInteraction(request).session.runMcpCommand({
-				action: request.action,
-				name: request.name,
+				...(request.action === "status" ? { action: request.action } : { action: request.action, name: request.name }),
 			});
 		},
 		sendMessage,

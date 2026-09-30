@@ -7,7 +7,7 @@ import {
 	type MonacoModelRecord,
 	trimModelRecords,
 } from "./monaco-documents";
-import { fileDocumentKey } from "./file-document-state";
+import { fileDocumentKey } from "../file-document-state";
 import { editorRange } from "./editor-coordinates";
 
 interface PreparedEditorFile {

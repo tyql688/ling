@@ -5,12 +5,12 @@ import { useTranslation } from "react-i18next";
 import type { EditorWorkspaceChange, LanguageResults } from "@ling/contracts/editor-language";
 import { useDomainApi } from "@renderer/lib/host-api-context";
 import { useCommandFeedback } from "@renderer/hooks/use-command-feedback";
-import type { WorkspaceFilePreviewProps } from "./use-file-preview-pane";
+import type { WorkspaceFilePreviewProps } from "../file-reading";
 import { getEditorLanguageClient } from "./editor-language-client";
 import { editorRange, languageRange, projectLanguagePath } from "./editor-coordinates";
-import { editorOutlineAtom, editorRevealAtom, type EditorOutlineItem } from "./editor-navigation";
+import { editorOutlineAtom, editorRevealAtom, type EditorOutlineItem } from "../editor-navigation";
 import { prepareEditorChange, type PreparedEditorChange } from "./editor-workspace-edits";
-import { fileDocumentKey, markFileDocumentDirtyAtom } from "./file-document-state";
+import { fileDocumentKey, markFileDocumentDirtyAtom } from "../file-document-state";
 import { modelRecords, createModelRecord } from "./monaco-documents";
 import { runLanguageAction } from "./editor-language-providers";
 

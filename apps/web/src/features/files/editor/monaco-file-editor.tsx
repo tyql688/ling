@@ -1,6 +1,6 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import { dirtyFileDocumentsAtom, fileDocumentKey, markFileDocumentDirtyAtom } from "./file-document-state";
+import { dirtyFileDocumentsAtom, fileDocumentKey, markFileDocumentDirtyAtom } from "../file-document-state";
 import type { ProjectWriteFileResult } from "@ling/contracts/project";
 import type { LingErrorDto } from "@ling/contracts/ling-error";
 import { Button } from "@renderer/components/ui/button";
@@ -8,12 +8,12 @@ import { useMonacoSkinTheme } from "@renderer/lib/appearance/skins/use-monaco-sk
 import { formatRequestError } from "@renderer/lib/errors";
 import { CODE_PREVIEW_DEFAULTS } from "@renderer/lib/preferences/code-preview";
 import { cn } from "@renderer/lib/utils";
-import "@renderer/features/files/monaco-environment";
+import "@renderer/features/files/editor/monaco-environment";
 import { AlertTriangle, Check, Save } from "lucide-react";
 import * as monaco from "monaco-editor";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { WORKSPACE_SUBHEADER_CLASS } from "../../components/shell-chrome";
+import { WORKSPACE_SUBHEADER_CLASS } from "../../../components/shell-chrome";
 
 import {
 	monacoLanguage,
@@ -31,7 +31,7 @@ const SAVED_FLASH_DURATION_MS = 1_200;
 import { MonacoConflictDiff } from "./monaco-conflict-diff";
 import { useEditorFeatures } from "./use-editor-features";
 import { EditorContextMenu, EditorDialogs } from "./editor-tools";
-import type { WorkspaceFilePreviewProps } from "./use-file-preview-pane";
+import type { WorkspaceFilePreviewProps } from "../file-reading";
 
 export function MonacoFileEditor({
 	viewKey,

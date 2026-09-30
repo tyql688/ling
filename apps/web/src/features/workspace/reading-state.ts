@@ -8,7 +8,7 @@ import {
 	EMPTY_EXPLORER_NAVIGATION,
 	type WorkspaceExplorerNavigation,
 } from "@renderer/features/files/use-workspace-explorer";
-import type { FileReadingView } from "@renderer/features/files/use-file-preview-pane";
+import type { FileReadingView } from "@renderer/features/files/file-reading";
 import type { ChangeReviewTarget } from "@renderer/features/review/change-review-target";
 import { atom, useAtom } from "jotai";
 import { useMemo } from "react";
@@ -36,7 +36,7 @@ export interface WorkbenchPanelState {
 }
 
 /** The right column starts closed; its first open lands on the new tab page. */
-export const INITIAL_WORKBENCH_PANEL_STATE: WorkbenchPanelState = {
+const INITIAL_WORKBENCH_PANEL_STATE: WorkbenchPanelState = {
 	open: false,
 	treeOpen: false,
 	historyOpen: false,

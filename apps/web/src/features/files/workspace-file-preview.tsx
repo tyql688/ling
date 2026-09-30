@@ -26,7 +26,8 @@ import { Markdown } from "@renderer/components/markdown";
 import { MarkdownImageRootContext, MarkdownDocumentContext } from "@renderer/components/markdown-image-root";
 import { dirtyFileDocumentsAtom, fileDocumentKey, getRetainedFileDocument } from "./file-document-state";
 
-import { useFilePreviewPane, type WorkspaceFilePreviewProps } from "./use-file-preview-pane";
+import { useFilePreviewPane } from "./use-file-preview-pane";
+import type { WorkspaceFilePreviewProps } from "./file-reading";
 import { formatWorkspaceFileSize } from "./workspace-explorer-format";
 
 function PreviewState({

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useAtomValue, useSetAtom } from "jotai";
-import { editorOutlineAtom, editorRevealAtom } from "./editor-navigation";
+import { editorOutlineAtom, editorRevealAtom } from "../editor-navigation";
 export function EditorOutline({ viewKey }: { viewKey: string }) {
 	const outline = useAtomValue(editorOutlineAtom),
 		reveal = useSetAtom(editorRevealAtom),

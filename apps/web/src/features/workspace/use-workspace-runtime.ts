@@ -7,7 +7,6 @@ import { sidebarCollapsedAtom } from "@renderer/features/workspace/sidebar-state
 import { useCommandFeedback } from "@renderer/hooks/use-command-feedback";
 import { useAtom, useAtomValue, useStore } from "jotai";
 import { useEffect, useLayoutEffect, useMemo } from "react";
-import type { ProjectController } from "../projects/use-projects";
 import type { SessionController } from "../sessions/use-sessions";
 import { useSessionNavigationHistory } from "./use-session-navigation-history";
 import { useWorkspaceModelFeedback } from "./use-workspace-model-feedback";
@@ -15,6 +14,7 @@ import { useWorkspaceSidebarState } from "./use-workspace-sidebar-state";
 import { useWorkspaceTabs } from "./use-workspace-tabs";
 import { useWorkspaceSessionActions } from "./workspace-session-actions";
 import {
+	type WorkspaceShellProps,
 	usePublishWorkspaceOwner,
 	workspaceHistoryAtom,
 	workspaceModelFeedbackAtom,
@@ -30,13 +30,6 @@ import { sessionWorkbenchesAtom, updateReadingWorkspaceAtom, useReadingWorkspace
 import { useWorkbenchPanel } from "./use-workbench-panel";
 import { workspaceDialogAtom } from "./use-workspace-dialogs";
 
-export interface WorkspaceShellProps {
-	onOpenSettings: () => void;
-	projectController: ProjectController;
-	sessionController: SessionController;
-	/** False while the settings shell covers the workspace: hidden views must not capture shortcuts or extension terminal input. */
-	visible: boolean;
-}
 export function useWorkspaceRuntime({
 	onOpenSettings,
 	projectController,

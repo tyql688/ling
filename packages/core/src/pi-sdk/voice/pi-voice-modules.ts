@@ -15,7 +15,7 @@ export async function supportsPiVoice(entry: string): Promise<boolean> {
 	return source !== undefined && supportedManifest.safeParse(JSON.parse(source)).success;
 }
 
-export interface VoiceModel {
+interface VoiceModel {
 	id: string;
 	name: string;
 	size: number;

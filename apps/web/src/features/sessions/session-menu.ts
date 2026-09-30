@@ -5,7 +5,7 @@ interface SessionMenuEntry {
 	destructive?: boolean;
 }
 
-export interface SessionMenuHandlers {
+interface SessionMenuHandlers {
 	onRename: () => void;
 	onPin: (pinned: boolean) => void;
 	onArchive: (archived: boolean) => void;

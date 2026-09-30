@@ -1,6 +1,6 @@
 import * as monaco from "monaco-editor";
 import { codeLanguage } from "@renderer/lib/code-language";
-import { fileDocumentKey, retainFileDocument } from "./file-document-state";
+import { fileDocumentKey, retainFileDocument } from "../file-document-state";
 import type { LingApi } from "@ling/contracts/api/ling-api";
 export interface TextDocument {
 	content: string;

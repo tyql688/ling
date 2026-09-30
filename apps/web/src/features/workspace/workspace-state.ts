@@ -7,10 +7,19 @@ import { atom, useAtomValue, useStore, type PrimitiveAtom } from "jotai";
 import { useLayoutEffect, useMemo } from "react";
 import type { useSessionNavigationHistory } from "./use-session-navigation-history";
 import type { useWorkspaceModelFeedback } from "./use-workspace-model-feedback";
-import type { WorkspaceShellProps } from "./use-workspace-runtime";
+import type { ProjectController } from "../projects/use-projects";
+import type { SessionController } from "../sessions/use-sessions";
 import type { useWorkspaceSidebarState } from "./use-workspace-sidebar-state";
 import type { useWorkspaceTabs } from "./use-workspace-tabs";
 import type { useWorkspaceSessionActions } from "./workspace-session-actions";
+
+export interface WorkspaceShellProps {
+	onOpenSettings: () => void;
+	projectController: ProjectController;
+	sessionController: SessionController;
+	/** False while the settings shell covers the workspace: hidden views must not capture shortcuts or extension terminal input. */
+	visible: boolean;
+}
 
 export const workspaceSelectionAtom = atom<
 	| (WorkspaceShellProps & {

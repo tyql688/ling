@@ -10,7 +10,7 @@ export const VOICE_MAX_SAMPLES = VOICE_SAMPLE_RATE * VOICE_MAX_SECONDS;
 export const VOICE_PCM_MAX_BYTES = VOICE_MAX_SAMPLES * 2;
 
 export const voiceProjectSchema = z.strictObject({ cwd: portableAbsolutePathSchema("Project path") });
-export const voiceConfigurationSchema = z.strictObject({
+const voiceConfigurationSchema = z.strictObject({
 	modelId: z.string().min(1).max(256),
 	language: z.string().min(1).max(32),
 	chineseOutput: z.enum(["simplified", "traditional-taiwan", "traditional-hong-kong"]),

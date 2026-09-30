@@ -1,10 +1,6 @@
-import type { EditorSelection } from "./editor-navigation";
+import type { WorkspaceFilePreviewProps } from "./file-reading";
 import type { ProjectFilePreview } from "@ling/contracts/project";
-import { useLayoutEffect } from "react";
-
-import type { InsertFileReferenceOptions } from "@renderer/features/sessions/state/composer-file-references";
-
-import { lazy, useEffect, useState } from "react";
+import { lazy, useEffect, useLayoutEffect, useState } from "react";
 
 import { useTranslation } from "react-i18next";
 
@@ -13,26 +9,8 @@ import { useWorkspaceFilePreview } from "./use-workspace-file-preview";
 import { countTextLines } from "./workspace-explorer-format";
 
 const MonacoFileEditor = lazy(() =>
-	import("./monaco-file-editor").then(({ MonacoFileEditor }) => ({ default: MonacoFileEditor })),
+	import("./editor/monaco-file-editor").then(({ MonacoFileEditor }) => ({ default: MonacoFileEditor })),
 );
-
-export interface FileReadingView {
-	mode: "rendered" | "source";
-	scrollTop: number;
-}
-
-export interface WorkspaceFilePreviewProps {
-	view?: FileReadingView | undefined;
-	onViewChange?: (view: Partial<FileReadingView>) => void;
-	viewKey?: string;
-	onOpenFile: (path: string, range?: EditorSelection) => void;
-	cwd: string;
-	path: string | null;
-	refreshRevision: string;
-	onCopyPath: (path: string) => void;
-	onInsertReference: (path: string, options?: InsertFileReferenceOptions) => void;
-	onRevealEntry: ((path: string) => void) | undefined;
-}
 
 function useWorkspaceImageUrl(preview: ProjectFilePreview | null): string | null {
 	const image = preview?.kind === "image" ? preview : null;
@@ -55,7 +33,7 @@ function useWorkspaceImageUrl(preview: ProjectFilePreview | null): string | null
 	return url;
 }
 
-/** Owns the form's asynchronous work, recovery state and submission intent. */
+/** Owns preview loading, selection references and authenticated image URLs. */
 export function useFilePreviewPane({
 	cwd,
 	path,

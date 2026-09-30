@@ -3,7 +3,7 @@ import { PanelBoundary } from "@renderer/components/error-fallback";
 import { LoadingTransition } from "@renderer/components/ui/loading-transition";
 import { WorkbenchSlotHost } from "@renderer/components/workbench/workbench-slot-host";
 import { SessionExtensionOverlay } from "@renderer/features/chat/extension-ui/session-extension-surfaces";
-import type { FileReadingView } from "@renderer/features/files/use-file-preview-pane";
+import type { FileReadingView } from "@renderer/features/files/file-reading";
 import { WorkspaceFilePreview } from "@renderer/features/files/workspace-file-preview";
 import { ChangeReviewDetailTab } from "@renderer/features/review/change-review-detail-tab";
 import { useReviewWorkspace } from "@renderer/features/review/use-review-workspace";

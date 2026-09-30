@@ -1,4 +1,4 @@
-import { EditorOutline } from "@renderer/features/files/editor-outline";
+import { EditorOutline } from "@renderer/features/files/editor/editor-outline";
 import type { WorkspaceExplorerNavigation } from "@renderer/features/files/use-workspace-explorer";
 import { WorkspaceExplorerPanel } from "@renderer/features/files/workspace-explorer-panel";
 import { useReviewWorkspace } from "@renderer/features/review/use-review-workspace";

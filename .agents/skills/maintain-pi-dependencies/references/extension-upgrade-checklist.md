@@ -12,7 +12,7 @@ Use the `adapt`, `expose`, `inherited` and `defer` decision rules in the [Pi upg
 | Loading, identity and versions | Confirm bundled identity, supported recorded provenance and user-installed precedence. An unrelated extension with the same tool name must retain Pi rendering and must not gain Ling's trusted projection or automatic mutations. |
 | Enable/disable and resource reload | Change the built-in feature switch while idle and busy. Verify admission and deferred reload, preserved configuration, no duplicate registrations and no obsolete tools after settlement/restart. A Ling switch must not uninstall the user's separate Pi package. |
 | SDK events, queues and replacement | Exercise changed start/end/settled behavior, cancellation, retry and affected fork/tree/replacement flows. Check session identity, busy state, dialogs and cleanup across reload; no continuation may escape to another session. |
-| UI and configuration | Inspect actual dialogs, selections, keyboard focus, localized copy and read-only/history states in Web and Desktop. Unsupported TUI APIs must remain typed failures. Reuse upstream files and Ling controls rather than creating another settings format or UI kit. |
+| UI and configuration | Inspect actual dialogs, selections, keyboard focus, localized copy and read-only/history states in Web and Desktop. Apply [Design's interaction acceptance](../../../../docs/design.md#acceptance) to switches, saves, connection actions and reloads, including slow operations, repeated clicks, failure rollback and editable drafts during background refresh. Unsupported TUI APIs must remain typed failures. Reuse upstream files and Ling controls rather than creating another settings format or UI kit. |
 
 ## Todo
 

@@ -1,5 +1,5 @@
 import {
-	mcpConfiguredServerSchema,
+	mcpScopedServerSchema,
 	mcpServerSchema,
 	type McpDocument,
 	type McpOverview,
@@ -47,7 +47,8 @@ export function McpSettingsView({ projects, activeCwd }: { projects: OpenProject
 				<SettingsRow label={t("mcp.builtin")} description={t("mcp.builtinHint")} layout="toggle">
 					<Switch
 						aria-label={t("mcp.builtin")}
-						checked={features.value?.enabled.mcp ?? false}
+						checked={features.pending?.id === "mcp" ? features.pending.enabled : (features.value?.enabled.mcp ?? false)}
+						pending={features.pending?.id === "mcp"}
 						disabled={!features.value || features.busy}
 						onCheckedChange={(value) => features.setEnabled("mcp", value)}
 					/>
@@ -87,7 +88,8 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 	const [overview, setOverview] = useState<McpOverview | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
-	const [busy, setBusy] = useState(false);
+	const [pending, setPending] = useState<{ name: string; change: McpWriteRequest["change"] } | null>(null);
+	const busy = pending !== null;
 	const [target, setTarget] = useState<McpTarget>(cwd ? "project" : "global");
 	const [editor, setEditor] = useState<{
 		name: string | null;
@@ -124,7 +126,8 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 		alive.current = true;
 		void refresh();
 		const unsubscribe = api.onChanged(() => {
-			if (operation.current !== "write") void refresh(operation.current === "refresh");
+			// Background updates must retain a failed save and its explicit draft recovery action.
+			if (operation.current !== "write") void refresh(true);
 		});
 		return () => {
 			unsubscribe();
@@ -145,7 +148,7 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 	async function refreshEditor() {
 		if (!editor || busy || loading) return;
 		const current = editor;
-		const latest = await refresh();
+		const latest = await refresh(true);
 		if (!alive.current || !latest) return;
 		const owner = latest.documents.find((item) => item.path === current.document.path);
 		if (!owner?.revision || owner.error) {
@@ -153,26 +156,26 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 			return;
 		}
 		setEditor((value) => (value === current ? { ...value, document: owner } : value));
+		setError(null);
 		setEditorConflict(false);
 		setEditorRefreshed(true);
 	}
 	async function write(name: string, change: McpWriteRequest["change"], owner = document) {
 		if (!owner?.target || !owner.revision || operation.current) return;
 		operation.current = "write";
-		setBusy(true);
+		setPending({ name, change });
 		setError(null);
 		setReload(null);
+		let saved = false;
 		try {
 			const result = await api.write({ cwd, target: owner.target, expectedRevision: owner.revision, name, change });
 			if (!alive.current) return;
 			setReload(result);
-			setEditor(null);
-			setRemoving(null);
+			saved = true;
 		} catch (cause) {
 			if (alive.current) {
 				setError(formatRequestError(cause));
 				setEditorConflict(errorCode(cause) === "MCP_CONFIG_CHANGED");
-				setRemoving(null);
 			}
 		} finally {
 			// The reload event precedes the write response. Refresh once after either
@@ -180,7 +183,12 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 			operation.current = "refresh";
 			if (alive.current) await refresh(true);
 			operation.current = null;
-			if (alive.current) setBusy(false);
+			if (alive.current) {
+				// Enable the dialog's trigger in the same render that restores keyboard focus to it.
+				setPending(null);
+				setRemoving(null);
+				if (saved) setEditor(null);
+			}
 		}
 	}
 	return (
@@ -207,9 +215,13 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 						variant="ghost"
 						size="sm"
 						disabled={busy || loading || editor !== null || removing !== null}
+						pending={loading}
 						onClick={() => void refresh()}
 					>
-						<RefreshCw className="size-3.5" aria-hidden="true" />
+						<RefreshCw
+							className={`size-3.5 ${loading ? "animate-spin motion-reduce:animate-none" : ""}`}
+							aria-hidden="true"
+						/>
 						{t("mcp.refresh")}
 					</Button>
 					<Button size="sm" disabled={!writable} onClick={() => openEditor(null, null, document!)}>
@@ -233,7 +245,7 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 						<p>{item.error}</p>
 					</FeedbackNotice>
 				))}
-			{loading && (
+			{loading && !overview && (
 				<p role="status" className="text-sm text-text-muted">
 					{t("mcp.loading")}
 				</p>
@@ -246,17 +258,19 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 					{Object.entries(document.servers).map(([name, stored]) => {
 						const parsed = mcpServerSchema.safeParse(stored);
 						const server = parsed.success ? parsed.data : null;
-						const valid = mcpConfiguredServerSchema.safeParse(stored).success;
+						const valid = mcpScopedServerSchema.safeParse({ scope: document.scope, server: stored }).success;
+						const toggling = pending?.name === name && pending.change.kind === "toggle" ? pending.change : null;
 						return (
 							<SettingsRow
 								key={name}
 								label={<span className="break-all">{name}</span>}
 								description={
-									server?.command
+									server?.description ||
+									(server?.command
 										? t("mcp.transport_stdio")
 										: server?.url
 											? t("mcp.transport_http")
-											: t("mcp.transport_advanced")
+											: t("mcp.transport_advanced"))
 								}
 							>
 								<div className="flex items-center gap-1">
@@ -279,7 +293,8 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 										<Trash2 className="size-3.5" aria-hidden="true" />
 									</Button>
 									<Switch
-										checked={valid && server?.enabled !== false}
+										checked={toggling?.enabled ?? (valid && server?.enabled !== false)}
+										pending={toggling !== null}
 										disabled={!writable || !valid}
 										aria-label={t("mcp.enableNamed", { name })}
 										onCheckedChange={(enabled) => void write(name, { kind: "toggle", enabled })}
@@ -301,7 +316,12 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 							<SettingsRow
 								key={server.name}
 								label={<span className="break-all">{server.name}</span>}
-								description={<span className="break-all">{server.source}</span>}
+								description={
+									<>
+										{server.description && <span className="block break-words">{server.description}</span>}
+										<span className="break-all">{server.source}</span>
+									</>
+								}
 							>
 								<div className="flex flex-wrap items-center gap-2">
 									<span className="text-xs text-text-muted">{t(server.disabled ? "mcp.disabled" : "mcp.enabled")}</span>
@@ -344,7 +364,9 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 					name={editor.name}
 					server={editor.server}
 					path={editor.document.path}
-					busy={busy || loading}
+					scope={editor.document.scope}
+					busy={busy}
+					refreshing={loading}
 					error={error}
 					conflict={editorConflict}
 					refreshed={editorRefreshed}

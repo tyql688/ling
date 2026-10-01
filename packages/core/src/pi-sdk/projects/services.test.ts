@@ -1,6 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { createBashToolDefinition, SessionManager } from "@earendil-works/pi-coding-agent";
 import { expect, it } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { createPiModelRuntimes } from "../models/model-runtime";
@@ -59,7 +59,12 @@ export default function(pi) {
 				modelRuntimes,
 				turnLifecycle,
 				skillResources: createLingSkillResources(),
-				builtinExtensions: () => [],
+				builtinExtensions: () => [
+					{
+						name: "fixture-bash-policy",
+						factory: (pi) => pi.registerTool(createBashToolDefinition(cwd)),
+					},
+				],
 				resolveProjectTrust: async () => true,
 				readAdapterPlan: async () => ({
 					features: {
@@ -136,7 +141,7 @@ export default function(pi) {
 				projects.releasePiRuntimeServices(fresh);
 				if (loadCatalogResources) {
 					const mcp = createPiMcp(projects);
-					const file = createMcpConfigFile(join(cwd, ".pi", "mcp.json"));
+					const file = createMcpConfigFile(join(cwd, ".pi", "mcp.json"), "project");
 					const signal = new AbortController().signal;
 					try {
 						const save = async (disabled: boolean) =>
@@ -178,15 +183,27 @@ export default function(pi) {
 						{
 							global: { defaultTools: ["read", "+codemode"] },
 							project: { defaultTools: ["-codemode", "+tool_search"] },
-							expected: ["read", "tool_search", "fixture_active"],
+							expected: ["read", "codemode", "tool_search", "fixture_active"],
 						},
-						{ global: { defaultTools: [] }, project: {}, expected: ["fixture_active"] },
+						{ global: { defaultTools: [] }, project: {}, expected: ["read", "codemode", "fixture_active"] },
 						{ global: {}, project: {}, expected: ["read", "codemode", "fixture_active"] },
 						{
 							global: {},
 							project: {},
-							wasConfigured: true,
-							expected: ["read", "bash", "edit", "write", "fixture_active"],
+							previousDefaults: ["read"],
+							expected: ["read", "bash", "edit", "write", "codemode", "fixture_active"],
+						},
+						{
+							global: { defaultTools: ["read", "bash", "grep"] },
+							project: {},
+							previousDefaults: ["read", "bash"],
+							expected: ["read", "codemode", "grep", "fixture_active"],
+						},
+						{
+							global: {},
+							project: {},
+							previousExtensions: ["fixture_active"],
+							expected: ["read", "codemode"],
 						},
 					]) {
 						await writeFile(join(agentDir, "settings.json"), JSON.stringify(selection.global));
@@ -198,7 +215,16 @@ export default function(pi) {
 							thinkingLevel: "off",
 							scopedModels: [],
 							activeToolNames: ["read", "codemode"],
-							defaultToolsConfigured: selection.wasConfigured ?? false,
+							availableToolNames: [
+								"read",
+								"bash",
+								"edit",
+								"write",
+								"grep",
+								"codemode",
+								...(selection.previousExtensions ?? []),
+							],
+							defaultToolNames: selection.previousDefaults ?? ["read", "bash", "edit", "write"],
 							extensionFlagValues: new Map(),
 						});
 						try {

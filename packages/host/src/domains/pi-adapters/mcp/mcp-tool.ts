@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { mcpToolRequestSchema } from "@ling/contracts/mcp-tool";
-import { mcpConfiguredServerSchema, type McpOverview, type McpWriteRequest } from "@ling/contracts/mcp";
+import { mcpScopedServerSchema, type McpOverview, type McpWriteRequest } from "@ling/contracts/mcp";
 import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiResourceReloadSummary } from "@ling/contracts/session";
 import { parsePiWorkerSessionRef } from "@ling/core/pi-protocol/protocol-validation";
@@ -32,11 +32,11 @@ function inventory(overview: McpOverview, name?: string, target?: string) {
 					// Values may contain credentials in args, URLs or arbitrary extension options. Never echo them.
 					servers:
 						entries?.slice(0, TOOL_SERVER_LIMIT).map(([name, entry]) => {
-							const parsed = mcpConfiguredServerSchema.safeParse(entry);
+							const parsed = mcpScopedServerSchema.safeParse({ scope: document.scope, server: entry });
 							return {
 								name,
-								enabled: parsed.success ? (parsed.data.enabled ?? true) : null,
-								transport: parsed.success ? (parsed.data.command ? "stdio" : "http") : "invalid",
+								enabled: parsed.success ? (parsed.data.server.enabled ?? true) : null,
+								transport: parsed.success ? (parsed.data.server.command ? "stdio" : "http") : "invalid",
 								fields: typeof entry === "object" && entry !== null ? Object.keys(entry) : [],
 								valid: parsed.success,
 							};

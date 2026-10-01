@@ -54,7 +54,7 @@ export function createMcpTools(host: McpToolHost): (pi: ExtensionAPI) => void {
 						{
 							additionalProperties: true,
 							description:
-								"MCP fields to merge: command/args or url, env, headers, enabled, exposure, toolExposure, timeout and oauth. The resulting entry must describe one complete connection.",
+								"MCP fields to merge: command/args or url, description, env, headers, enabled, exposure, toolExposure, timeout, oauth (including clientName), and auth: {provider}. Provider auth is global-only and requires HTTPS except on loopback. Exposures: codemode (on-demand script discovery), deferred (tool search), direct, hidden. The resulting entry must describe one complete connection.",
 						},
 					),
 				),

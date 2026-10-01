@@ -1,4 +1,5 @@
 import type { PiResourceReloadMode } from "@ling/contracts/session";
+import { PI_DEFAULT_TOOL_NAMES } from "@ling/contracts/pi-settings";
 import type { PiModelProjection } from "../models/model-projection";
 import {
 	createAgentSessionFromServices,
@@ -43,7 +44,8 @@ export interface RuntimeGenerationState {
 	thinkingLevel: PiAgentSession["thinkingLevel"];
 	scopedModels: { provider: string; id: string; thinkingLevel?: PiAgentSession["thinkingLevel"] }[];
 	activeToolNames: string[];
-	defaultToolsConfigured: boolean;
+	availableToolNames: string[];
+	defaultToolNames: readonly string[];
 	extensionFlagValues: Map<string, boolean | string>;
 }
 
@@ -55,16 +57,25 @@ export interface InitialRuntimeSelection {
 type PiSessionStartEvent = NonNullable<Parameters<PiCreateAgentSessionRuntimeFactory>[0]["sessionStartEvent"]>;
 
 function restoreReloadToolSelection(session: PiAgentSession, previous: RuntimeGenerationState): void {
-	// The SDK resolves global/project selections, including +/- entries and inactive extension tools.
-	// Restoring defaults also uses that resolution instead of retaining a configured session's old set.
-	if (previous.defaultToolsConfigured || session.settingsManager.getDefaultTools() !== undefined) return;
 	const tools = session.getAllTools();
 	const availableNames = new Set(tools.map((tool) => tool.name));
 	const activeNames = previous.activeToolNames.filter((name) => availableNames.has(name));
+	// Pi resolves global/project +/- entries. Reload adds new defaults while retaining the
+	// session's choices, including enabled tools removed from defaults and manually disabled tools.
+	const previousDefaults = new Set(previous.defaultToolNames);
+	for (const name of session.settingsManager.getDefaultTools() ?? PI_DEFAULT_TOOL_NAMES) {
+		if (!previousDefaults.has(name) && availableNames.has(name)) activeNames.push(name);
+	}
 	const initiallyActive = new Set(session.getActiveToolNames());
+	const previousAvailable = new Set(previous.availableToolNames);
 	// Preserve newly loaded extensions' default activation without activating opt-in tools.
 	for (const tool of tools) {
-		if (tool.sourceInfo.source !== "builtin" && tool.sourceInfo.source !== "sdk" && initiallyActive.has(tool.name))
+		if (
+			!previousAvailable.has(tool.name) &&
+			tool.sourceInfo.source !== "builtin" &&
+			tool.sourceInfo.source !== "sdk" &&
+			initiallyActive.has(tool.name)
+		)
 			activeNames.push(tool.name);
 	}
 	session.setActiveToolsByName([...new Set(activeNames)]);

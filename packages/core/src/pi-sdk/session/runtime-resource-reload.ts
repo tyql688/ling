@@ -1,4 +1,5 @@
 import type { PiResourceReloadMode, SessionRef } from "@ling/contracts/session";
+import { PI_DEFAULT_TOOL_NAMES } from "@ling/contracts/pi-settings";
 import { throwAggregateFailures } from "@ling/core/ling-error";
 import { assertNoBlockingDiagnostics } from "../diagnostics";
 import type { PiAgentSession, PiAgentSessionRuntime } from "../types";
@@ -54,7 +55,8 @@ function captureRuntimeGenerationState(
 			...(entry.thinkingLevel ? { thinkingLevel: entry.thinkingLevel } : {}),
 		})),
 		activeToolNames: session.getActiveToolNames(),
-		defaultToolsConfigured: session.settingsManager.getDefaultTools() !== undefined,
+		availableToolNames: session.getAllTools().map((tool) => tool.name),
+		defaultToolNames: session.settingsManager.getDefaultTools() ?? PI_DEFAULT_TOOL_NAMES,
 		extensionFlagValues: new Map(extensionFlagValues),
 	};
 }

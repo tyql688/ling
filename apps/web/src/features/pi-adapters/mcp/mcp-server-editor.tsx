@@ -1,10 +1,11 @@
 import {
 	mcpServerNameSchema,
 	mcpServerSchema,
-	mcpConfiguredServerSchema,
+	mcpScopedServerSchema,
 	mcpExposureSchema,
 	type McpServer,
 	type McpStoredServer,
+	type McpTarget,
 } from "@ling/contracts/mcp";
 import { Button } from "@renderer/components/ui/button";
 import {
@@ -28,7 +29,9 @@ export function McpServerEditor({
 	name: originalName,
 	server: storedServer,
 	path,
+	scope,
 	busy,
+	refreshing,
 	error,
 	conflict,
 	refreshed,
@@ -40,7 +43,9 @@ export function McpServerEditor({
 	name: string | null;
 	server: McpStoredServer | null;
 	path: string;
+	scope: McpTarget;
 	busy: boolean;
+	refreshing: boolean;
 	error: string | null;
 	conflict: boolean;
 	refreshed: boolean;
@@ -90,13 +95,13 @@ export function McpServerEditor({
 		if (field === "advanced" && advancedDetails.current) advancedDetails.current.open = true;
 		document.getElementById(`${id}-${field}`)?.focus();
 	}
-	function changeExposure(next: string) {
+	function changeOptions(edit: (value: McpServer) => void) {
 		if (!parsedAdvanced?.success) {
 			fail("advanced", t("mcp.invalidJson"));
 			return;
 		}
 		const value = { ...parsedAdvanced.data };
-		value.exposure = mcpExposureSchema.parse(next);
+		edit(value);
 		setAdvanced(JSON.stringify(value, null, 2));
 		setInvalid(null);
 	}
@@ -155,9 +160,9 @@ export function McpServerEditor({
 			}
 			const value = mcpServerSchema.parse(extra);
 			applyConnection(value);
-			const parsed = mcpConfiguredServerSchema.parse(value);
+			const parsed = mcpScopedServerSchema.parse({ scope, server: value });
 			setInvalid(null);
-			onSave(parsedName.data, parsed);
+			onSave(parsedName.data, parsed.server);
 		} catch (cause) {
 			fail("advanced", `${t("mcp.invalidJson")} ${formatRequestError(cause)}`);
 		}
@@ -194,7 +199,7 @@ export function McpServerEditor({
 					className="mt-4 flex min-h-0 flex-col gap-4"
 					onSubmit={(event) => {
 						event.preventDefault();
-						if (!busy && !conflict) submit();
+						if (!busy && !refreshing && !conflict) submit();
 					}}
 				>
 					<div className="flex min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain">
@@ -207,10 +212,11 @@ export function McpServerEditor({
 										type="button"
 										size="sm"
 										variant="outline"
-										disabled={busy}
+										disabled={busy || refreshing}
+										pending={refreshing}
 										onClick={onRefresh}
 									>
-										{t("mcp.refreshDraft")}
+										{t(refreshing ? "mcp.loading" : "mcp.refreshDraft")}
 									</Button>
 								)}
 							</FeedbackNotice>
@@ -259,6 +265,26 @@ export function McpServerEditor({
 									))}
 								</SelectContent>
 							</Select>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<label htmlFor={`${id}-description`} className="text-sm font-medium">
+								{t("mcp.serverDescription")}
+							</label>
+							<Input
+								id={`${id}-description`}
+								value={parsedAdvanced?.success ? (parsedAdvanced.data.description ?? "") : ""}
+								disabled={busy || !parsedAdvanced?.success}
+								aria-describedby={`${id}-description-hint`}
+								onChange={(event) =>
+									changeOptions((value) => {
+										if (event.target.value) value.description = event.target.value;
+										else delete value.description;
+									})
+								}
+							/>
+							<p id={`${id}-description-hint`} className="text-xs leading-relaxed text-text-muted">
+								{t("mcp.serverDescriptionHint")}
+							</p>
 						</div>
 						{transport === "stdio" && (
 							<>
@@ -309,11 +335,67 @@ export function McpServerEditor({
 										onChange={(event) => setUrl(event.target.value)}
 									/>
 								</div>
+								<div className="flex flex-col gap-1.5">
+									<label htmlFor={`${id}-provider`} className="text-sm font-medium">
+										{t("mcp.authProvider")}
+									</label>
+									<Input
+										id={`${id}-provider`}
+										value={parsedAdvanced?.success ? (parsedAdvanced.data.auth?.provider ?? "") : ""}
+										disabled={busy || scope !== "global" || !parsedAdvanced?.success}
+										placeholder="github-copilot"
+										aria-describedby={`${id}-provider-hint`}
+										onChange={(event) =>
+											changeOptions((value) => {
+												const provider = event.target.value.trim();
+												if (provider) value.auth = { ...value.auth, provider };
+												else delete value.auth;
+											})
+										}
+									/>
+									<p id={`${id}-provider-hint`} className="text-xs leading-relaxed text-text-muted">
+										{t(scope === "global" ? "mcp.authProviderHint" : "mcp.authGlobalOnly")}
+									</p>
+								</div>
+								{parsedAdvanced?.success && !parsedAdvanced.data.auth && (
+									<div className="flex flex-col gap-1.5">
+										<label htmlFor={`${id}-client-name`} className="text-sm font-medium">
+											{t("mcp.oauthClientName")}
+										</label>
+										<Input
+											id={`${id}-client-name`}
+											value={parsedAdvanced.data.oauth?.clientName ?? ""}
+											disabled={busy}
+											placeholder="pi"
+											aria-describedby={`${id}-client-name-hint`}
+											onChange={(event) =>
+												changeOptions((value) => {
+													const oauth = { ...value.oauth };
+													if (event.target.value.trim()) oauth.clientName = event.target.value;
+													else delete oauth.clientName;
+													if (Object.keys(oauth).length) value.oauth = oauth;
+													else delete value.oauth;
+												})
+											}
+										/>
+										<p id={`${id}-client-name-hint`} className="text-xs leading-relaxed text-text-muted">
+											{t("mcp.oauthClientNameHint")}
+										</p>
+									</div>
+								)}
 							</>
 						)}
 						<div className="flex flex-col gap-1.5">
 							<span className="text-sm font-medium">{t("mcp.exposure")}</span>
-							<Select value={exposure} disabled={busy || !parsedAdvanced?.success} onValueChange={changeExposure}>
+							<Select
+								value={exposure}
+								disabled={busy || !parsedAdvanced?.success}
+								onValueChange={(next) =>
+									changeOptions((value) => {
+										value.exposure = mcpExposureSchema.parse(next);
+									})
+								}
+							>
 								<SelectTrigger className="w-full" aria-label={t("mcp.exposure")}>
 									<SelectValue>{t(`mcp.exposure_${exposure}`)}</SelectValue>
 								</SelectTrigger>
@@ -325,7 +407,7 @@ export function McpServerEditor({
 									))}
 								</SelectContent>
 							</Select>
-							<p className="text-xs leading-relaxed text-text-muted">{t("mcp.exposureHint")}</p>
+							<p className="text-xs leading-relaxed text-text-muted">{t(`mcp.exposureHint_${exposure}`)}</p>
 							<p className="text-xs leading-relaxed text-text-muted">{t("mcp.permissionHint")}</p>
 						</div>
 						<details ref={advancedDetails} open={transport === "advanced" || undefined}>
@@ -352,7 +434,7 @@ export function McpServerEditor({
 						<Button type="button" variant="outline" disabled={busy} onClick={onClose}>
 							{t("session.cancel")}
 						</Button>
-						<Button type="submit" disabled={busy || conflict}>
+						<Button type="submit" disabled={busy || refreshing || conflict} pending={busy}>
 							{t(busy ? "mcp.saving" : "mcp.save")}
 						</Button>
 					</DialogFooter>

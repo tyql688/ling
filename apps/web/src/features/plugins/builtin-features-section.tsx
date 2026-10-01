@@ -78,7 +78,8 @@ export function BuiltinFeaturesSection({ projectCwd }: { projectCwd: string | nu
 								)}
 								<Switch
 									aria-label={t(titles[id])}
-									checked={state.value!.enabled[id]}
+									checked={state.pending?.id === id ? state.pending.enabled : state.value!.enabled[id]}
+									pending={state.pending?.id === id}
 									disabled={state.busy}
 									onCheckedChange={(enabled) => state.setEnabled(id, enabled)}
 								/>

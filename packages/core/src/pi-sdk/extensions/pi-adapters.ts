@@ -12,7 +12,9 @@ import { PERMISSION_PACKAGE } from "@ling/contracts/permissions";
 import { piPackageSource } from "@ling/contracts/pi-tool-origin";
 import { TODO_BUNDLED_SOURCE, TODO_PACKAGE } from "@ling/contracts/todo";
 import { isPiVoiceSource, VOICE_BUNDLED_SOURCE } from "@ling/contracts/voice";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
+import { z } from "zod";
+import { readUtf8FileBounded } from "../../store/atomic-file-store";
 import type { PiExtensionUiContext, PiInlineExtension, PiLoadExtensionsResult, PiSettingsManager } from "../types";
 import { restoreToolFiltersOnShutdown } from "./pi-tool-filter-restore";
 import { supportsPiVoice } from "../voice/pi-voice-modules";
@@ -46,12 +48,38 @@ export async function preparePiAdapters(options: {
 	}).resolve();
 	const trusted = settingsManager.isProjectTrusted();
 	const visible = inventory.extensions.filter((resource) => resource.metadata.scope !== "project" || trusted);
-	const sourceOf = (resource: (typeof visible)[number]) =>
-		piPackageSource(resource.metadata.origin === "top-level" ? resource.path : resource.metadata.source);
-	const installed = (name: string) => visible.some((resource) => sourceOf(resource) === `npm:${name}`);
+	const packageNames = new Map<string, Promise<string | null>>();
+	const identities = new Map<string, string>();
+	await Promise.all(
+		visible.map(async (resource) => {
+			const source = piPackageSource(
+				resource.metadata.origin === "top-level" ? resource.path : resource.metadata.source,
+			);
+			const root = resource.metadata.packageRoot;
+			if (resource.metadata.origin === "package" && root && !source.startsWith("npm:")) {
+				if (!packageNames.has(root)) {
+					packageNames.set(
+						root,
+						(async () => {
+							// Pi also accepts convention-based directories without a package manifest.
+							const manifest = await readUtf8FileBounded(join(root, "package.json"), 256 * 1024);
+							return manifest === undefined
+								? null
+								: (z.object({ name: z.string().optional() }).parse(JSON.parse(manifest)).name ?? null);
+						})(),
+					);
+				}
+				const name = await packageNames.get(root)!;
+				// Package identity selects the active copy; recorded provenance keeps Pi's actual source.
+				identities.set(resource.path, name ? `npm:${name}` : source);
+			} else identities.set(resource.path, source);
+		}),
+	);
+	const identityOf = (resource: (typeof visible)[number]) => identities.get(resource.path)!;
+	const installed = (name: string) => visible.some((resource) => identityOf(resource) === `npm:${name}`);
 	const bundled = new Map<string, string>();
 	if (plan.todo && !installed(TODO_PACKAGE)) bundled.set(plan.todo, TODO_BUNDLED_SOURCE);
-	if (plan.voice && !visible.some((resource) => isPiVoiceSource(sourceOf(resource))))
+	if (plan.voice && !visible.some((resource) => isPiVoiceSource(identityOf(resource))))
 		bundled.set(plan.voice, VOICE_BUNDLED_SOURCE);
 	if (plan.permissions?.enabled && !installed(PERMISSION_PACKAGE))
 		bundled.set(plan.permissions.entry, PERMISSION_BUNDLED_SOURCE);
@@ -59,11 +87,11 @@ export async function preparePiAdapters(options: {
 	// Control catalogs keep installed provider/resource contributions; activation gates session execution.
 	const suppressed =
 		options.loadBundled !== false && plan.permissions && !plan.permissions.enabled ? `npm:${PERMISSION_PACKAGE}` : null;
-	const resources = visible.filter((resource) => resource.enabled && sourceOf(resource) !== suppressed);
+	const resources = visible.filter((resource) => resource.enabled && identityOf(resource) !== suppressed);
 	const voicePaths = new Set<string>();
 	if (plan.features.voice && options.openVoiceSettings) {
 		const candidates = [
-			...resources.filter((resource) => isPiVoiceSource(sourceOf(resource))).map((resource) => resource.path),
+			...resources.filter((resource) => isPiVoiceSource(identityOf(resource))).map((resource) => resource.path),
 			...[...bundled].filter(([, source]) => source === VOICE_BUNDLED_SOURCE).map(([path]) => path),
 		];
 		for (const path of candidates) {
@@ -102,7 +130,7 @@ export async function preparePiAdapters(options: {
 		});
 	}
 	const revocable = new Set([
-		...resources.filter((resource) => sourceOf(resource) === `npm:${PERMISSION_PACKAGE}`).map((r) => r.path),
+		...resources.filter((resource) => identityOf(resource) === `npm:${PERMISSION_PACKAGE}`).map((r) => r.path),
 		...(plan.permissions ? [plan.permissions.entry] : []),
 	]);
 	return {

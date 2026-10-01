@@ -14,7 +14,17 @@ export const mcpServerNameSchema = z
 	.min(1)
 	.max(200)
 	.regex(/^[A-Za-z0-9_-]+$/);
-export const mcpExposureSchema = z.enum(["codemode", "codemode-deferred", "deferred", "direct", "hidden"]);
+export const mcpExposureSchema = z.enum(["codemode", "deferred", "direct", "hidden"]);
+const configuredExposureSchema = z
+	.union([mcpExposureSchema, z.literal("codemode-deferred")])
+	.transform((value) => (value === "codemode-deferred" ? "codemode" : value));
+export const mcpTargetSchema = z.enum(["global", "project"]);
+export type McpTarget = z.infer<typeof mcpTargetSchema>;
+
+/** MCP namespaces and Codemode identifiers share the same spelling. */
+export function mcpServerNamespace(name: string): string {
+	return `mcp__${name.replaceAll("-", "_")}`;
+}
 const text = z.string().max(16_384);
 const dictionary = z.record(z.string().max(256), text);
 const httpUrl = z.url({ protocol: /^https?$/ });
@@ -22,6 +32,7 @@ const oauthSchema = z
 	.object({
 		clientId: text.optional(),
 		clientSecret: text.optional(),
+		clientName: text.refine((value) => value.trim().length > 0, "OAuth client name must not be empty").optional(),
 		callbackPort: z.number().int().min(1).max(65535).optional(),
 		callbackUrl: text
 			.refine((value) => {
@@ -60,9 +71,14 @@ export const mcpServerSchema = z
 		env: dictionary.optional(),
 		headers: dictionary.optional(),
 		oauth: oauthSchema.optional(),
+		auth: z
+			.object({ provider: text.refine((value) => value.trim().length > 0, "Provide a Pi provider ID") })
+			.catchall(z.json())
+			.optional(),
+		description: text.optional(),
 		enabled: z.boolean().optional(),
-		exposure: mcpExposureSchema.optional(),
-		toolExposure: z.record(z.string().max(256), mcpExposureSchema).optional(),
+		exposure: configuredExposureSchema.optional(),
+		toolExposure: z.record(z.string().max(256), configuredExposureSchema).optional(),
 		timeout: z.number().positive().optional(),
 	})
 	.catchall(z.json());
@@ -72,6 +88,15 @@ export const mcpConfiguredServerSchema = mcpServerSchema.superRefine((entry, con
 		context.addIssue({ code: "custom", message: "Provide exactly one connection: command or HTTP URL." });
 	if ((entry.command && entry.type && entry.type !== "stdio") || (entry.url && entry.type === "stdio"))
 		context.addIssue({ code: "custom", message: "The transport type must match the connection." });
+	if (entry.auth) {
+		const url = entry.url && URL.canParse(entry.url) ? new URL(entry.url) : null;
+		if (!url || (url.protocol !== "https:" && !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
+			context.addIssue({
+				code: "custom",
+				path: ["auth"],
+				message: "Provider authentication requires an HTTPS URL or an HTTP loopback URL.",
+			});
+	}
 	// Silently ignoring these options can enable a disabled service or discard its approval policy.
 	const legacy = [
 		"disabled",
@@ -80,7 +105,6 @@ export const mcpConfiguredServerSchema = mcpServerSchema.superRefine((entry, con
 		"lifecycle",
 		"httpTransport",
 		"socket",
-		"auth",
 		"bearerToken",
 		"bearerTokenEnv",
 		"bearerTokenStore",
@@ -99,6 +123,17 @@ export const mcpConfiguredServerSchema = mcpServerSchema.superRefine((entry, con
 				message: `${field} is not supported by official Pi MCP. Use enabled, exposure and Ling access-mode rules.`,
 			});
 });
+/** A project may not select a destination for credentials held by Pi. */
+export const mcpScopedServerSchema = z
+	.object({ scope: mcpTargetSchema, server: mcpConfiguredServerSchema })
+	.superRefine((entry, context) => {
+		if (entry.scope === "project" && entry.server.auth)
+			context.addIssue({
+				code: "custom",
+				path: ["server", "auth"],
+				message: "Provider authentication is only allowed in the global mcp.json.",
+			});
+	});
 // Retain invalid entries for repair; one bad server must not erase valid siblings.
 export const mcpConfigSchema = z
 	.object({
@@ -111,8 +146,6 @@ export const mcpConfigSchema = z
 	.catchall(z.json());
 export type McpStoredServer = z.infer<ReturnType<typeof z.json>>;
 
-export const mcpTargetSchema = z.enum(["global", "project"]);
-export type McpTarget = z.infer<typeof mcpTargetSchema>;
 export const mcpPatchSchema = z.strictObject({
 	kind: z.literal("patch"),
 	server: mcpServerSchema.refine(
@@ -175,6 +208,8 @@ export const mcpOverviewSchema = z.strictObject({
 				disabled: z.boolean(),
 				transport: z.enum(["stdio", "http"]),
 				exposure: mcpExposureSchema,
+				description: z.string().optional(),
+				authProvider: z.string().optional(),
 				source: z.string(),
 			}),
 		)

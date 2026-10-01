@@ -9,6 +9,7 @@ import { useAppFeedback } from "@renderer/lib/feedback-context";
 import { formatRequestError } from "@renderer/lib/errors";
 import { useDomainApi } from "@renderer/lib/host-api-context";
 import { useAtomValue } from "jotai";
+import { RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -57,7 +58,17 @@ export function McpLiveSession({
 							? t("mcp.statusUpdated", { time: new Date(status.updatedAt).toLocaleTimeString() })
 							: t("mcp.noLiveStatus")}
 					</span>
-					<Button variant="outline" size="sm" disabled={blocked} onClick={() => void execute({ action: "status" })}>
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={blocked}
+						pending={pending}
+						onClick={() => void execute({ action: "status" })}
+					>
+						<RefreshCw
+							className={`size-3.5 ${pending ? "animate-spin motion-reduce:animate-none" : ""}`}
+							aria-hidden="true"
+						/>
 						{t("mcp.refreshStatus")}
 					</Button>
 				</div>
@@ -74,7 +85,11 @@ export function McpLiveSession({
 					<SettingsRow
 						key={server.name}
 						label={<span className="break-all">{server.name}</span>}
-						description={t(`mcp.exposure_${server.exposure}`)}
+						description={
+							server.authProvider
+								? t("mcp.usesProvider", { provider: server.authProvider })
+								: t(`mcp.exposure_${server.exposure}`)
+						}
 					>
 						<div className="flex flex-wrap items-center gap-2">
 							<Button
@@ -86,27 +101,33 @@ export function McpLiveSession({
 							>
 								{t("mcp.connect")}
 							</Button>
-							{server.transport === "http" && (
-								<>
-									<Button
-										variant="outline"
-										size="sm"
-										disabled={blocked}
-										aria-label={t("mcp.authenticateNamed", { name: server.name })}
-										onClick={() => void execute({ action: "authenticate", name: server.name })}
-									>
-										{t("mcp.authenticate")}
-									</Button>
-									<Button
-										variant="ghost"
-										size="sm"
-										disabled={blocked}
-										aria-label={t("mcp.logoutNamed", { name: server.name })}
-										onClick={() => void execute({ action: "logout", name: server.name })}
-									>
-										{t("mcp.logout")}
-									</Button>
-								</>
+							{server.authProvider ? (
+								<Button variant="outline" size="sm" onClick={() => navigation.openSettings("models")}>
+									{t("mcp.manageProvider")}
+								</Button>
+							) : (
+								server.transport === "http" && (
+									<>
+										<Button
+											variant="outline"
+											size="sm"
+											disabled={blocked}
+											aria-label={t("mcp.authenticateNamed", { name: server.name })}
+											onClick={() => void execute({ action: "authenticate", name: server.name })}
+										>
+											{t("mcp.authenticate")}
+										</Button>
+										<Button
+											variant="ghost"
+											size="sm"
+											disabled={blocked}
+											aria-label={t("mcp.logoutNamed", { name: server.name })}
+											onClick={() => void execute({ action: "logout", name: server.name })}
+										>
+											{t("mcp.logout")}
+										</Button>
+									</>
+								)
 							)}
 						</div>
 					</SettingsRow>

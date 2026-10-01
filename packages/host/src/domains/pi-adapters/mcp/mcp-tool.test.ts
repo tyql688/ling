@@ -20,7 +20,7 @@ async function fixture() {
 	cleanups.push(() => rm(root, { recursive: true, force: true }));
 	const ref = { cwd: root, sessionId: "session" };
 	const path = join(root, "mcp.json");
-	const file = createMcpConfigFile(path);
+	const file = createMcpConfigFile(path, "global");
 	const signal = new AbortController().signal;
 	const features = createBuiltinFeatures(root);
 	let trusted = true;

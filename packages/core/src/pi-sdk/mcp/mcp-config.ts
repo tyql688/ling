@@ -4,8 +4,10 @@ import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
 import {
 	MCP_CONFIG_MAX_BYTES,
 	mcpConfigSchema,
-	mcpConfiguredServerSchema,
+	mcpScopedServerSchema,
+	mcpServerNamespace,
 	mcpServerSchema,
+	type McpTarget,
 	type McpWriteRequest,
 } from "@ling/contracts/mcp";
 import { createAtomicFileStore, readUtf8FileBoundedPreserveBom } from "../../store/atomic-file-store";
@@ -31,7 +33,7 @@ function revision(source: string | undefined): string {
 }
 
 /** Edits one official Pi server under a file lock, preserving unrelated fields and formatting. */
-export function createMcpConfigFile(path: string) {
+export function createMcpConfigFile(path: string, scope: McpTarget) {
 	const store = createAtomicFileStore({
 		getPath: () => path,
 		lockPath: "target",
@@ -62,14 +64,15 @@ export function createMcpConfigFile(path: string) {
 					const path = ["mcpServers", input.name];
 					const change = input.change;
 					const entry = config.mcpServers?.[input.name];
-					let replacement = change.kind === "save" ? change.server : undefined;
+					let replacement =
+						change.kind === "save" ? mcpScopedServerSchema.parse({ scope, server: change.server }).server : undefined;
 					if (change.kind === "patch") {
 						const base = entry === undefined ? {} : mcpServerSchema.parse(entry);
 						const targetChanged = (["url", "command"] as const).some(
 							(field) => change.server[field] !== undefined && change.server[field] !== base[field],
 						);
 						if (targetChanged) {
-							const retained = ["args", "env", "headers", "oauth"].filter(
+							const retained = ["args", "env", "headers", "oauth", "auth"].filter(
 								(field) => Object.hasOwn(base, field) && !change.removeFields.includes(field),
 							);
 							if (retained.length)
@@ -84,15 +87,24 @@ export function createMcpConfigFile(path: string) {
 						const merged = { ...base, ...change.server };
 						for (const field of ["env", "headers"] as const)
 							if (change.server[field]) merged[field] = { ...base[field], ...change.server[field] };
-						replacement = mcpConfiguredServerSchema.parse(merged);
+						replacement = mcpScopedServerSchema.parse({ scope, server: merged }).server;
 					}
 					if (change.kind === "reset-enabled" && entry === undefined) return { commit: false, result: false };
 					if (change.kind === "toggle" || change.kind === "reset-enabled") {
 						// Project entries replace a complete global entry; an incomplete override is never synthesized.
-						const server = mcpConfiguredServerSchema.parse(entry);
+						const server = mcpScopedServerSchema.parse({ scope, server: entry }).server;
 						if (change.kind === "toggle" && server.enabled === change.enabled) return { commit: false, result: false };
 						if (change.kind === "reset-enabled" && server.enabled === undefined)
 							return { commit: false, result: false };
+					}
+					if (change.kind !== "remove") {
+						const conflict = Object.keys(config.mcpServers ?? {}).find(
+							(name) => name !== input.name && mcpServerNamespace(name) === mcpServerNamespace(input.name),
+						);
+						if (conflict)
+							throw new Error(
+								`MCP server "${input.name}" conflicts with "${conflict}" in namespace ${mcpServerNamespace(input.name)}.`,
+							);
 					}
 					if (
 						((change.kind === "save" || change.kind === "patch") && isDeepStrictEqual(entry, replacement)) ||

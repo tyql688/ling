@@ -225,4 +225,56 @@ describe("bundled Pi adapters", () => {
 			f.installedEntry("@juicesharp/rpiv-todo"),
 		]);
 	});
+
+	it("honors local package identity and disabled entries without rewriting their recorded source", async () => {
+		const f = await fixture();
+		const local = join(f.cwd, "packages");
+		const entries = new Map<string, string>();
+		for (const name of ["@juicesharp/rpiv-todo", "@gotgenes/pi-permission-system", "@earendil-works/pi-voice"]) {
+			const directory = join(local, name);
+			await mkdir(directory, { recursive: true });
+			await writeFile(
+				join(directory, "package.json"),
+				JSON.stringify({ name, version: "9.9.9", pi: { extensions: ["index.ts"] } }),
+			);
+			const entry = join(directory, "index.ts");
+			await writeFile(entry, "export default function () {}");
+			entries.set(name, entry);
+		}
+		await writeFile(
+			join(f.agentDir, "settings.json"),
+			JSON.stringify({ packages: [...entries.values()].map((entry) => join(entry, "..")) }),
+		);
+		const plan = await f.prepare(true, true, join(f.bundled.todo, "..", "voice.ts"));
+		expect(plan.bundledPaths.size).toBe(0);
+		expect(plan.paths.filter((path) => !path.startsWith("builtin:"))).toEqual([...entries.values()]);
+		const full = await f.prepare(false);
+		expect(full.paths).not.toContain(entries.get("@gotgenes/pi-permission-system"));
+		expect(full.paths).toContain(entries.get("@juicesharp/rpiv-todo"));
+		const loader = new DefaultResourceLoader({
+			cwd: f.cwd,
+			agentDir: f.agentDir,
+			noExtensions: true,
+			additionalExtensionPaths: plan.paths,
+			extensionFactories: plan.factories,
+		});
+		await loader.reload();
+		try {
+			const loaded = loader.getExtensions();
+			plan.decorate(loaded);
+			expect(loaded.errors).toEqual([]);
+			for (const extension of loaded.extensions.filter((extension) => !extension.path.startsWith("builtin:"))) {
+				expect(extension.sourceInfo.source).not.toMatch(/^(npm:|ling:)/);
+			}
+		} finally {
+			loader.getExtensions().runtime.invalidate("Fixture completed");
+		}
+		await writeFile(
+			join(f.agentDir, "settings.json"),
+			JSON.stringify({
+				packages: [{ source: join(entries.get("@juicesharp/rpiv-todo")!, ".."), extensions: ["-index.ts"] }],
+			}),
+		);
+		expect((await f.prepare(false)).paths).not.toContain(f.bundled.todo);
+	});
 });

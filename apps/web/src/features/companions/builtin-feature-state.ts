@@ -8,13 +8,18 @@ export function useFeatureSettings() {
 	const api = useDomainApi("builtinFeatures");
 	const state = useFeatureSnapshot({ load: api.read, subscribe: api.onChanged, key: "builtin-features" });
 	const [reload, setReload] = useState<PiResourceReloadSummary | null>(null);
+	const [pending, setPending] = useState<{ id: BuiltinFeatureId; enabled: boolean } | null>(null);
 	return {
 		...state,
 		reload,
+		pending: state.busy ? pending : null,
 		setEnabled(id: BuiltinFeatureId, enabled: boolean) {
 			if (!state.value) return;
-			setReload(null);
-			void state.act(() => api.write({ id, enabled, expectedRevision: state.value!.revision }), setReload);
+			void state.act(() => {
+				setPending({ id, enabled });
+				setReload(null);
+				return api.write({ id, enabled, expectedRevision: state.value!.revision });
+			}, setReload);
 		},
 	};
 }

@@ -2,8 +2,9 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { getAgentDir, type LoadedMcpConfig, type McpServerConfig } from "@earendil-works/pi-coding-agent";
 import {
-	mcpConfiguredServerSchema,
+	mcpScopedServerSchema,
 	mcpServerNameSchema,
+	mcpServerNamespace,
 	type McpDocument,
 	type McpOverview,
 	type McpTarget,
@@ -29,7 +30,7 @@ export async function readPiMcpConfiguration(agentDir: string, cwd: string | nul
 	const entries = new Map<string, LoadedMcpConfig["servers"][number]>();
 	for (const source of sources(agentDir, cwd)) {
 		try {
-			const { config, ...document } = await createMcpConfigFile(source.path).read(signal);
+			const { config, ...document } = await createMcpConfigFile(source.path, source.scope).read(signal);
 			documents.push({ ...source, ...document, error: null });
 			if (typeof config.autoEnableCodemode === "boolean") loaded.autoEnableCodemode = config.autoEnableCodemode;
 			else if (config.autoEnableCodemode !== undefined)
@@ -47,15 +48,27 @@ export async function readPiMcpConfiguration(agentDir: string, cwd: string | nul
 					loaded.errors.push(`${source.path}: ${name}: Use 1–200 letters, digits, _ and - in server names.`);
 					continue;
 				}
-				const parsed = mcpConfiguredServerSchema.safeParse(value);
+				const parsed = mcpScopedServerSchema.safeParse({ scope: source.scope, server: value });
 				if (!parsed.success) {
 					loaded.errors.push(
 						`${source.path}: ${name}: ${parsed.error.issues.map((issue) => issue.message).join("; ")}`,
 					);
 					continue;
 				}
+				const conflict = [...entries.keys()].find((other) => mcpServerNamespace(other) === mcpServerNamespace(name));
+				if (conflict) {
+					loaded.errors.push(
+						`${source.path}: server "${name}" conflicts with "${conflict}" in namespace ${mcpServerNamespace(name)}.`,
+					);
+					continue;
+				}
 				// The boundary schema requires one complete transport; the SDK type represents that union.
-				entries.set(name, { name, config: parsed.data as McpServerConfig, source: source.path, scope: source.scope });
+				entries.set(name, {
+					name,
+					config: parsed.data.server as McpServerConfig,
+					source: source.path,
+					scope: source.scope,
+				});
 			}
 		} catch (cause) {
 			signal?.throwIfAborted();
@@ -104,7 +117,7 @@ export function createPiMcp(projects: Pick<PiProjectServices, "withOpenProject">
 				];
 				for (const path of legacyPaths) {
 					try {
-						const { config: _config, ...document } = await createMcpConfigFile(path).read(signal);
+						const { config: _config, ...document } = await createMcpConfigFile(path, "global").read(signal);
 						if (!document.exists) continue;
 						documents.push({
 							path,
@@ -132,6 +145,8 @@ export function createPiMcp(projects: Pick<PiProjectServices, "withOpenProject">
 						disabled: config.enabled === false,
 						transport: "url" in config ? "http" : "stdio",
 						exposure: config.exposure ?? "codemode",
+						...(config.description === undefined ? {} : { description: config.description }),
+						...("url" in config && config.auth ? { authProvider: config.auth.provider } : {}),
 						source,
 					})),
 				};
@@ -141,7 +156,7 @@ export function createPiMcp(projects: Pick<PiProjectServices, "withOpenProject">
 			return run(input.cwd, signal, async (signal, cwd, agentDir) => {
 				const target = sources(agentDir, cwd).find((source) => source.target === input.target);
 				if (!target) throw new Error("This MCP configuration scope is unavailable.");
-				const changed = await createMcpConfigFile(target.path).write(input, signal);
+				const changed = await createMcpConfigFile(target.path, target.scope).write(input, signal);
 				return { changed, reloadProjects: !changed ? [] : target.scope === "project" && cwd ? [cwd] : null };
 			});
 		},

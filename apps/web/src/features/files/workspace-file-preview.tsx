@@ -294,7 +294,6 @@ function RenderedFile({
 		const restore = () => {
 			if (!restoring) return;
 			element.scrollTop = top;
-			if (element.scrollTop >= top) restoring = false;
 		};
 		const remember = () => {
 			if (!restoring) top = element.scrollTop;
@@ -307,7 +306,7 @@ function RenderedFile({
 		element.addEventListener("wheel", stopRestoring, { passive: true });
 		element.addEventListener("pointerdown", stopRestoring);
 		element.addEventListener("keydown", stopRestoring);
-		// Markdown and lazy images can publish their height after the first effect.
+		// Keep the saved position through Markdown batches and lazy images until the user interacts.
 		const observer = new ResizeObserver(restore);
 		observer.observe(element);
 		if (element.firstElementChild) observer.observe(element.firstElementChild);
@@ -326,7 +325,7 @@ function RenderedFile({
 		<div ref={scrollRef} data-file-markdown="" className="h-full overflow-auto px-6 py-5">
 			<MarkdownImageRootContext.Provider value={cwd}>
 				<MarkdownDocumentContext.Provider value={document}>
-					<Markdown text={text} className="mx-auto max-w-5xl" smooth={false} />
+					<Markdown text={text} className="mx-auto max-w-5xl" smooth={false} progressive />
 				</MarkdownDocumentContext.Provider>
 			</MarkdownImageRootContext.Provider>
 		</div>

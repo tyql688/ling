@@ -67,9 +67,18 @@ interface MarkdownProps {
 	showLineNumbers?: boolean;
 	/** Thinking already owns a shared cursor for its collapsed and expanded presentations. */
 	smooth?: boolean;
+	/** Yield document rendering between batches so the workbench remains responsive. */
+	progressive?: boolean;
 }
 
-function MarkdownView({ text, className, streaming = false, showLineNumbers = false, smooth = true }: MarkdownProps) {
+function MarkdownView({
+	text,
+	className,
+	streaming = false,
+	showLineNumbers = false,
+	smooth = true,
+	progressive = false,
+}: MarkdownProps) {
 	const output = useStreamingText(text, streaming, smooth);
 	const { appearance } = useAtomValue(activeSkinAppearanceAtom);
 	const id = useId();
@@ -111,7 +120,9 @@ function MarkdownView({ text, className, streaming = false, showLineNumbers = fa
 					smoothStreaming={false}
 					fade={output.streaming && output.animate}
 					typewriter={false}
-					batchRendering={false}
+					batchRendering={progressive}
+					// Ling owns scroll geometry; parsed nodes stay addressable across the full document.
+					maxLiveNodes={0}
 					viewportPriority={false}
 					deferNodesUntilVisible={false}
 					renderCodeBlocksAsPre

@@ -17,7 +17,7 @@ import { createLanguageProcess, type LanguageProcess } from "./language-process"
 import { createLanguageFileWatcher } from "./language-file-watcher";
 import { resolveLanguageServer, type LanguageServerLaunch } from "./language-servers";
 import { normalizeWorkspaceEdit } from "./workspace-edits";
-import { toError, throwAggregateFailures } from "@ling/core/ling-error";
+import { createLingError, toError, throwAggregateFailures } from "@ling/core/ling-error";
 
 interface DocumentVersions {
 	values: Map<string, number>;
@@ -397,9 +397,31 @@ export function createEditorLanguageService(options: {
 		} else raw = await connection.process.request(methods[input.method], params, signal, input.requestId);
 		assertVersions(connection, captured);
 		signal.throwIfAborted();
-		if (JSON.stringify(raw).length > languageLimits.responseBytes)
-			throw new Error("Language response exceeds its budget");
-		const data = languageResponseSchemas[input.method].parse(raw);
+		if (
+			JSON.stringify(raw).length > languageLimits.responseBytes ||
+			(Array.isArray(raw) && raw.length > languageLimits.items)
+		)
+			throw createLingError({
+				code: "LANGUAGE_RESPONSE_TOO_LARGE",
+				category: "compatibility",
+				message: `The language service returned too many results for ${input.method}. File editing is still available.`,
+				retryable: false,
+				details: { method: input.method, itemLimit: languageLimits.items, byteLimit: languageLimits.responseBytes },
+			});
+		const parsed = languageResponseSchemas[input.method].safeParse(raw);
+		if (!parsed.success)
+			throw createLingError(
+				{
+					code: "LANGUAGE_RESPONSE_INVALID",
+					category: "compatibility",
+					message: `The language service returned an unsupported ${input.method} response. File editing is still available.`,
+					retryable: false,
+					userAction: "report",
+					details: { method: input.method },
+				},
+				parsed.error,
+			);
+		const data = parsed.data;
 		if (input.method === "rename")
 			return {
 				data: null,

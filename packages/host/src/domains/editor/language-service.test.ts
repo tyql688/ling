@@ -7,6 +7,7 @@ import { createEditorLanguageService } from "./language-service";
 import { createLanguageFrameLimit } from "./language-process";
 import { normalizeWorkspaceEdit } from "./workspace-edits";
 import { pathToFileURL } from "node:url";
+import { languageLimits } from "@ling/contracts/editor-language";
 
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
@@ -149,6 +150,49 @@ describe("project language ownership", () => {
 		expect(fix.change?.files).toEqual(expect.arrayContaining([expect.objectContaining({ path: "fix.ts" })]));
 		await service.releaseClient("client");
 		expect(() => service.cwd("client", connection!.id)).toThrow("Unknown");
+		expect(failures).toEqual([]);
+	}, 30_000);
+	it("reports oversized server results without blaming the request or losing the document", async () => {
+		const cwd = await temporaryDirectory("language-large");
+		cleanups.push(() => rm(cwd, { recursive: true, force: true }));
+		const text = Array.from({ length: languageLimits.items + 1 }, (_, i) => `export const value${i} = ${i};`).join(
+			"\n",
+		);
+		await writeFile(join(cwd, "large.ts"), text);
+		const failures: Error[] = [];
+		const service = createEditorLanguageService({
+			isTrusted: async () => false,
+			onDiagnostics() {},
+			onError: (error) => failures.push(error),
+		});
+		cleanups.push(service.dispose);
+		const signal = new AbortController().signal;
+		const connection = await service.open(
+			"client",
+			{ cwd, path: "large.ts", language: "typescript", version: 1, text },
+			signal,
+		);
+		const call = (version: number) =>
+			service.call(
+				"client",
+				{
+					id: connection!.id,
+					requestId: crypto.randomUUID(),
+					path: "large.ts",
+					version,
+					method: "symbols",
+				},
+				signal,
+			);
+		await expect(call(1)).rejects.toMatchObject({ code: "LANGUAGE_RESPONSE_TOO_LARGE" });
+		await service.change("client", connection!.id, {
+			cwd,
+			path: "large.ts",
+			language: "typescript",
+			version: 2,
+			text: "export const answer = 42;",
+		});
+		expect((await call(2)).data).toMatchObject([{ name: "answer" }]);
 		expect(failures).toEqual([]);
 	}, 30_000);
 	it("rejects out-of-project edits and unsupported resource operations", async () => {

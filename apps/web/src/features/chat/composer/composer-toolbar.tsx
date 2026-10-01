@@ -478,12 +478,15 @@ export function ComposerToolbar({
 			/>
 			{modelState?.routedModel && (
 				<span
-					className="min-w-0 max-w-48 truncate text-xs text-text-muted"
+					className="inline-flex min-w-0 max-w-64 items-center gap-1 text-xs text-text-muted"
 					title={t("session.routedModel", {
 						model: `${modelState.routedModel.provider}/${modelState.routedModel.modelId}`,
 					})}
 				>
-					{t("session.routedModel", { model: modelState.routedModel.name })}
+					<span className="truncate">{t("session.routedModel", { model: modelState.routedModel.name })}</span>
+					{modelState.routedModel.thinkingLevel !== undefined && (
+						<span className="shrink-0">· {t(`session.thinkingLevel_${modelState.routedModel.thinkingLevel}`)}</span>
+					)}
 				</span>
 			)}
 		</ComposerToolbarFrame>

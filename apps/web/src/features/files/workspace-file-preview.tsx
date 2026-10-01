@@ -110,7 +110,7 @@ export function WorkspaceFilePreview(props: WorkspaceFilePreviewProps) {
 		);
 	}
 	const fileActions = (
-		<div className="flex shrink-0 items-center gap-0.5">
+		<div className={editorOwnsToolbar ? "contents" : "flex shrink-0 items-center gap-0.5"}>
 			{ui.capabilities.nativePathOpen && <ProjectLauncher cwd={cwd} compact onError={onError} />}
 			{markdown && (
 				<Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={toggleMode}>

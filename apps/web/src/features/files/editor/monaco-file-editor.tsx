@@ -241,7 +241,7 @@ export function MonacoFileEditor({
 
 	return (
 		<div className="relative flex h-full min-h-0 flex-col bg-transparent">
-			<div className={cn(WORKSPACE_SUBHEADER_CLASS, "gap-2 text-xs text-text-muted")}>
+			<div className={cn(WORKSPACE_SUBHEADER_CLASS, "h-auto min-h-9 flex-wrap gap-2 py-1 text-xs text-text-muted")}>
 				<span className="uppercase tracking-wide">{monacoLanguage(path)}</span>
 				{features.error && (
 					<button

@@ -12,7 +12,7 @@ patchedDependencies:
   '@floating-ui/core@1.8.0': ff2edd0cd2c591d91f6139d8ce5f58e7fc30b62ce270ff397762afb524e0f418
   '@floating-ui/dom@1.8.0': f599ca103cf6d7b931cad8b16e3b1005473a340dd4277daed21a817527798bca
   app-builder-lib@26.17.0: 1a43b8f5b954018e5a423977f863ce0ae9edae92745a51144103ff8d3c7158c1
-  markstream-react@2.0.13: 67003e8450c1f3541600e1aba394d22bf8cad186c78dea49cfcff668c69a1447
+  markstream-react@2.0.13: 552cc48de40bfce4ff0d989cc1ed02c5d0be46650ce8e559b911898f60f21aab
 
 importers:
 
@@ -214,7 +214,7 @@ importers:
         version: 3.1.0
       markstream-react:
         specifier: 2.0.13
-        version: 2.0.13(patch_hash=67003e8450c1f3541600e1aba394d22bf8cad186c78dea49cfcff668c69a1447)(katex@0.18.9)(mermaid@12.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 2.0.13(patch_hash=552cc48de40bfce4ff0d989cc1ed02c5d0be46650ce8e559b911898f60f21aab)(katex@0.18.9)(mermaid@12.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       mermaid:
         specifier: ^12.0.0
         version: 12.0.0
@@ -11487,7 +11487,7 @@ snapshots:
 
   markstream-core@2.0.13: {}
 
-  markstream-react@2.0.13(patch_hash=67003e8450c1f3541600e1aba394d22bf8cad186c78dea49cfcff668c69a1447)(katex@0.18.9)(mermaid@12.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  markstream-react@2.0.13(patch_hash=552cc48de40bfce4ff0d989cc1ed02c5d0be46650ce8e559b911898f60f21aab)(katex@0.18.9)(mermaid@12.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       '@floating-ui/dom': 1.8.0(patch_hash=f599ca103cf6d7b931cad8b16e3b1005473a340dd4277daed21a817527798bca)
       clsx: 2.1.1

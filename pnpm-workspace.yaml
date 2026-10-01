@@ -33,7 +33,7 @@ patchedDependencies:
   "@floating-ui/dom@1.8.0": patches/@floating-ui__dom@1.8.0.patch
   # Expose the staged NSIS copy hook without replacing the signed installer/update workflow.
   app-builder-lib@26.17.0: patches/app-builder-lib@26.17.0.patch
-  # Preserve strict SVG labels, line breaks and the classic diagram layout across Mermaid upgrades.
+  # Keep diagram rendering stable and yield Markdown batches without per-node layout reads.
   markstream-react@2.0.13: patches/markstream-react@2.0.13.patch
 peerDependencyRules:
   allowedVersions:

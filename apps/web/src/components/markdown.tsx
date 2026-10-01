@@ -56,6 +56,27 @@ const configureMarkdown: NonNullable<NodeRendererProps["customMarkdownIt"]> = (p
 			state.md.normalizeLink = normalizeLink;
 		}
 	});
+	parser.core.ruler.push("ling_heading_ids", (state) => {
+		const used = new Set<string>();
+		for (let index = 0; index < state.tokens.length; index++) {
+			const heading = state.tokens[index];
+			const inline = state.tokens[index + 1];
+			if (heading?.type !== "heading_open" || inline?.type !== "inline") continue;
+			const children: Array<{ type: string; content: string }> = inline.children ?? [];
+			const text = children
+				.filter((token) => ["text", "code_inline", "emoji", "image"].includes(token.type))
+				.map((token) => token.content)
+				.join("");
+			const base = text
+				.toLowerCase()
+				.replace(/[^\p{L}\p{N}\p{M}_\-\s]/gu, "")
+				.replace(/\s/g, "-");
+			let id = base;
+			for (let suffix = 1; used.has(id); suffix++) id = `${base}-${suffix}`;
+			used.add(id);
+			heading.attrSet("id", id);
+		}
+	});
 	// Keep emoji aliases without turning ordinary punctuation into emoticons.
 	return parser.use(emoji, { shortcuts: {} });
 };
@@ -93,7 +114,14 @@ function MarkdownView({
 		if (href === null) return;
 		event.preventDefault();
 		if (href.startsWith("#")) {
-			event.currentTarget.querySelector(`#${CSS.escape(href.slice(1))}`)?.scrollIntoView({ block: "nearest" });
+			let fragment = href.slice(1);
+			try {
+				fragment = decodeURIComponent(fragment);
+			} catch {
+				// A literal percent sign is valid in an explicitly authored HTML id.
+			}
+			const target = fragment ? event.currentTarget.querySelector(`#${CSS.escape(fragment)}`) : event.currentTarget;
+			target?.scrollIntoView({ block: "nearest" });
 			return;
 		}
 		const path = document?.resolve(href);
@@ -121,6 +149,9 @@ function MarkdownView({
 					fade={output.streaming && output.animate}
 					typewriter={false}
 					batchRendering={progressive}
+					// Keep batches bounded and make progress when the window has few idle callbacks.
+					renderBatchSize={240}
+					renderBatchIdleTimeoutMs={32}
 					// Ling owns scroll geometry; parsed nodes stay addressable across the full document.
 					maxLiveNodes={0}
 					viewportPriority={false}

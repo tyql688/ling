@@ -1,6 +1,6 @@
 ---
 name: maintain-pi-dependencies
-description: Upgrade Ling's bundled Pi Todo, permission and voice packages and official MCP and coordinate embedded Pi SDK migrations. Audit published source changes, update exact pins, adapt affected behavior, remove superseded workarounds, and verify real interactions and packaged resources. Also use for the dependency preflight before each release.
+description: Update and audit Ling's bundled Pi Todo, permissions, voice and official MCP, including feature adoption when versions are already current. Trace published changes through Ling's presentation and runtime, implement applicable adaptations, and verify real interactions and packaged resources. Coordinate SDK work with update-pi-dependency and run release dependency preflights.
 ---
 
 # Maintain Pi dependencies
@@ -8,6 +8,8 @@ description: Upgrade Ling's bundled Pi Todo, permission and voice packages and o
 Treat an upgrade as an integration migration. Carry an authorized update through dependency installation, source adaptation, regression repair, real acceptance and build verification. A version table, changelog summary, proposed patch or successful installation alone does not complete it. Do not stop for another approval of work already covered by the update request.
 
 Use the migration workflow below when asked to update these dependencies. An unspecified update targets the latest published stable versions within the requested scope; preserve an explicitly requested version. For a check-only request or release preflight, use the “Check before a release” section below. [update-pi-dependency](../update-pi-dependency/SKILL.md) owns the SDK migration steps; this skill owns bundled extension migration and their compatibility with that SDK. [release](../release/SKILL.md) owns installer and publication work, which an update does not imply.
+
+An already-current package still receives the requested integration audit. Use the SDK workflow's audit-baseline and feature-coverage rules for bundled extensions, keep matching pins unchanged, and resolve uncovered behavior in Ling's existing surfaces. Explicit version checks and review-only requests report findings without edits. A release preflight records version currency and integration coverage separately.
 
 ## Establish scope and the current integration
 
@@ -20,9 +22,9 @@ Use the migration workflow below when asked to update these dependencies. An uns
 
 1. Query `pnpm view <package> dist-tags --json`. For each current and target version, query `pnpm view <package>@<version> version repository gitHead time dist.integrity peerDependencies dependencies engines --json`. Record publication and source identities. Registry failures leave the lookup unresolved; they never establish that the current pin is latest.
 2. Fetch the published npm artifacts into a uniquely named temporary directory outside the repository. Inspect manifests, declared `pi.extensions`, executable entry files, declarations, configuration schemas, dependency/assets layout and notices. A default-branch checkout is not the published artifact.
-3. Clone or fetch the actual upstream Git repository into that temporary directory and materialize both published `gitHead` commits. Read every intervening changelog and compare the relevant source trees and history. If metadata lacks `gitHead`, verify a release tag against the artifact and record the weaker mapping; do not silently substitute another revision. Compare source changes with the executable artifact that Ling will load.
+3. Clone or fetch the actual upstream Git repository into that temporary directory and materialize the published audit-baseline and target `gitHead` commits. Read every intervening changelog and compare the relevant source trees and history. If metadata lacks `gitHead`, verify a release tag against the artifact and record the weaker mapping; do not silently substitute another revision. Compare source changes with the executable artifact that Ling will load.
 4. For a fork or patch, establish the upstream base, local head and retained delta. Check every retained change against the target. Port necessary behavior and resolve conflicts in the authorized fork/patch scope. Remove a local workaround only when the new upstream implementation covers its complete invariant. Do not discard Ling-specific behavior merely to make a dependency update pass.
-5. Classify every material change using the [extension upgrade checklist](references/extension-upgrade-checklist.md): `adapt`, `expose`, `inherited` or `defer`. Record source evidence, affected behavior and its owner. In-scope breaking changes require migration, not deferral because they need more than a version edit. Product-boundary changes and experimental/TUI-only features require an explicit reason to defer.
+5. Classify every material change using the [extension upgrade checklist](references/extension-upgrade-checklist.md): `adapt`, `expose`, `inherited` or `defer`. Record source evidence, Pi's intended behavior, the complete Ling path and actual acceptance results in the shared feature-coverage table. Check existing projections for valid fields or interactions they omit. In-scope breaking changes require migration, not deferral because they need more than a version edit. Product-boundary changes and experimental/TUI-only features require an explicit reason to defer.
 
 ## Update and migrate
 
@@ -48,4 +50,4 @@ A check-only or release request does not automatically opt into every new major 
 
 ## Completion
 
-An upgrade is complete when the requested exact versions are installed and locked, affected Ling behavior is migrated, required checks pass against that candidate, and remaining platform or upstream gaps are explicit. Report old/new versions, published-source identities, adapted/exposed behavior, inherited fixes, retained/removed local changes, verification and deferrals. A check-only result reports findings without claiming an upgrade. Commit, push, tag and publication remain separate requested endpoints.
+An integration update is complete when the requested exact versions are installed and locked, the feature-coverage table accounts for the audited published changes, affected Ling behavior is implemented and verified, and remaining platform or upstream gaps are explicit. Report versions, published-source identities, existing coverage, newly adapted/exposed behavior, inherited fixes, verification and deferrals. A check-only result reports findings without claiming an upgrade. Commit, push, tag and publication remain separate requested endpoints.

@@ -2,7 +2,7 @@
 
 Use this after establishing the published current-to-target delta in the [parent workflow](../SKILL.md). Select affected rows and record concrete before/after behavior; do not claim unexecuted checks. [Architecture](../../../../docs/architecture.md) owns the runtime map and [AGENTS.md](../../../../AGENTS.md) owns product boundaries and test selection.
 
-Use the `adapt`, `expose`, `inherited` and `defer` decision rules in the [Pi upgrade checklist](../../update-pi-dependency/references/upgrade-checklist.md). The rows below add extension-specific migration and acceptance checks.
+Use the feature-coverage table and `adapt`, `expose`, `inherited` and `defer` decision rules in the [Pi upgrade checklist](../../update-pi-dependency/references/upgrade-checklist.md), including when dependency pins are already current. The rows below add extension-specific migration and acceptance checks. Record the upstream behavior, original extension owner, Ling projection and visible interaction together so a working tool cannot conceal an incomplete presentation.
 
 ## Shared extension behavior
 

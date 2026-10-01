@@ -1,13 +1,25 @@
 # Pi upgrade checklist
 
-Use this reference after identifying the published upstream delta. Select checks for the changed surfaces and trace the affected APIs in the current checkout. [Architecture](../../../../docs/architecture.md) owns the directory and runtime map; the [parent skill](../SKILL.md) owns source auditing, dependency updates, and verification steps.
+Use this reference for the published changes in the selected audit range, including a coverage audit with unchanged dependency pins. Select checks for the affected surfaces and trace their APIs in the current checkout. [Architecture](../../../../docs/architecture.md) owns the directory and runtime map; the [parent skill](../SKILL.md) owns source auditing, dependency updates, and verification steps.
+
+## Record feature coverage
+
+Keep a concise table with the task's evidence, outside application source. Use one row per material capability or tightly related fix group. Record the audit baseline and published target independently of the installed version.
+
+| Published change and source | Pi behavior and purpose | Ling path and user interaction | Decision | Coverage and evidence |
+| --- | --- | --- | --- | --- |
+| Release, source symbol and artifact declaration or executable | What the capability does, including changed semantics | Actual owner, transport/projection and visible control, command or result | `adapt`, `expose`, `inherited` or `defer` | Existing or newly implemented behavior, checks actually run, remaining gap or concrete boundary |
+
+Trace capability discovery, configuration, execution, live events, result fields, failures, cancellation and persisted history where applicable. Confirm both ends of a projection; accepting a field in Core does not prove Web displays or uses it. Separate source evidence from runtime evidence. Reuse prior acceptance only when its candidate and environment remain applicable.
+
+The table must distinguish an implemented path from an unresolved gap. Stable capabilities within an existing Ling vertical receive an implementation decision; convenience, effort and unchanged version numbers are not deferral reasons. Experimental capabilities already exposed through public SDK contracts still need an explicit coverage assessment. TUI-specific behavior maps to the equivalent Ling interaction where one exists; terminal rendering machinery stays with Pi's TUI.
 
 ## Classify the change
 
 - `adapt`: Ling calls or normalizes a changed stable API and must change to remain correct.
 - `expose`: a stable capability belongs to an existing Ling vertical and needs a contract/UI path.
-- `inherited`: the bump activates a fix through the existing integration without a Ling source change; verify that it reaches the affected behavior or build boundary.
-- `defer`: the feature is experimental, TUI-specific, duplicates an existing integration, or needs a product decision under [AGENTS.md](../../../../AGENTS.md). State the reason and what evidence would reopen it.
+- `inherited`: the published implementation reaches an existing Ling path without a Ling source change, including capabilities already integrated in an earlier bump; verify that path and distinguish runtime evidence from source inspection.
+- `defer`: Ling has no supported public runtime path, the behavior belongs exclusively to the terminal interface, or it requires a product decision under [AGENTS.md](../../../../AGENTS.md). State the concrete boundary and what evidence would reopen it. An experimental label alone does not establish that boundary.
 
 ## Select compatibility checks
 

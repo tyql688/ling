@@ -65,4 +65,22 @@ describe("companion tool schemas", () => {
 		});
 		expect(() => create.parse({ ...task, schedule: { kind: "interval", minutes: 1 } })).toThrow();
 	});
+
+	it("keeps omitted schedule updates distinct from explicit resets and validates changed schedules", () => {
+		const input = { id: "2d9411b1-91c8-412b-9db1-98ec237d7b67", expectedRevision: 3 };
+		const update = companionTools.schedule_update.input;
+		expect(update.parse({ ...input, changes: { title: "New title", model: null } }).changes).toEqual({
+			title: "New title",
+			model: null,
+		});
+		expect(update.parse({ ...input, changes: { status: "paused" } }).changes).toEqual({ status: "paused" });
+		expect(
+			update.parse({
+				...input,
+				changes: { schedule: { kind: "calendar", time: "10:30", timeZone: "Asia/Shanghai", days: [1, 3] } },
+			}).changes.schedule,
+		).toEqual({ kind: "calendar", time: "10:30", timeZone: "Asia/Shanghai", days: [1, 3] });
+		for (const changes of [{}, { title: null }, { unexpected: true }, { schedule: { kind: "interval", minutes: 1 } }])
+			expect(() => update.parse({ ...input, changes })).toThrow();
+	});
 });

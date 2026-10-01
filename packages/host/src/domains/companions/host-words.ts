@@ -6,6 +6,14 @@ export const TODO_REVIEW_PROMPT =
 const translations: Record<Exclude<UiLanguage, "en">, Readonly<Record<string, string>>> = {
 	"zh-CN": {
 		"Confirm schedule": "确认定时任务",
+		"Confirm schedule update": "确认修改定时任务",
+		"Confirm schedule deletion": "确认删除定时任务",
+		"This deletes the task and its run history. Conversation records are kept.":
+			"将删除此任务及其运行历史，会话记录会保留。",
+		"Schedule status": "任务状态",
+		active: "已启用",
+		paused: "已暂停",
+		completed: "已完成",
 		Instructions: "任务内容",
 		Repeat: "重复",
 		"Time zone": "时区",
@@ -40,6 +48,14 @@ const translations: Record<Exclude<UiLanguage, "en">, Readonly<Record<string, st
 	},
 	ja: {
 		"Confirm schedule": "スケジュールを確認",
+		"Confirm schedule update": "スケジュール変更を確認",
+		"Confirm schedule deletion": "スケジュール削除を確認",
+		"This deletes the task and its run history. Conversation records are kept.":
+			"このタスクと実行履歴を削除します。会話の記録は保持されます。",
+		"Schedule status": "タスクの状態",
+		active: "有効",
+		paused: "一時停止",
+		completed: "完了",
 		Instructions: "手順",
 		Repeat: "繰り返し",
 		"Time zone": "タイムゾーン",
@@ -74,6 +90,14 @@ const translations: Record<Exclude<UiLanguage, "en">, Readonly<Record<string, st
 	},
 	ko: {
 		"Confirm schedule": "예약 작업 확인",
+		"Confirm schedule update": "예약 작업 변경 확인",
+		"Confirm schedule deletion": "예약 작업 삭제 확인",
+		"This deletes the task and its run history. Conversation records are kept.":
+			"이 작업과 실행 기록을 삭제합니다. 대화 기록은 유지됩니다.",
+		"Schedule status": "작업 상태",
+		active: "활성",
+		paused: "일시 중지",
+		completed: "완료",
 		Instructions: "지침",
 		Repeat: "반복",
 		"Time zone": "시간대",

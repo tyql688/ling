@@ -72,8 +72,13 @@ export const companionTools = {
 	schedule_list: {
 		feature: "schedules",
 		description:
-			"List configured scheduled tasks and recent outcomes. Pausing future triggers is separate from stopping a running occurrence.",
+			"List configured scheduled tasks, prompt previews and recent outcomes. Use schedule_get for complete instructions and the current revision before editing or deleting a task.",
 		input: z.object({}),
+	},
+	schedule_get: {
+		feature: "schedules",
+		description: "Read a scheduled task's complete configuration, current revision and recent outcomes by ID.",
+		input: z.object({ id: z.uuid() }),
 	},
 	schedule_create: {
 		feature: "schedules",
@@ -88,6 +93,31 @@ export const companionTools = {
 			thinking: scheduleTaskInputSchema.shape.thinking.default(null).describe("Omit to follow settings"),
 			missed: scheduleTaskInputSchema.shape.missed.default("skip"),
 			notifications: scheduleTaskInputSchema.shape.notifications.default("attention"),
+			language: z.enum(UI_LANGUAGES).optional(),
+		}),
+	},
+	schedule_update: {
+		feature: "schedules",
+		description:
+			"Update a scheduled task on explicit user request. Read schedule_get first and supply its revision. Only provided fields change; null resets an optional setting. Set status to active or paused to resume or pause future triggers; this does not stop a running occurrence. Configuration edits require a future run time. Waits for confirmation and rejects concurrent changes. Set language for the confirmation screen.",
+		input: z.object({
+			id: z.uuid(),
+			expectedRevision: z.number().int().positive(),
+			changes: scheduleTaskInputSchema
+				.partial()
+				.extend({ schedule: agentScheduleSchema.optional(), status: z.enum(["active", "paused"]).optional() })
+				.strict()
+				.refine((changes) => Object.values(changes).some((value) => value !== undefined), "Provide a field to update"),
+			language: z.enum(UI_LANGUAGES).optional(),
+		}),
+	},
+	schedule_delete: {
+		feature: "schedules",
+		description:
+			"Delete a scheduled task and its run history on explicit user request. Read schedule_get first and supply its revision. Waits for confirmation and rejects concurrent changes or an active run. Set language for the confirmation screen.",
+		input: z.object({
+			id: z.uuid(),
+			expectedRevision: z.number().int().positive(),
 			language: z.enum(UI_LANGUAGES).optional(),
 		}),
 	},

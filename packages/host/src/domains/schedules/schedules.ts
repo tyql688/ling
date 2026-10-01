@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import {
-	describeSchedule,
 	schedulesStateSchema,
 	type ScheduleModel,
 	type ScheduleOccurrence,
@@ -13,11 +12,10 @@ import { toError } from "@ling/core/ling-error";
 import { createLogger } from "@ling/core/logger";
 import type { CompanionRuns } from "../companions/companion-runs";
 import { createFeatureStore } from "../companions/feature-store";
-import { hostWords } from "../companions/host-words";
-import { toolResult, type CompanionToolHandlers } from "../companions/tool-dispatch";
 import type { Interactions } from "../interactions/interactions";
 import { appendOccurrence, nextOccurrence } from "./calendar";
 import type { BuiltinFeatureStore } from "../companions/builtin-features";
+import { createScheduleTools } from "./schedule-tools";
 
 const log = createLogger("schedules");
 const failure = (value: unknown) => toError(value).message;
@@ -25,13 +23,6 @@ const failure = (value: unknown) => toError(value).message;
 const MAX_CONCURRENT_RUNS = 2;
 /** One minute of timer or suspend jitter is not a missed historical run. */
 const MISSED_GRACE_MS = 60_000;
-
-const SCHEDULE_WORDS = {
-	once: "Once",
-	everyMinutes: "Every {{count}} minutes",
-	everyDay: "Every day",
-	weekdays: "Weekdays",
-} as const;
 
 interface RunHandle {
 	controller: AbortController;
@@ -74,7 +65,12 @@ export function createSchedules(options: {
 		const handle = owned.get(id);
 		if (handle && handle.runId === null) handle.controller.abort();
 	}
-	async function save(id: string | null, expectedRevision: number | null, task: ScheduleTaskInput) {
+	async function save(
+		id: string | null,
+		expectedRevision: number | null,
+		task: ScheduleTaskInput,
+		status?: "active" | "paused",
+	) {
 		await options.features.requireEnabled("schedules");
 		const now = Date.now();
 		const nextAt = nextOccurrence(task.schedule, now);
@@ -87,7 +83,7 @@ export function createSchedules(options: {
 				...task,
 				id: id ?? randomUUID(),
 				revision: (previous?.revision ?? 0) + 1,
-				status: previous?.status === "paused" ? "paused" : "active",
+				status: status ?? (previous?.status === "paused" ? "paused" : "active"),
 				nextAt,
 				updatedAt: now,
 			};
@@ -255,65 +251,51 @@ export function createSchedules(options: {
 			if (!lifetime.signal.aborted) timer = setTimeout(() => void tick(), 1_000);
 		}
 	}
-	const tools = {
-		schedule_list: async () => {
-			const current = await store.read();
-			return toolResult({
-				tasks: current.tasks.map(({ prompt, ...task }) => ({ ...task, prompt: prompt.slice(0, 1000) })),
-				history: current.history.slice(-20),
-			});
-		},
-		schedule_create: async (ref, { language, ...task }, signal) => {
-			await options.features.requireEnabled("schedules");
-			const w = hostWords(language);
-			const answer = await options.interactions.request(
-				"schedules",
-				{
-					ref,
-					kind: "approval",
-					title: `${w("Confirm schedule")}: ${task.title}`,
-					body: [
-						`**${w("Instructions")}**\n\n${task.prompt}`,
-						`**${w("Repeat")}**: ${describeSchedule(task.schedule, language, (key, count) => w(SCHEDULE_WORDS[key], { count: count ?? "" }))}`,
-						...(task.schedule.kind === "calendar" ? [`**${w("Time zone")}**: ${task.schedule.timeZone}`] : []),
-						`**${w("Project")}**: ${task.cwd}`,
-						`**${w("Run in")}**: ${w(task.sessionId ? "This conversation" : "New conversation each time")}`,
-						`**${w("Model")}**: ${task.model ? `${task.model.provider} / ${task.model.id}` : w("Follow project model")}`,
-						`**${w("Reasoning")}**: ${task.thinking ? w(task.thinking) : w("Follow settings")}`,
-						`**${w("Missed runs")}**: ${w(task.missed === "skip" ? "Skip missed runs" : "Run latest once on return")}`,
-						`**${w("Notifications")}**: ${w(task.notifications === "all" ? "All runs" : task.notifications === "attention" ? "Needs attention" : "None")}`,
-					].join("\n\n"),
-				},
-				signal,
-			);
-			if (!answer.approved) return toolResult({ status: "cancelled" });
-			const saved = await save(null, null, task);
-			return toolResult({ status: "created", task: saved.tasks.at(-1)! });
-		},
-	} satisfies Pick<CompanionToolHandlers, "schedule_list" | "schedule_create">;
+	async function setStatus(id: string, status: "active" | "paused", revision: number) {
+		if (status === "active") await options.features.requireEnabled("schedules");
+		const saved = await update((value) => {
+			const task = value.tasks.find((item) => item.id === id);
+			if (!task || task.revision !== revision) throw new Error("Schedule changed; refresh before saving");
+			const nextAt = status === "active" ? nextOccurrence(task.schedule, Date.now()) : task.nextAt;
+			if (status === "active" && nextAt === null) throw new Error("Edit the task to choose a future time");
+			return {
+				...value,
+				tasks: value.tasks.map((item) =>
+					item.id === id ? { ...item, revision: item.revision + 1, status, nextAt } : item,
+				),
+			};
+		});
+		cancelPending(id);
+		return snapshot(saved);
+	}
+	async function remove(id: string, revision: number) {
+		return snapshot(
+			await update((value) => {
+				if (owned.has(id)) throw new Error("Stop the active run before deleting this task");
+				const task = value.tasks.find((item) => item.id === id);
+				if (!task || task.revision !== revision) throw new Error("Schedule changed");
+				return {
+					tasks: value.tasks.filter((item) => item.id !== id),
+					history: value.history.filter((item) => item.taskId !== id),
+				};
+			}),
+		);
+	}
 	return {
-		tools,
+		tools: createScheduleTools({
+			read: snapshot,
+			save,
+			setStatus,
+			remove,
+			requireEnabled: () => options.features.requireEnabled("schedules"),
+			interactions: options.interactions,
+		}),
 		snapshot: () => snapshot(),
 		models: options.listModels,
 		save: async (id: string | null, expectedRevision: number | null, task: ScheduleTaskInput) =>
 			snapshot(await save(id, expectedRevision, task)),
-		async setStatus(id: string, status: "active" | "paused", revision: number) {
-			if (status === "active") await options.features.requireEnabled("schedules");
-			const saved = await update((value) => {
-				const task = value.tasks.find((item) => item.id === id);
-				if (!task || task.revision !== revision) throw new Error("Schedule changed; refresh before saving");
-				const nextAt = status === "active" ? nextOccurrence(task.schedule, Date.now()) : task.nextAt;
-				if (status === "active" && nextAt === null) throw new Error("Edit the task to choose a future time");
-				return {
-					...value,
-					tasks: value.tasks.map((item) =>
-						item.id === id ? { ...item, revision: item.revision + 1, status, nextAt } : item,
-					),
-				};
-			});
-			cancelPending(id);
-			return snapshot(saved);
-		},
+		setStatus,
+		delete: remove,
 		async run(id: string) {
 			const task = (await store.read()).tasks.find((item) => item.id === id);
 			if (!task) throw new Error("Schedule no longer exists");
@@ -325,19 +307,6 @@ export function createSchedules(options: {
 			handle.controller.abort();
 			if (handle.runId) await options.runs.cancel(handle.runId);
 			await handle.done;
-		},
-		async delete(id: string, revision: number) {
-			if (owned.has(id)) throw new Error("Stop the active run before deleting this task");
-			return snapshot(
-				await update((value) => {
-					const task = value.tasks.find((item) => item.id === id);
-					if (!task || task.revision !== revision) throw new Error("Schedule changed");
-					return {
-						tasks: value.tasks.filter((item) => item.id !== id),
-						history: value.history.filter((item) => item.taskId !== id),
-					};
-				}),
-			);
 		},
 		async markRead(id: string | null) {
 			return snapshot(

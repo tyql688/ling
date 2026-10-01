@@ -27,8 +27,8 @@ export function TodoTasks({
 	);
 	const completed = tasks.filter((task) => task.status === "completed").length;
 	return (
-		<div className="flex min-w-0 flex-col">
-			<div className="flex items-center gap-2 pb-2.5 font-medium">
+		<div className={cn("flex min-w-0 flex-col", compact && "text-ui leading-relaxed")}>
+			<div className="flex items-center gap-2 pb-2 font-medium">
 				<ListTodo className="size-4" aria-hidden="true" />
 				<span>{t("todo.title")}</span>
 				<span className="ml-auto text-xs tabular-nums text-text-muted">
@@ -41,11 +41,11 @@ export function TodoTasks({
 				aria-valuemin={0}
 				aria-valuemax={tasks.length}
 				aria-valuenow={completed}
-				className="mb-2.5 h-[3px] overflow-hidden rounded-control bg-surface-hover"
+				className="mb-1 h-[3px] overflow-hidden rounded-control bg-surface-hover"
 			>
 				<div
-					className="h-full bg-text-secondary"
-					style={{ width: `${tasks.length ? (100 * completed) / tasks.length : 0}%` }}
+					className="h-full origin-left bg-text-muted"
+					style={{ transform: `scaleX(${tasks.length ? completed / tasks.length : 0})` }}
 				/>
 			</div>
 			{!compact && (
@@ -70,7 +70,10 @@ export function TodoTasks({
 				</FeedbackNotice>
 			)}
 			{visible.slice(0, limit).map((task) => (
-				<div key={task.id} className="flex items-start gap-2.5 border-b border-border-subtle py-3">
+				<div
+					key={task.id}
+					className={cn("flex items-start gap-2.5", compact ? "py-2" : "border-b border-border-subtle py-3")}
+				>
 					<span className="mt-[3px] shrink-0 text-text-muted" aria-hidden="true">
 						{task.status === "completed" ? (
 							<Check className="size-[15px]" />

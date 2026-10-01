@@ -5,13 +5,19 @@ import { memo } from "react";
 import { projectExtensionTerminalText } from "../extension-ui/extension-terminal-text";
 import type { AssistantContentPart } from "./transcript-activity-model";
 
-export function RenderedTerminalLines({ lines, inline = false }: { lines: string[]; inline?: boolean }) {
+export const RenderedTerminalLines = memo(function RenderedTerminalLines({
+	lines,
+	inline = false,
+}: {
+	lines: string[];
+	inline?: boolean;
+}) {
 	if (lines.length === 0) return null;
 	const occurrences = new Map<string, number>();
 	return (
 		<div
 			className={cn(
-				"font-mono text-xs leading-relaxed text-text-primary",
+				"min-w-0 overflow-x-auto overscroll-contain font-mono text-xs leading-relaxed text-text-primary",
 				inline ? "py-1" : "rounded-control border border-border-subtle bg-surface px-3 py-2",
 			)}
 		>
@@ -19,14 +25,14 @@ export function RenderedTerminalLines({ lines, inline = false }: { lines: string
 				const occurrence = occurrences.get(line) ?? 0;
 				occurrences.set(line, occurrence + 1);
 				return (
-					<p key={`${line}\u0000${occurrence}`} className="whitespace-pre-wrap break-words">
+					<p key={`${line}\u0000${occurrence}`} className="whitespace-pre">
 						<Ansi useClasses>{projectExtensionTerminalText(line)}</Ansi>
 					</p>
 				);
 			})}
 		</div>
 	);
-}
+});
 
 /** Markstream repairs incomplete Markdown and reveals newly streamed characters. Memoizing on
  * the two primitives keeps settled prose from re-parsing or re-animating on unrelated updates. */

@@ -15,7 +15,7 @@ import {
 } from "./extension-custom-panel-focus";
 import { extensionKeyData } from "./extension-terminal-keys";
 import { projectExtensionTerminalText } from "./extension-terminal-text";
-import { measureExtensionViewport } from "./extension-ui-viewport";
+import { createExtensionViewportMeasurer } from "./extension-ui-viewport";
 
 /** Browser projections of Pi's interactive chrome. Headers belong to the transcript;
  * custom panels retain their overlay geometry and input semantics. Persistent status,
@@ -183,30 +183,39 @@ export function ExtensionCustomPanel({
 
 	useEffect(() => {
 		if (!sessionRef) return;
+		const measurer = createExtensionViewportMeasurer();
+		if (!measurer) return;
 		const currentSessionKey = sessionKey(sessionRef);
 		if (lastViewportSessionKeyRef.current !== currentSessionKey) {
 			lastViewportSessionKeyRef.current = currentSessionKey;
 			lastViewportKeyRef.current = null;
 		}
+		let animationFrame = 0;
 		const reportViewport = () => {
-			const viewport = measureExtensionViewport();
+			animationFrame = 0;
+			const viewport = measurer.measure();
 			if (!viewport) return;
 			const key = `${viewport.columns}:${viewport.rows}:${viewport.markdownColumns}:${viewport.dockColumns}`;
 			if (lastViewportKeyRef.current === key) return;
 			lastViewportKeyRef.current = key;
 			void hostSessionApi.updateExtensionUiViewport({ ref: sessionRef, ...viewport }).catch(onError);
 		};
-		reportViewport();
-		const animationFrame = requestAnimationFrame(reportViewport);
-		window.addEventListener("resize", reportViewport);
-		const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(reportViewport);
+		// Window and element observers can report the same resize; measure once before the next paint.
+		const scheduleViewport = () => {
+			if (animationFrame === 0) animationFrame = requestAnimationFrame(reportViewport);
+		};
+		scheduleViewport();
+		window.addEventListener("resize", scheduleViewport);
+		const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleViewport);
 		observer?.observe(document.documentElement);
+		for (const probe of measurer.probes) observer?.observe(probe);
 		const timeline = document.querySelector<HTMLElement>("[data-timeline-rows]");
 		if (timeline) observer?.observe(timeline);
 		return () => {
 			cancelAnimationFrame(animationFrame);
-			window.removeEventListener("resize", reportViewport);
+			window.removeEventListener("resize", scheduleViewport);
 			observer?.disconnect();
+			measurer.dispose();
 		};
 	}, [hostSessionApi, sessionRef, onError]);
 

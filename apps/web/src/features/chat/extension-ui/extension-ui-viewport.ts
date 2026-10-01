@@ -16,8 +16,7 @@ const CELL_PROBE_OFFSCREEN_PX = -9_999;
 /** Pi surfaces require at least one row and column; zero would make extension rendering invalid. */
 const MIN_VIEWPORT_CELLS = 1;
 
-/** Measures one monospace cell for the given utility classes; the dock draws smaller text than the transcript. */
-function measureMonospaceCell(className: string): { charWidth: number; lineHeight: number } | null {
+function createCellProbe(className: string): HTMLSpanElement {
 	const probe = document.createElement("span");
 	probe.textContent = CELL_WIDTH_PROBE_TEXT;
 	probe.className = className;
@@ -26,34 +25,55 @@ function measureMonospaceCell(className: string): { charWidth: number; lineHeigh
 	probe.style.top = `${CELL_PROBE_OFFSCREEN_PX}px`;
 	probe.style.visibility = "hidden";
 	probe.style.whiteSpace = "pre";
-	document.body.appendChild(probe);
+	return probe;
+}
+
+/** Reads an attached probe without changing the DOM between geometry reads. */
+function measureMonospaceCell(probe: HTMLSpanElement): { charWidth: number; lineHeight: number } | null {
 	const rect = probe.getBoundingClientRect();
 	const parsedLineHeight = Number.parseFloat(window.getComputedStyle(probe).lineHeight);
-	probe.remove();
 	const charWidth = rect.width / CELL_WIDTH_PROBE_TEXT.length;
 	const lineHeight = Number.isFinite(parsedLineHeight) && parsedLineHeight > 0 ? parsedLineHeight : rect.height;
 	if (!Number.isFinite(charWidth) || charWidth <= 0 || !Number.isFinite(lineHeight) || lineHeight <= 0) return null;
 	return { charWidth, lineHeight };
 }
 
-export function measureExtensionViewport(): ExtensionViewportMeasurement | null {
+/** Owns stable font probes so repeated viewport reads do not invalidate page styles. */
+export function createExtensionViewportMeasurer() {
 	if (typeof document === "undefined") return null;
 	const root = document.documentElement;
-	if (root.clientWidth <= 0 || root.clientHeight <= 0 || !document.body) return null;
-	const cell = measureMonospaceCell("font-mono text-xs leading-relaxed");
+	if (!document.body) return null;
+	const transcriptProbe = createCellProbe("font-mono text-xs leading-relaxed");
 	// The dock renders widget lines at text-xs/leading-4, so its column count must be measured
 	// in that cell — reusing the transcript's would overstate the columns and clip every line.
-	const dockCell = measureMonospaceCell(EXTENSION_DOCK_LINE_CLASS);
-	if (!cell || !dockCell) return null;
-	const timeline = document.querySelector<HTMLElement>("[data-timeline-rows]");
-	const timelineWidth = timeline?.getBoundingClientRect().width;
-	const markdownWidth = timelineWidth !== undefined && timelineWidth > 0 ? timelineWidth : root.clientWidth;
+	const dockProbe = createCellProbe(EXTENSION_DOCK_LINE_CLASS);
+	// Both text styles stay attached while observed, including across font and skin changes.
+	document.body.append(transcriptProbe, dockProbe);
+	const measure = (): ExtensionViewportMeasurement | null => {
+		const width = root.clientWidth;
+		const height = root.clientHeight;
+		if (width <= 0 || height <= 0) return null;
+		const cell = measureMonospaceCell(transcriptProbe);
+		const dockCell = measureMonospaceCell(dockProbe);
+		if (!cell || !dockCell) return null;
+		const timeline = document.querySelector<HTMLElement>("[data-timeline-rows]");
+		const timelineWidth = timeline?.getBoundingClientRect().width;
+		const markdownWidth = timelineWidth !== undefined && timelineWidth > 0 ? timelineWidth : width;
+		return {
+			columns: Math.max(MIN_VIEWPORT_CELLS, Math.floor(width / cell.charWidth)),
+			rows: Math.max(MIN_VIEWPORT_CELLS, Math.floor(height / cell.lineHeight)),
+			markdownColumns: Math.max(MIN_VIEWPORT_CELLS, Math.floor(markdownWidth / cell.charWidth)),
+			// Open docks use their measured panel width; an unmounted dock uses its initial width.
+			dockColumns: Math.max(MIN_VIEWPORT_CELLS, Math.floor(readExtensionDockContentWidth() / dockCell.charWidth)),
+		};
+	};
 	return {
-		columns: Math.max(MIN_VIEWPORT_CELLS, Math.floor(root.clientWidth / cell.charWidth)),
-		rows: Math.max(MIN_VIEWPORT_CELLS, Math.floor(root.clientHeight / cell.lineHeight)),
-		markdownColumns: Math.max(MIN_VIEWPORT_CELLS, Math.floor(markdownWidth / cell.charWidth)),
-		// Open docks use their measured panel width; an unmounted dock uses its initial width.
-		dockColumns: Math.max(MIN_VIEWPORT_CELLS, Math.floor(readExtensionDockContentWidth() / dockCell.charWidth)),
+		measure,
+		probes: [transcriptProbe, dockProbe],
+		dispose() {
+			transcriptProbe.remove();
+			dockProbe.remove();
+		},
 	};
 }
 
@@ -62,7 +82,13 @@ export async function synchronizeExtensionViewport(
 	api: Pick<LingApi["session"], "updateExtensionUiViewport">,
 	ref: SessionRef,
 ): Promise<void> {
-	const viewport = measureExtensionViewport();
+	const measurer = createExtensionViewportMeasurer();
+	let viewport: ExtensionViewportMeasurement | null;
+	try {
+		viewport = measurer?.measure() ?? null;
+	} finally {
+		measurer?.dispose();
+	}
 	if (viewport === null) throw new Error("The session viewport is not measurable");
 	await api.updateExtensionUiViewport({ ref, ...viewport });
 }

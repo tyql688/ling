@@ -9,7 +9,7 @@ import { formatRequestError } from "@renderer/lib/errors";
 import { cn } from "@renderer/lib/utils";
 import { Ansi } from "@renderer/components/ansi";
 import { useAtomValue, useStore } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { TodoToolResult } from "@renderer/features/pi-adapters/todo/todo-tool-result";
 import { useTranslation } from "react-i18next";
 import { projectExtensionTerminalText } from "../extension-ui/extension-terminal-text";
@@ -25,6 +25,7 @@ interface ToolResultProps {
 	showName?: boolean;
 	command?: string | undefined;
 	variant?: "card" | "inline";
+	call?: ReactNode;
 }
 interface DetailAttempt {
 	binding: string;
@@ -99,26 +100,29 @@ function DeferredToolResult(props: ToolResultProps) {
 	}, [hostSessionApi, attempt, binding, key, message, ref, store, transcript.runtimeId]);
 	const current = state?.source === message && state.binding === binding ? state : null;
 	if (current?.status === "ready") return <LoadedToolResult {...props} message={current.message} />;
-	if (current?.status === "error")
-		return (
-			<div role="alert" className="flex items-center gap-2 text-xs text-danger">
-				<span>{current.error}</span>
-				<button
-					type="button"
-					className="shrink-0 underline"
-					onClick={() => {
-						setState(null);
-						setAttempt((value) => value + 1);
-					}}
-				>
-					{t("session.retry")}
-				</button>
-			</div>
-		);
 	return (
-		<div role="status" className="py-2 text-xs text-text-muted">
-			{t("session.loadingToolDetails")}
-		</div>
+		<>
+			{props.call}
+			{current?.status === "error" ? (
+				<div role="alert" className="flex items-center gap-2 text-xs text-danger">
+					<span>{current.error}</span>
+					<button
+						type="button"
+						className="shrink-0 underline"
+						onClick={() => {
+							setState(null);
+							setAttempt((value) => value + 1);
+						}}
+					>
+						{t("session.retry")}
+					</button>
+				</div>
+			) : (
+				<div role="status" className="py-2 text-xs text-text-muted">
+					{t("session.loadingToolDetails")}
+				</div>
+			)}
+		</>
 	);
 }
 
@@ -130,6 +134,7 @@ function LoadedToolResult(props: ToolResultProps) {
 	const { message } = props;
 	return (
 		<TodoToolResult message={message}>
+			{props.call}
 			{rendered ? (
 				<RenderedTerminalLines lines={rendered.lines} inline={props.variant === "inline"} />
 			) : (
@@ -212,8 +217,11 @@ function ToolResultContent({
 	// an MCP screenshot, or an extension tool all arrive here as image content parts.
 	const images = useMessageImages(message.content);
 	const isTerminal = toolCategoryForName(message.toolName) === "run";
+	const isSearch = message.toolName === "grep" || message.toolName === "find";
 	const outputClassName = cn(
-		"max-h-72 overflow-auto whitespace-pre-wrap font-mono text-xs leading-relaxed",
+		"max-h-72 min-w-0 overflow-auto overscroll-contain font-mono text-xs leading-relaxed [tab-size:4]",
+		// Search lines keep their path/line alignment while a pane resizes; scroll exposes long matches.
+		isSearch ? "whitespace-pre" : "whitespace-pre-wrap",
 		command ? "mt-3" : "mt-1",
 		message.isError ? "text-text-primary" : "text-text-muted",
 	);
@@ -224,6 +232,7 @@ function ToolResultContent({
 				"w-full min-w-0",
 				variant === "card" && "rounded-panel border px-3.5 py-3 shadow-xs",
 				variant === "card" && (message.isError ? "border-danger/40 bg-danger/10" : "border-border-subtle bg-surface"),
+				variant === "inline" && isSearch && "rounded-control border border-border-subtle bg-surface px-3 py-2.5",
 			)}
 		>
 			{showName && (

@@ -133,12 +133,7 @@ const ToolStepView = memo(
 			t,
 		);
 		return (
-			<div
-				className={cn(
-					"flex flex-col rounded-control px-0.5 py-0.5 transition-colors",
-					hasDetails && "hover:bg-surface-hover/70",
-				)}
-			>
+			<div className="flex min-w-0 flex-col py-0.5">
 				<div className="group/toolstep flex min-w-0 items-center gap-1.5">
 					<button
 						type="button"
@@ -146,7 +141,8 @@ const ToolStepView = memo(
 						onClick={() => onExpandedChange(!expanded)}
 						aria-expanded={hasDetails ? expanded : undefined}
 						className={cn(
-							"flex min-w-0 flex-1 items-center gap-1.5 rounded-sm text-left text-xs focus-visible:bg-surface-hover/70",
+							"flex min-h-7 min-w-0 flex-1 items-center gap-1.5 rounded-control px-0.5 text-left text-xs transition-colors focus-visible:bg-surface-hover/70",
+							hasDetails && "hover:bg-surface-hover/70",
 							failed ? "text-danger" : "text-text-muted",
 						)}
 					>
@@ -181,16 +177,17 @@ const ToolStepView = memo(
 				</div>
 				{!step.result && <NestedToolProgress session={key} parentId={step.call.id} expanded={expanded} />}
 				{expanded && (
-					<div
-						className={cn(
-							"mt-1 ml-7 flex min-w-0 flex-col gap-2 border-border-subtle border-l pl-3",
-							EXPANDED_DETAIL_SCROLL_CLASS,
-						)}
-					>
-						{expandedCall && <RenderedTerminalLines lines={expandedCall.lines} inline />}
+					<div className={cn("mt-1 ml-7 flex min-w-0 flex-col gap-2", EXPANDED_DETAIL_SCROLL_CLASS)}>
+						{!step.result && expandedCall && <RenderedTerminalLines lines={expandedCall.lines} inline />}
 						{!step.result && progress && <ToolProgressBlock progress={progress} />}
 						{step.result && (
-							<ToolResultBlock message={step.result} showName={false} command={cardHeader} variant="inline" />
+							<ToolResultBlock
+								message={step.result}
+								showName={false}
+								command={cardHeader}
+								variant="inline"
+								call={expandedCall && <RenderedTerminalLines lines={expandedCall.lines} inline />}
+							/>
 						)}
 					</div>
 				)}

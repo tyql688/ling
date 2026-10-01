@@ -2,7 +2,7 @@ import type { ToolResultSessionMessage } from "@ling/contracts/session";
 import { isTodoOrigin, todoDetailsSchema, type TodoDetails } from "@ling/contracts/todo";
 import { Button } from "@renderer/components/ui/button";
 import { useFeatureNavigation } from "@renderer/components/workbench/feature-navigation";
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TodoTasks } from "./todo-tasks";
 
@@ -14,15 +14,16 @@ function todoDetails(message: ToolResultSessionMessage): TodoDetails | null {
 
 /** Shows rpiv-todo results as a checklist and keeps Pi's own rendering one click away. */
 export function TodoToolResult({ message, children }: { message: ToolResultSessionMessage; children: ReactNode }) {
-	const details = todoDetails(message);
+	const details = useMemo(() => todoDetails(message), [message]);
 	return details ? <TodoChecklist details={details}>{children}</TodoChecklist> : children;
 }
 
 function TodoChecklist({ details, children }: { details: TodoDetails; children: ReactNode }) {
 	const { t } = useTranslation();
 	const openFeature = useFeatureNavigation();
+	const [originalOpen, setOriginalOpen] = useState(false);
 	return (
-		<div className="flex min-w-0 flex-col gap-2 text-sm">
+		<div className="flex min-w-0 flex-col gap-2 rounded-control border border-border-subtle bg-surface px-3 py-2.5">
 			<TodoTasks
 				value={details}
 				compact
@@ -32,9 +33,14 @@ function TodoChecklist({ details, children }: { details: TodoDetails; children: 
 					</Button>
 				}
 			/>
-			<details className="text-xs text-text-muted">
-				<summary className="cursor-default">{t("todo.originalResult")}</summary>
-				<div className="mt-2">{children}</div>
+			<details
+				className="min-w-0 border-t border-border-subtle pt-2 text-xs text-text-muted"
+				onToggle={(event) => setOriginalOpen(event.currentTarget.open)}
+			>
+				<summary className="w-fit cursor-default rounded-sm focus-visible:bg-surface-hover">
+					{t("todo.originalResult")}
+				</summary>
+				{originalOpen && <div className="mt-2 flex min-w-0 flex-col gap-2">{children}</div>}
 			</details>
 		</div>
 	);

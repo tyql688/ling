@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readlink, rm, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { temporaryDirectory } from "../../../test/temporary-directory";
@@ -113,6 +113,28 @@ async function fixture(): Promise<string> {
 	await symlink("../npm/bin/npx-cli.js", join(modules, ".bin/npx"));
 	return root;
 }
+
+it("shares identical Unix esbuild executables and preserves distinct launchers", async () => {
+	const root = await fixture();
+	const modules = join(root, "node_modules");
+	const cli = join(modules, "esbuild/bin/esbuild");
+	const native = join(modules, "@esbuild/darwin-arm64/bin/esbuild");
+	await write(
+		join(modules, "esbuild/package.json"),
+		JSON.stringify({ dependencies: { "@esbuild/darwin-arm64": "1" } }),
+	);
+	await write(join(modules, "@esbuild/darwin-arm64/package.json"), "{}");
+	await write(cli, "native binary");
+	await write(native, "native binary");
+	await pruneStagedHost({ hostRoot: root, platform: "darwin", arch: "arm64" });
+	expect(await readlink(cli)).toBe("../../@esbuild/darwin-arm64/bin/esbuild");
+	expect(await readFile(cli, "utf8")).toBe("native binary");
+	await rm(cli);
+	await write(cli, "#!/usr/bin/env node\nrequire('../lib/main.js')");
+	await pruneStagedHost({ hostRoot: root, platform: "darwin", arch: "arm64" });
+	expect((await lstat(cli)).isSymbolicLink()).toBe(false);
+	expect(await readFile(cli, "utf8")).toContain("require('../lib/main.js')");
+});
 
 it("keeps declared and bundle-imported packages with their closures and strips the SDK to its bundle", async () => {
 	const root = await fixture();

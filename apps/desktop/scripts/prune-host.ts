@@ -1,6 +1,6 @@
 import { builtinModules } from "node:module";
 import { existsSync } from "node:fs";
-import { readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, relative, resolve, sep } from "node:path";
 import ts from "typescript";
 
@@ -259,6 +259,29 @@ async function removeSourceOnlyFiles(packages: InstalledPackage[], target: strin
 	}
 }
 
+/** Keep esbuild's CLI path while sharing its identical, platform-specific executable on Unix. */
+async function linkEsbuildExecutables(hostRoot: string, packages: InstalledPackage[], target: string): Promise<void> {
+	const binaries = new Set(packages.filter((pkg) => pkg.name === `@esbuild/${target}`).map((pkg) => pkg.directory));
+	for (const pkg of packages) {
+		if (pkg.name !== "esbuild") continue;
+		for (let directory = pkg.directory; ; directory = dirname(directory)) {
+			const binaryPackage = join(directory, "node_modules", `@esbuild/${target}`);
+			if (binaries.has(binaryPackage)) {
+				const executable = join(binaryPackage, "bin/esbuild");
+				const cli = join(pkg.directory, "bin/esbuild");
+				const [cliBytes, executableBytes] = await Promise.all([readFile(cli), readFile(executable)]);
+				// The published JavaScript launcher and custom binaries keep their own contents.
+				if (cliBytes.equals(executableBytes)) {
+					await rm(cli);
+					await symlink(relative(dirname(cli), executable), cli);
+				}
+				break;
+			}
+			if (directory === hostRoot) break;
+		}
+	}
+}
+
 /**
  * Only the npm and npx shims stay in `.bin`: they put the pinned npm on toolchain PATHs. Toolchain
  * children see this directory first, so any other entry would shadow the user's own tools.
@@ -320,10 +343,11 @@ export async function pruneStagedHost(options: PruneOptions) {
 	await keepNpmBinLinks(join(nodeModules, ".bin"));
 	await keepOnly(sdkRoot, [...PI_SDK_REQUIRED_PATHS, ...PI_SDK_OPTIONAL_PATHS]);
 	if (notices !== null) await writeFile(join(sdkRoot, BUNDLED_NOTICES_FILE), notices);
-	await removeSourceOnlyFiles(
-		[...packages.values()].filter((pkg) => kept.has(pkg.directory)),
-		`${options.platform}-${options.arch}`,
-	);
+	const retained = [...packages.values()].filter((pkg) => kept.has(pkg.directory));
+	const target = `${options.platform}-${options.arch}`;
+	await removeSourceOnlyFiles(retained, target);
+	// Windows must not require developer mode or elevation to create file symlinks.
+	if (options.platform !== "win32") await linkEsbuildExecutables(hostRoot, retained, target);
 	return {
 		keptPackages: kept.size,
 		removedPackages: removed.length,

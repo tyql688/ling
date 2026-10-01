@@ -369,8 +369,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(@earendil-works/pi-coding-agent@0.99.2(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@0.99.2)(typebox@1.3.34)
       '@gotgenes/pi-permission-system':
-        specifier: 36.2.0
-        version: 36.2.0(@earendil-works/pi-coding-agent@0.99.2(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@0.99.2)
+        specifier: 36.2.1
+        version: 36.2.1(@earendil-works/pi-coding-agent@0.99.2(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@0.99.2)
       '@juicesharp/rpiv-todo':
         specifier: 2.12.0
         version: 2.12.0(@earendil-works/pi-ai@0.99.2(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(undici@8.11.2)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-coding-agent@0.99.2(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@0.99.2)(typebox@1.3.34)
@@ -1172,8 +1172,8 @@ packages:
       '@modelcontextprotocol/sdk':
         optional: true
 
-  '@gotgenes/pi-permission-system@36.2.0':
-    resolution: {integrity: sha512-UM1vYlPo1dm34C4p0yNNC6hwfiKPy7LNPqSdrmrsdXzh0LLP8Xm/24eZ9eSdcPFmRl8w3wP/katiBCIPOTLmTA==}
+  '@gotgenes/pi-permission-system@36.2.1':
+    resolution: {integrity: sha512-TlKS3eyNdU03xyi6E39UFi/NIJjON391ZpiWeoUGiKMm6JQrBhA/0VaZdT8w1DpKRVZB5In+XwEQAf6rW3Haxw==}
     engines: {node: '>=22'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.79.0'
@@ -7491,7 +7491,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@gotgenes/pi-permission-system@36.2.0(@earendil-works/pi-coding-agent@0.99.2(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@0.99.2)':
+  '@gotgenes/pi-permission-system@36.2.1(@earendil-works/pi-coding-agent@0.99.2(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@0.99.2)':
     dependencies:
       '@earendil-works/pi-coding-agent': 0.99.2(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5)
       '@earendil-works/pi-tui': 0.99.2

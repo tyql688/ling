@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SYSTEM_PERMISSION_TARGETS, type SystemPermissionState } from "../application";
+import { SYSTEM_PERMISSION_TARGETS, type ShellWindowCommand, type SystemPermissionState } from "../application";
 import type { HostConnectionInfo } from "../host-shell";
 import { portableAbsolutePathSchema } from "../path-validation";
 import { viewedSessionRefSchema } from "../session-shell-validation";
@@ -48,6 +48,8 @@ export function createShellProcedures(pathSchema: z.ZodType<string> = portableAb
 			),
 		},
 		window: {
+			onCommandPending: event("desktop:window-command-pending", returns<void>()),
+			takePendingCommand: request("desktop:take-window-command", noArguments, returns<ShellWindowCommand | null>()),
 			setZoomFactor: request("desktop:set-zoom-factor", single(windowZoomFactorSchema), returns<void>()),
 			setTheme: request("desktop:set-theme", single(windowThemeSchema), returns<void>()),
 			setLanguage: request("desktop:set-language", single(uiLanguageSchema), returns<void>()),

@@ -25,7 +25,7 @@ Install Git and the Node.js and pnpm versions declared in [package.json](package
 
 The macOS desktop app requires **macOS 13 or newer**.
 
-Windows installers are currently unsigned and may show an unknown-publisher warning. Download and install updates manually from [Releases](https://github.com/tyql688/ling/releases/latest); the Windows app links to that page from Settings.
+Windows installers use Ling’s fixed self-signed release certificate. Windows may show an unknown-publisher or SmartScreen prompt during the first installation. The installed app checks for updates automatically, downloads them by default, and installs them on restart or normal quit. Automatic downloads can be disabled in Settings. Versions with manual-only updates need a one-time installation from [Releases](https://github.com/tyql688/ling/releases/latest).
 
 ```sh
 git clone https://github.com/tyql688/ling.git

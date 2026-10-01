@@ -15,22 +15,28 @@ interface DesktopUpdaterOptions {
 	>;
 	appVersion: string;
 	supported: boolean;
-	manualDownloadUrl?: string | undefined;
 	prepareInstall(): Promise<void>;
 	onPrepared(): void;
 	onInstallFailed(error: Error): void;
 	onEvent(event: UpdateEvent): void;
 }
 
+/** Give the first window time to open; check long-running desktop sessions every four hours. */
+const STARTUP_CHECK_DELAY_MS = 10_000;
+const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+
 export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 	const autoUpdater = options.updater;
-	const supported = options.supported && !options.manualDownloadUrl;
+	const supported = options.supported;
 	let stopped = false;
 	let disposed = false;
 	let latestEvent: UpdateEvent | null = null;
 	let downloadedVersion: string | null = null;
 	let activeRequest = false;
 	let activeTask: Promise<unknown> | null = null;
+	let autoDownload = true;
+	let checkTimer: ReturnType<typeof setTimeout> | null = null;
+	let started = false;
 	let cancellationToken: NonNullable<Parameters<typeof autoUpdater.downloadUpdate>[0]> | null = null;
 	let stopPromise: Promise<void> | null = null;
 	let installation: "idle" | "preparing" | "handed-off" | "failed" = "idle";
@@ -45,12 +51,7 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 	};
 	const assertAvailable = (): void => {
 		if (stopped || disposed) throw new Error("The updater is shutting down");
-		if (!supported)
-			throw new Error(
-				options.manualDownloadUrl
-					? "This build requires manual installation from the release page"
-					: "Updates are only available in packaged builds",
-			);
+		if (!supported) throw new Error("Updates are only available in packaged builds");
 		if (installation !== "idle") throw new Error("Update installation has started. Restart Ling before retrying.");
 	};
 	const installFailed = (error: unknown): Error => {
@@ -72,6 +73,7 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 		if (installationFailure) throw installationFailure;
 	};
 
+	// Ling owns the full check/download task so shutdown can cancel and drain either phase.
 	autoUpdater.autoDownload = false;
 	// Both explicit installation and quit-time installation must pass Ling's drain barrier.
 	autoUpdater.autoInstallOnAppQuit = false;
@@ -90,6 +92,7 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 	listen("download-progress", ({ percent }) => publish({ type: "download-progress", percent: Math.round(percent) }));
 	listen("update-downloaded", ({ version }) => {
 		downloadedVersion = version;
+		clearCheckTimer();
 		publish({ type: "downloaded", version });
 	});
 	listen("error", (error) => {
@@ -99,11 +102,82 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 		} else publish({ type: "error", message: error.message });
 	});
 
+	async function downloadAvailable(): Promise<void> {
+		if (stopped || disposed) return;
+		publish({ type: "download-progress", percent: 0 });
+		await autoUpdater.downloadUpdate(cancellationToken ?? undefined);
+	}
+
+	function runRequest(operation: () => Promise<void>): Promise<void> {
+		activeRequest = true;
+		const task = Promise.resolve()
+			.then(operation)
+			.catch((error: unknown) => {
+				publish({ type: "error", message: toError(error).message });
+				throw error;
+			})
+			.finally(() => {
+				activeRequest = false;
+				activeTask = null;
+			});
+		activeTask = task;
+		return task;
+	}
+
+	async function download(): Promise<void> {
+		assertAvailable();
+		if (activeRequest) throw new Error("An update request is already running");
+		if (latestEvent?.type !== "available") throw new Error("Check for an available update before downloading");
+		await runRequest(downloadAvailable);
+	}
+
+	async function check(): Promise<void> {
+		assertAvailable();
+		if (activeRequest) throw new Error("An update request is already running");
+		if (downloadedVersion !== null) {
+			publish({ type: "downloaded", version: downloadedVersion });
+			return;
+		}
+		await runRequest(async () => {
+			const result = await autoUpdater.checkForUpdates();
+			if (result === null) throw new Error("The update check did not return a result");
+			cancellationToken = result.cancellationToken ?? null;
+			if (stopped || disposed) cancellationToken?.cancel();
+			else if (autoDownload && result.isUpdateAvailable) await downloadAvailable();
+		});
+	}
+
+	function scheduleCheck(delay: number): void {
+		if (!supported || stopped || disposed || installation !== "idle" || downloadedVersion !== null) return;
+		checkTimer = setTimeout(() => {
+			checkTimer = null;
+			if (activeRequest) {
+				scheduleCheck(UPDATE_CHECK_INTERVAL_MS);
+				return;
+			}
+			void check()
+				.catch((error: unknown) => console.error("Automatic update check failed", error))
+				.finally(() => scheduleCheck(UPDATE_CHECK_INTERVAL_MS));
+		}, delay);
+		checkTimer.unref();
+	}
+
+	function clearCheckTimer(): void {
+		if (checkTimer) clearTimeout(checkTimer);
+		checkTimer = null;
+	}
+
 	return {
+		start(): void {
+			if (started) return;
+			started = true;
+			scheduleCheck(STARTUP_CHECK_DELAY_MS);
+		},
 		/** Stop requests before draining Host, but retain installation events until Electron exits. */
 		stop() {
 			if (stopPromise) return stopPromise;
 			stopped = true;
+			clearCheckTimer();
 			cancellationToken?.cancel();
 			if (!activeTask) {
 				stopPromise = Promise.resolve();
@@ -122,6 +196,7 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 		/** Final listener cleanup belongs to Electron's quit event, after the installer handoff. */
 		dispose(): void {
 			disposed = true;
+			clearCheckTimer();
 			cancellationToken?.cancel();
 			for (const cleanup of cleanups) cleanup();
 			cleanups.length = 0;
@@ -129,50 +204,15 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 		getState: (): UpdateState => ({
 			appVersion: options.appVersion,
 			supported,
-			...(options.manualDownloadUrl ? { manualDownloadUrl: options.manualDownloadUrl } : {}),
 			event: latestEvent,
 		}),
-		check: async (): Promise<void> => {
-			assertAvailable();
-			if (activeRequest) throw new Error("An update request is already running");
-			if (downloadedVersion !== null) {
-				publish({ type: "downloaded", version: downloadedVersion });
-				return;
-			}
-			activeRequest = true;
-			try {
-				const checking = autoUpdater.checkForUpdates();
-				activeTask = checking;
-				const result = await checking;
-				if (result === null) throw new Error("The update check did not return a result");
-				cancellationToken = result.cancellationToken ?? null;
-				if (stopped || disposed) cancellationToken?.cancel();
-			} catch (error) {
-				publish({ type: "error", message: toError(error).message });
-				throw error;
-			} finally {
-				activeRequest = false;
-				activeTask = null;
-			}
+		async setAutoDownload(enabled: boolean): Promise<void> {
+			autoDownload = enabled;
+			if (enabled && supported && !stopped && !disposed && !activeRequest && latestEvent?.type === "available")
+				await download();
 		},
-		download: async (): Promise<void> => {
-			assertAvailable();
-			if (activeRequest) throw new Error("An update request is already running");
-			if (latestEvent?.type !== "available") throw new Error("Check for an available update before downloading");
-			activeRequest = true;
-			publish({ type: "download-progress", percent: 0 });
-			try {
-				const downloading = autoUpdater.downloadUpdate(cancellationToken ?? undefined);
-				activeTask = downloading;
-				await downloading;
-			} catch (error) {
-				publish({ type: "error", message: toError(error).message });
-				throw error;
-			} finally {
-				activeRequest = false;
-				activeTask = null;
-			}
-		},
+		check,
+		download,
 		install: (): Promise<void> => {
 			if (installPromise) return installPromise;
 			assertAvailable();

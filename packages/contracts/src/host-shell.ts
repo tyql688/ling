@@ -24,6 +24,7 @@ const hostShellEventSchema = z.discriminatedUnion("type", [
 	z.strictObject({ type: z.literal("keepAwakePreference"), enabled: z.boolean() }),
 	z.strictObject({ type: z.literal("keepRunningPreference"), enabled: z.boolean() }),
 	z.strictObject({ type: z.literal("graphicsPreference"), softwareRendering: z.boolean() }),
+	z.strictObject({ type: z.literal("updatePreference"), autoDownload: z.boolean() }),
 	z.strictObject({
 		type: z.literal("notification"),
 		ref: sessionRefSchema,

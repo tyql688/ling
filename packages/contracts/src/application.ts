@@ -12,6 +12,8 @@ export const appVersionSchema = z.string().min(1).max(APP_VERSION_MAX_CHARS);
 export const UI_LANGUAGES = ["en", "zh-CN", "ja", "ko"] as const;
 export type UiLanguage = (typeof UI_LANGUAGES)[number];
 
+export type ShellWindowCommand = "settings" | "updates";
+
 export const SYSTEM_PERMISSION_TARGETS = [
 	"mac-accessibility",
 	"mac-screen-recording",
@@ -35,6 +37,8 @@ export interface AppSettingsSnapshot {
 	keepRunningOnWindowClose: boolean;
 	/** Applied at the next launch — Chromium only honors disableHardwareAcceleration() before app ready. */
 	disableHardwareAcceleration: boolean;
+	/** Download an available native update after a check. Defaults to on. */
+	autoDownloadUpdates: boolean;
 	/** System notification when a background session's agent run finishes. */
 	notifyBackgroundCompletion: boolean;
 	/** System notification when a background session needs input (approval, dialog). */
@@ -58,6 +62,7 @@ export type AppSettingsReadResult =
 export type AppSettingsUpdate =
 	| { type: "keepRunningOnWindowClose"; enabled: boolean }
 	| { type: "disableHardwareAcceleration"; enabled: boolean }
+	| { type: "autoDownloadUpdates"; enabled: boolean }
 	| { type: "notifyBackgroundCompletion"; enabled: boolean }
 	| { type: "notifyAttentionNeeded"; enabled: boolean }
 	| { type: "playNotificationSounds"; enabled: boolean }

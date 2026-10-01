@@ -5,7 +5,6 @@ import type {
 	SystemPermissionStatus,
 	SystemPermissionTarget,
 } from "@ling/contracts/application";
-import type { UpdateEvent } from "@ling/contracts/update";
 import { errorMessage } from "@ling/contracts/ling-error";
 import { Button } from "@renderer/components/ui/button";
 import { SettingsRow, SettingsSection } from "@renderer/components/ui/settings-list";
@@ -229,107 +228,5 @@ export function SystemPermissionsSection() {
 				);
 			})}
 		</SettingsSection>
-	);
-}
-
-/** Version row plus the native updater state machine (check → download → restart-install). */
-export function UpdateRow() {
-	const hostUpdatesApi = useDomainApi("updates");
-	const appApi = useDomainApi("app");
-
-	const { t } = useTranslation();
-	const [appVersion, setAppVersion] = useState("");
-	const [supported, setSupported] = useState(false);
-	const [manualDownloadUrl, setManualDownloadUrl] = useState<string>();
-	const [phase, setPhase] = useState<UpdateEvent | null>(null);
-
-	useEffect(() => {
-		let cancelled = false;
-		let eventReceived = false;
-		void hostUpdatesApi
-			.getState()
-			.then((state) => {
-				if (cancelled) return;
-				setAppVersion(state.appVersion);
-				setSupported(state.supported);
-				setManualDownloadUrl(state.manualDownloadUrl);
-				if (!eventReceived) setPhase(state.event);
-			})
-			.catch((error: unknown) => {
-				if (!cancelled && !eventReceived) setPhase({ type: "error", message: errorMessage(error) });
-			});
-		const unsubscribe = hostUpdatesApi.onEvent((event: UpdateEvent) => {
-			eventReceived = true;
-			setPhase(event);
-		});
-		return () => {
-			cancelled = true;
-			unsubscribe();
-		};
-	}, [hostUpdatesApi]);
-
-	const invoke = (action: () => Promise<void>) => {
-		action().catch((error: unknown) => {
-			setPhase((current) =>
-				current?.type === "error" && current.restartRequired
-					? current
-					: { type: "error", message: errorMessage(error) },
-			);
-		});
-	};
-
-	const status = (() => {
-		switch (phase?.type) {
-			case undefined:
-				return manualDownloadUrl ? t("settings.updateManualDescription") : null;
-			case "checking":
-				return t("settings.updateChecking");
-			case "not-available":
-				return t("settings.updateNone");
-			case "available":
-				return t("settings.updateAvailable", { version: phase.version });
-			case "download-progress":
-				return t("settings.updateDownloading", { percent: phase.percent });
-			case "downloaded":
-				return t("settings.updateDownloaded", { version: phase.version });
-			case "installing":
-				return t("settings.updateInstalling");
-			case "error":
-				return phase.restartRequired
-					? t("settings.updateRestartRequired", { message: phase.message })
-					: t("settings.updateFailed", { message: phase.message });
-		}
-	})();
-
-	return (
-		<SettingsRow label={t("settings.version")} description={appVersion}>
-			{status && (
-				<span className="max-w-64 truncate text-xs text-text-muted" title={status}>
-					{status}
-				</span>
-			)}
-			{manualDownloadUrl && (
-				<Button variant="outline" size="sm" onClick={() => invoke(() => appApi.openExternal(manualDownloadUrl))}>
-					<ExternalLink className="size-3.5" aria-hidden="true" />
-					{t("settings.updateOpenDownloads")}
-				</Button>
-			)}
-			{supported &&
-				(phase === null || phase.type === "not-available" || (phase.type === "error" && !phase.restartRequired)) && (
-					<Button variant="outline" size="sm" onClick={() => invoke(() => hostUpdatesApi.check())}>
-						{t("settings.updateCheck")}
-					</Button>
-				)}
-			{supported && phase?.type === "available" && (
-				<Button variant="outline" size="sm" onClick={() => invoke(() => hostUpdatesApi.download())}>
-					{t("settings.updateDownload")}
-				</Button>
-			)}
-			{supported && phase?.type === "downloaded" && (
-				<Button variant="outline" size="sm" onClick={() => invoke(() => hostUpdatesApi.install())}>
-					{t("settings.updateInstall")}
-				</Button>
-			)}
-		</SettingsRow>
 	);
 }

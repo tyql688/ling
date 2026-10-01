@@ -3,6 +3,8 @@ import { Menu } from "electron";
 
 const en = {
 	about: "About Ling",
+	settings: "Settings…",
+	checkForUpdates: "Check for Updates…",
 	quit: "Quit Ling",
 	edit: "Edit",
 	undo: "Undo",
@@ -37,6 +39,8 @@ export const nativeMenuCopy: Record<UiLanguage, typeof en> = {
 	en,
 	"zh-CN": {
 		about: "关于 Ling",
+		settings: "设置…",
+		checkForUpdates: "检查更新…",
 		quit: "退出 Ling",
 		edit: "编辑",
 		undo: "撤销",
@@ -68,6 +72,8 @@ export const nativeMenuCopy: Record<UiLanguage, typeof en> = {
 	},
 	ja: {
 		about: "Ling について",
+		settings: "設定…",
+		checkForUpdates: "アップデートを確認…",
 		quit: "Ling を終了",
 		edit: "編集",
 		undo: "取り消す",
@@ -99,6 +105,8 @@ export const nativeMenuCopy: Record<UiLanguage, typeof en> = {
 	},
 	ko: {
 		about: "Ling 정보",
+		settings: "설정…",
+		checkForUpdates: "업데이트 확인…",
 		quit: "Ling 종료",
 		edit: "편집",
 		undo: "실행 취소",
@@ -131,7 +139,10 @@ export const nativeMenuCopy: Record<UiLanguage, typeof en> = {
 };
 
 /** Explicit labels follow Ling's language; native roles retain OS actions and shortcuts. */
-export function setDesktopMenuLanguage(language: UiLanguage): void {
+export function setDesktopMenuLanguage(
+	language: UiLanguage,
+	actions: { openSettings(): void; checkForUpdates(): void },
+): void {
 	const copy = nativeMenuCopy[language];
 	const mac = process.platform === "darwin";
 	const role = (
@@ -140,7 +151,17 @@ export function setDesktopMenuLanguage(language: UiLanguage): void {
 	const separator: Electron.MenuItemConstructorOptions = { type: "separator" };
 	Menu.setApplicationMenu(
 		Menu.buildFromTemplate([
-			{ label: "Ling", submenu: [role("about"), separator, role("quit")] },
+			{
+				label: "Ling",
+				submenu: [
+					role("about"),
+					{ label: copy.checkForUpdates, click: actions.checkForUpdates },
+					separator,
+					{ label: copy.settings, accelerator: "CmdOrCtrl+,", click: actions.openSettings },
+					separator,
+					role("quit"),
+				],
+			},
 			{
 				label: copy.edit,
 				submenu: [

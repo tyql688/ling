@@ -1,3 +1,4 @@
+import { UpdateButton } from "@renderer/features/updates/updates";
 import type { OpenProjectInfo } from "@ling/contracts/project";
 import type { SessionSummary } from "@ling/contracts/session";
 import { sameSessionRef, sessionKey, type SessionRef, toSessionRef } from "@ling/contracts/session-ref";
@@ -384,6 +385,7 @@ function WorkspaceSidebar({
 					</TooltipIconButton>
 					<HistoryButtons history={history} />
 				</div>
+				<UpdateButton />
 			</div>
 			<div className="flex h-14 shrink-0 items-center gap-1 px-3">
 				<div className="min-w-0 flex-1">{scopeSelector}</div>

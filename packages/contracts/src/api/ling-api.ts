@@ -4,6 +4,7 @@ import type {
 	SystemPermissionTarget,
 	ThemeSource,
 	UiLanguage,
+	ShellWindowCommand,
 } from "../application";
 import type { GlobalInstructionKind, GlobalInstructionLocation } from "../global-instructions";
 import type {
@@ -50,7 +51,12 @@ export type LingApi = Omit<
 	};
 	env: { home: string | null; platform: AppPlatform };
 	ui: { translucent: boolean; capabilities: ShellCapabilities };
-	window: { setZoomFactor(factor: number): Promise<void>; setLanguage(language: UiLanguage): Promise<void> };
+	window: {
+		setZoomFactor(factor: number): Promise<void>;
+		setLanguage(language: UiLanguage): Promise<void>;
+		onCommandPending(callback: () => void): () => void;
+		takePendingCommand(): Promise<ShellWindowCommand | null>;
+	};
 	project: Omit<HostApi["project"], "add" | "resolveDroppedFileReferences" | "revealFileReference" | "revealEntry"> & {
 		add(): Promise<OpenProjectInfo | null>;
 		resolveDroppedFileReferences(cwd: string, files: File[]): Promise<ProjectDroppedFileReferenceResult[]>;

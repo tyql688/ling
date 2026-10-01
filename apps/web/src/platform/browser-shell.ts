@@ -113,6 +113,7 @@ export function createBrowserShell(
 		}
 		if (event.type === "keepRunningPreference") return;
 		if (event.type === "graphicsPreference") return;
+		if (event.type === "updatePreference") return;
 		if (event.type === "agentRunState") {
 			const key = sessionKey(event.ref);
 			if (event.running) runningSessions.add(key);
@@ -190,6 +191,8 @@ export function createBrowserShell(
 			openSystemPermission: (target) => Promise.reject(unsupported(`System permission settings ${target}`)),
 		},
 		window: {
+			onCommandPending: () => () => undefined,
+			takePendingCommand: () => Promise.resolve(null),
 			setZoomFactor: (factor) => {
 				document.documentElement.style.zoom = String(factor);
 				// CSS zoom scales viewport units too; portalled dialogs need the unscaled available size.

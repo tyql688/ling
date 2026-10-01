@@ -2,9 +2,7 @@ export interface UpdateState {
 	appVersion: string;
 	/** Whether this build can check, download and install native updates. */
 	supported: boolean;
-	/** Release page for packaged builds distributed through manual installation. */
-	manualDownloadUrl?: string;
-	/** Latest native update state, including events emitted before the settings view mounted. */
+	/** Latest native update state, including events emitted before the renderer mounted. */
 	event: UpdateEvent | null;
 }
 

@@ -1,5 +1,5 @@
 import { shellProcedures } from "@ling/contracts/api/shell-procedures";
-import type { ThemeSource } from "@ling/contracts/application";
+import type { ShellWindowCommand, ThemeSource } from "@ling/contracts/application";
 import type { HostConnectionInfo } from "@ling/contracts/host-shell";
 import type { SessionRef } from "@ling/contracts/session";
 import { supportsWindowsAcrylicBuild } from "@ling/contracts/api/shell-api";
@@ -40,6 +40,7 @@ interface WindowOptions {
 export function createDesktopWindow(options: WindowOptions) {
 	let mainWindow: BrowserWindow | null = null;
 	let pendingActivation: SessionRef | null = null;
+	let pendingCommand: ShellWindowCommand | null = null;
 	let hostWebOrigin: string | null = null;
 	let titlebarForeground: string | null = null;
 	let stateSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -55,6 +56,7 @@ export function createDesktopWindow(options: WindowOptions) {
 	// The process exit owner retains the window for a possible fatal-error sheet until app.quit/app.exit.
 	lifetime.defer("native", "pending activation", () => {
 		pendingActivation = null;
+		pendingCommand = null;
 	});
 	function windowAvailable(): BrowserWindow | null {
 		return mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
@@ -298,6 +300,18 @@ export function createDesktopWindow(options: WindowOptions) {
 		create: createWindow,
 		show: showWindow,
 		activate: activateSession,
+		requestCommand(command: ShellWindowCommand) {
+			if (options.isClosing()) return;
+			// Retain the latest intent until the renderer subscribes, including startup and reload.
+			pendingCommand = command;
+			showWindow();
+			sendRendererEvent(shellProcedures.window.onCommandPending.channel, undefined);
+		},
+		takePendingCommand(): ShellWindowCommand | null {
+			const command = pendingCommand;
+			pendingCommand = null;
+			return command;
+		},
 		handleAppUrl,
 		send: sendRendererEvent,
 		initialize() {

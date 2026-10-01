@@ -29,7 +29,8 @@ import { useAtom } from "jotai";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RendererPreferencesResetRow } from "./renderer-preferences-reset-row";
-import { SystemPermissionsSection, UpdateRow } from "./settings-system-rows";
+import { useUpdates } from "@renderer/features/updates/update-context";
+import { SystemPermissionsSection } from "./settings-system-rows";
 
 type BooleanAppSettingType = Extract<AppSettingsUpdate, { enabled: boolean }>["type"];
 type BooleanAppSettings = Record<BooleanAppSettingType, boolean | null>;
@@ -37,6 +38,7 @@ type BooleanAppSettings = Record<BooleanAppSettingType, boolean | null>;
 const BOOLEAN_APP_SETTING_TYPES = [
 	"keepRunningOnWindowClose",
 	"disableHardwareAcceleration",
+	"autoDownloadUpdates",
 	"notifyBackgroundCompletion",
 	"fileMentionsRespectGitignore",
 	"keepAwakeWhileRunning",
@@ -108,6 +110,7 @@ export function SettingsView() {
 
 	const { t } = useTranslation();
 	const capabilities = hostUiApi.capabilities;
+	const { state: updateState } = useUpdates();
 	const [sendShortcut, setSendShortcut] = useAtom(sendShortcutAtom);
 	const [composerEditorMode, setComposerEditorMode] = useAtom(composerEditorModeAtom);
 	const [followUpBehavior, setFollowUpBehavior] = useAtom(followUpBehaviorAtom);
@@ -528,7 +531,17 @@ export function SettingsView() {
 			</SettingsSection>
 
 			<SettingsSection title={t("settings.about")}>
-				<UpdateRow />
+				<SettingsRow label={t("settings.version")}>
+					<span className="text-sm text-text-muted">{updateState?.appVersion ?? t("common.loading")}</span>
+				</SettingsRow>
+				{updateState?.supported && (
+					<BooleanSettingRow
+						label={t("settings.autoDownloadUpdates")}
+						description={t("settings.autoDownloadUpdatesDescription")}
+						value={booleanSettings.autoDownloadUpdates}
+						onChange={(checked) => updateBooleanSetting("autoDownloadUpdates", checked)}
+					/>
+				)}
 			</SettingsSection>
 		</SettingsPage>
 	);

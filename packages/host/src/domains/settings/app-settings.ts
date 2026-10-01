@@ -27,8 +27,8 @@ const APP_SETTINGS_FILE = "settings.json";
 /** Dataset schema identifier; validated when reading from disk to prevent cross-reading Pi's or another settings.json. */
 const APP_SETTINGS_DATASET_ID = "ling/app-settings";
 
-/** Current envelope version; v5 added the @file .gitignore preference, so older files inherit its false default. */
-const APP_SETTINGS_VERSION = 6;
+/** Version 7 includes automatic update downloads; earlier envelopes inherit the on default. */
+const APP_SETTINGS_VERSION = 7;
 
 /**
  * Oldest historical version eligible for automatic upgrade. v1 had no notification toggles;
@@ -47,6 +47,7 @@ const APP_SETTINGS_MAX_BYTES = 64 * 1024;
 const DEFAULT_APP_SETTINGS: AppSettingsSnapshot = {
 	keepRunningOnWindowClose: false,
 	disableHardwareAcceleration: false,
+	autoDownloadUpdates: true,
 	notifyBackgroundCompletion: true,
 	notifyAttentionNeeded: true,
 	playNotificationSounds: true,
@@ -64,6 +65,7 @@ const DEFAULT_APP_SETTINGS: AppSettingsSnapshot = {
 const BOOLEAN_APP_SETTING_KEYS = [
 	"keepRunningOnWindowClose",
 	"disableHardwareAcceleration",
+	"autoDownloadUpdates",
 	"notifyBackgroundCompletion",
 	"notifyAttentionNeeded",
 	"playNotificationSounds",
@@ -135,7 +137,8 @@ function assertSettingsData(value: unknown, label: string, version = APP_SETTING
 				version === 1 ||
 				(key === "playNotificationSounds" && version < 4) ||
 				(key === "fileMentionsRespectGitignore" && version < 5) ||
-				(key === "keepAwakeWhileRunning" && version < 6)
+				(key === "keepAwakeWhileRunning" && version < 6) ||
+				(key === "autoDownloadUpdates" && version < 7)
 			)
 				continue;
 			throw datasetCorruption(APP_SETTINGS_DATASET_ID, `${label} is missing its ${key} value.`);
@@ -283,6 +286,7 @@ export function createAppSettingsStore({ userDataDir, database }: { userDataDir:
 				switch (update.type) {
 					case "keepRunningOnWindowClose":
 					case "disableHardwareAcceleration":
+					case "autoDownloadUpdates":
 					case "notifyBackgroundCompletion":
 					case "notifyAttentionNeeded":
 					case "playNotificationSounds":

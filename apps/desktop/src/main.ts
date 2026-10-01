@@ -18,6 +18,7 @@ import {
 import { createDesktopUpdater } from "./shell/updater";
 import { createDesktopAttention } from "./shell/user-attention";
 import { createDesktopWindow } from "./shell/window";
+import { verifyWindowsUpdateSignature } from "./shell/windows-signature";
 
 declare const __LING_VERSION__: string;
 
@@ -66,13 +67,18 @@ function startDesktop(): void {
 	});
 	lifetime.onStop("graphics admission", graphics.stop);
 	lifetime.defer("storage", "graphics state", graphics.dispose);
+	if (process.platform === "win32") {
+		if (!(electronUpdater.autoUpdater instanceof electronUpdater.NsisUpdater))
+			throw new Error("Windows updates require the NSIS updater");
+		const signatureVerification = new AbortController();
+		lifetime.onStop("update signature verification", () => signatureVerification.abort());
+		electronUpdater.autoUpdater.verifyUpdateCodeSignature = (publishers, file) =>
+			verifyWindowsUpdateSignature(publishers, file, signatureVerification.signal);
+	}
 	const updater = createDesktopUpdater({
 		updater: electronUpdater.autoUpdater,
 		appVersion: __LING_VERSION__,
 		supported: app.isPackaged,
-		// Unsigned Windows releases use manual installation until a trusted publisher is configured.
-		manualDownloadUrl:
-			app.isPackaged && process.platform === "win32" ? "https://github.com/tyql688/ling/releases/latest" : undefined,
 		prepareInstall: shutdown.prepareInstall,
 		onPrepared: shutdown.completeInstall,
 		onInstallFailed: shutdown.reportFailure,
@@ -98,6 +104,10 @@ function startDesktop(): void {
 			if (shutdown.isClosing()) return;
 			if (event.type === "graphicsPreference")
 				void graphics.setPreference(event.softwareRendering).catch(shutdown.reportFailure);
+			else if (event.type === "updatePreference")
+				void updater
+					.setAutoDownload(event.autoDownload)
+					.catch((error: unknown) => console.error("Automatic update download failed", error));
 			else attention.handleEvent(event);
 		},
 		onConnected: (connection) => window.reconnect(connection),
@@ -119,12 +129,16 @@ function startDesktop(): void {
 	lifetime.defer("native", "window", window.dispose);
 	const ipc = createDesktopIpc({ getWindow, isClosing: shutdown.isClosing });
 	lifetime.defer("admission", "shell IPC", ipc.dispose);
+	const menuActions = {
+		openSettings: () => window.requestCommand("settings"),
+		checkForUpdates: () => window.requestCommand("updates"),
+	};
 
 	async function bootstrap(): Promise<void> {
 		await app.whenReady();
 		if (shutdown.isClosing()) return;
 		const initialLanguage = host.initializeLanguage();
-		setDesktopMenuLanguage(initialLanguage);
+		setDesktopMenuLanguage(initialLanguage, menuActions);
 		attention.setLanguage(initialLanguage);
 		await mkdir(userDataDirectory, { recursive: true });
 		if (shutdown.isClosing()) return;
@@ -141,11 +155,12 @@ function startDesktop(): void {
 				openSystemPermission: openSystemPermissionSettings,
 			},
 			window: {
+				takePendingCommand: window.takePendingCommand,
 				setZoomFactor: window.setZoomFactor,
 				setTheme: (appearance) => window.setTheme(appearance.source, appearance.foreground),
 				setLanguage(language) {
 					host.setLanguage(language);
-					setDesktopMenuLanguage(language);
+					setDesktopMenuLanguage(language, menuActions);
 					attention.setLanguage(language);
 				},
 			},
@@ -181,6 +196,7 @@ function startDesktop(): void {
 		if (shutdown.isClosing()) return;
 		attention.installTray();
 		shutdown.markStarted();
+		updater.start();
 		for (const argument of process.argv) if (argument.startsWith("ling://")) window.handleAppUrl(argument);
 	}
 

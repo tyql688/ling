@@ -230,11 +230,36 @@ jobs:
             exit 1
           fi
 
-      # Windows currently ships through manual downloads. Keep resource editing enabled
-      # while electron-builder.yml explicitly disables signing. No Windows update feed
-      # is uploaded, so existing signed clients never receive an unsigned replacement.
-      - name: Package unsigned Windows installer
+      - name: Prepare Windows signing identity
         if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          SIGNING_CERTIFICATE: ${{ secrets.SIGNING_CERTIFICATE }}
+          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (!$env:SIGNING_CERTIFICATE -or !$env:SIGNING_CERTIFICATE_PASSWORD) {
+            throw 'The reusable release signing certificate and password are required.'
+          }
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'ling-signing.p12'
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:SIGNING_CERTIFICATE))
+          $certificate = [Security.Cryptography.X509Certificates.X509Certificate2]::new(
+            $certificatePath, $env:SIGNING_CERTIFICATE_PASSWORD,
+            [Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet
+          )
+          try {
+            $expected = Get-Content resources/release-signing.json -Raw | ConvertFrom-Json
+            $fingerprint = $certificate.GetCertHashString([Security.Cryptography.HashAlgorithmName]::SHA256)
+            if (!$certificate.HasPrivateKey -or $fingerprint -ne $expected.certificateSha256 -or $certificate.Subject -ne $expected.publisher) {
+              throw 'The Windows signing identity does not match the updater certificate pin.'
+            }
+          } finally { $certificate.Dispose() }
+          "WIN_CSC_LINK=$certificatePath" >> $env:GITHUB_ENV
+
+      - name: Package signed Windows installer
+        if: runner.os == 'Windows'
+        env:
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
         run: |
           pnpm exec node --experimental-strip-types apps/desktop/scripts/package.ts ${{ matrix.builder_args }}
 
@@ -248,13 +273,18 @@ jobs:
           if ($installers.Count -ne 1) {
             throw 'Expected exactly one Windows installer.'
           }
+          $expected = Get-Content resources/release-signing.json -Raw | ConvertFrom-Json
           foreach ($target in @($installers) + @($app)) {
             $signature = Get-AuthenticodeSignature -LiteralPath $target.FullName
             Write-Host "==> $($target.Name): $($signature.Status)"
-            if ($signature.Status -ne 'NotSigned') {
-              throw "$($target.Name) must be explicitly unsigned for manual distribution; found $($signature.Status)."
-            }
+            if (!$signature.SignerCertificate) { throw "$($target.Name) has no Authenticode signer." }
+            $fingerprint = $signature.SignerCertificate.GetCertHashString([Security.Cryptography.HashAlgorithmName]::SHA256)
+            if ($fingerprint -ne $expected.certificateSha256) { throw 'Unexpected release certificate.' }
+            $env:LING_SIGNED_WINDOWS_APP = $target.FullName
+            pnpm exec vitest run apps/desktop/src/shell/windows-signature.test.ts
+            if ($LASTEXITCODE -ne 0) { throw 'Windows signature acceptance failed.' }
           }
+          if (!(Test-Path apps/desktop/artifacts/latest.yml)) { throw 'Windows update manifest is missing.' }
           $resources = 'apps/desktop/artifacts/win-unpacked/resources'
           $arch = & "$resources/runtime/node.exe" -p 'process.arch'
           if ($LASTEXITCODE -ne 0 -or $arch -ne 'x64') {
@@ -292,7 +322,7 @@ jobs:
           fi
           shopt -s nullglob
           if [ "$ARTIFACT_PLATFORM" = "windows-x64" ]; then
-            FILES=(apps/desktop/artifacts/*.exe)
+            FILES=(apps/desktop/artifacts/*.exe apps/desktop/artifacts/*.blockmap apps/desktop/artifacts/latest.yml)
           else
             FILES=(apps/desktop/artifacts/*.{AppImage,blockmap,deb,dmg,zip} apps/desktop/artifacts/latest*.yml)
           fi

@@ -25,7 +25,7 @@ Git과 [package.json](package.json)에 지정된 버전의 Node.js 및 pnpm을 �
 
 macOS 데스크톱 앱에는 **macOS 13 이상**이 필요합니다.
 
-Windows 설치 파일은 현재 서명되지 않아 알 수 없는 게시자 경고가 표시될 수 있습니다. [Releases](https://github.com/tyql688/ling/releases/latest)에서 업데이트를 직접 다운로드하여 설치하세요. Windows 앱 설정에도 다운로드 링크가 있습니다.
+Windows 설치 파일은 Ling의 고정된 자체 서명 릴리스 인증서를 사용합니다. 처음 설치할 때 알 수 없는 게시자 또는 SmartScreen 경고가 표시될 수 있습니다. 앱은 업데이트를 자동 확인하고 기본적으로 다운로드하며, 다시 시작하거나 정상 종료할 때 설치합니다. 설정에서 자동 다운로드를 끌 수 있습니다. 수동 업데이트만 지원하는 버전은 [Releases](https://github.com/tyql688/ling/releases/latest)에서 새 버전을 한 번 설치해야 합니다.
 
 ```sh
 git clone https://github.com/tyql688/ling.git

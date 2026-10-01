@@ -1,3 +1,4 @@
+import { UpdateButton } from "@renderer/features/updates/updates";
 import { NavigationItem } from "@renderer/components/ui/navigation-item";
 import { lastConversationCwdAtom, openProjectsAtom } from "@renderer/features/projects/state";
 import { activeSessionRefAtom } from "@renderer/features/sessions/state/session";
@@ -173,6 +174,7 @@ export function SettingsShell({ onBack, themeController }: SettingsShellProps) {
 								<PanelLeftClose className="size-4" aria-hidden="true" />
 							</TooltipIconButton>
 						)}
+						<UpdateButton />
 					</div>
 					<nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-3">
 						{CATEGORIES.map((item) => (

@@ -1,5 +1,6 @@
 import { useReducedMotion } from "@renderer/hooks/use-reduced-motion";
 import { useDomainApi } from "@renderer/lib/host-api-context";
+import { UpdateProvider } from "@renderer/features/updates/updates";
 import { InteractionsProvider } from "@renderer/features/interactions/interactions-provider";
 import { BuiltinFeaturesProvider } from "@renderer/features/companions/builtin-features";
 import { AppNavigationContext, type AppNavigation } from "@renderer/lib/app-navigation";
@@ -304,34 +305,36 @@ export function App() {
 					<DraftPersistenceFeedback />
 
 					<SkinBackdropContext value={skinBackdrop}>
-						<BuiltinFeaturesProvider>
-							<InteractionsProvider>
-								{/* First in DOM: paints behind everything; alpha surface tokens reveal it. */}
-								<SkinBackdrop
-									layer={!restoringProjects && skinBackdrop.layer?.scope === "window" ? skinBackdrop.layer : null}
-									motion={skinBackdrop.motion}
-									className="fixed z-auto"
-								/>
-								{/* Gate on absent data, not on a request in flight: refresh() re-runs on a store
-							    retry, and blanking here remounts the entire workspace. */}
-								{restoringProjects ? (
-									<SkinLoadingState label={t("common.loading")} />
-								) : projectController.projects.length === 0 ? (
-									<ProjectPicker
-										storeError={projectController.storeRecoveryError}
-										storePersistenceError={projectController.storePersistenceError}
-										loadError={projectController.error}
-										onRetryLoad={() => void projectController.retryProjectStore()}
-										onAddProject={() => void projectController.addProject()}
+						<UpdateProvider>
+							<BuiltinFeaturesProvider>
+								<InteractionsProvider>
+									{/* First in DOM: paints behind everything; alpha surface tokens reveal it. */}
+									<SkinBackdrop
+										layer={!restoringProjects && skinBackdrop.layer?.scope === "window" ? skinBackdrop.layer : null}
+										motion={skinBackdrop.motion}
+										className="fixed z-auto"
 									/>
-								) : (
-									<ReadyApp projectController={projectController} themeController={themeController} />
-								)}
-								{/* Startup restore can block on trust before project:list resolves, so this
+									{/* Gate on absent data, not on a request in flight: refresh() re-runs on a store
+							    retry, and blanking here remounts the entire workspace. */}
+									{restoringProjects ? (
+										<SkinLoadingState label={t("common.loading")} />
+									) : projectController.projects.length === 0 && appMode !== "settings" ? (
+										<ProjectPicker
+											storeError={projectController.storeRecoveryError}
+											storePersistenceError={projectController.storePersistenceError}
+											loadError={projectController.error}
+											onRetryLoad={() => void projectController.retryProjectStore()}
+											onAddProject={() => void projectController.addProject()}
+										/>
+									) : (
+										<ReadyApp projectController={projectController} themeController={themeController} />
+									)}
+									{/* Startup restore can block on trust before project:list resolves, so this
 						    bridge must remain mounted in loading, picker, and workspace states. */}
-								<ProjectTrustDialog />
-							</InteractionsProvider>
-						</BuiltinFeaturesProvider>
+									<ProjectTrustDialog />
+								</InteractionsProvider>
+							</BuiltinFeaturesProvider>
+						</UpdateProvider>
 					</SkinBackdropContext>
 				</AppFeedbackProvider>
 			</TooltipProvider>

@@ -8,6 +8,7 @@ export const appSettingsUpdateSchema: z.ZodType<AppSettingsUpdate> = hardenObjec
 	z.discriminatedUnion("type", [
 		z.strictObject({ type: z.literal("keepRunningOnWindowClose"), enabled: z.boolean() }),
 		z.strictObject({ type: z.literal("disableHardwareAcceleration"), enabled: z.boolean() }),
+		z.strictObject({ type: z.literal("autoDownloadUpdates"), enabled: z.boolean() }),
 		z.strictObject({ type: z.literal("notifyBackgroundCompletion"), enabled: z.boolean() }),
 		z.strictObject({ type: z.literal("notifyAttentionNeeded"), enabled: z.boolean() }),
 		z.strictObject({ type: z.literal("playNotificationSounds"), enabled: z.boolean() }),

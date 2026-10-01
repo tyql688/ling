@@ -348,7 +348,7 @@ export function createDesktopAttention(options: AttentionOptions) {
 			clearViewedSessionAttention(viewedSession);
 		},
 		clearActivity,
-		handleEvent(event: Exclude<HostShellEvent, { type: "graphicsPreference" }>) {
+		handleEvent(event: Exclude<HostShellEvent, { type: "graphicsPreference" | "updatePreference" }>) {
 			if (stopped) return;
 			switch (event.type) {
 				case "keepRunningPreference":

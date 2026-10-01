@@ -25,7 +25,7 @@ Git と、[package.json](package.json) に指定されたバージョンの Node
 
 macOS デスクトップ版には **macOS 13 以降**が必要です。
 
-Windows インストーラーは現在未署名のため、発行元不明の警告が表示される場合があります。[Releases](https://github.com/tyql688/ling/releases/latest) から更新を手動でダウンロードしてインストールしてください。Windows 版の設定画面にもダウンロードページへのリンクがあります。
+Windows インストーラーは Ling 固定の自己署名リリース証明書を使用します。初回インストール時に発行元不明や SmartScreen の警告が表示される場合があります。アプリは更新を自動確認し、既定でダウンロードして、再起動時または通常終了時にインストールします。自動ダウンロードは設定で無効にできます。手動更新のみのバージョンからは、[Releases](https://github.com/tyql688/ling/releases/latest) の新版を一度インストールしてください。
 
 ```sh
 git clone https://github.com/tyql688/ling.git

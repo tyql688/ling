@@ -1,5 +1,5 @@
 #!/bin/bash
-# Creates the reusable self-signed certificate that signs Ling's macOS releases.
+# Creates the reusable self-signed certificate that signs Ling's macOS and Windows releases.
 #
 # Usage:
 #   ./scripts/create-signing-cert.sh [common-name] [password] [output-dir]

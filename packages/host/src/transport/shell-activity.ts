@@ -37,6 +37,7 @@ export function createHostShellActivity(options: CreateHostShellActivityOptions)
 	let keepAwakeEnabled = options.readPreferences().keepAwakeWhileRunning;
 	let keepRunningEnabled = options.readPreferences().keepRunningOnWindowClose;
 	let softwareRendering = options.readPreferences().disableHardwareAcceleration;
+	let autoDownload = options.readPreferences().autoDownloadUpdates;
 	const deliver = (ref: SessionRef | null, event: HostShellEvent): void => {
 		options.onShellEvent?.(event);
 		if (ref === null) options.events.broadcast(HOST_SHELL_EVENT_CHANNEL, event);
@@ -53,6 +54,7 @@ export function createHostShellActivity(options: CreateHostShellActivityOptions)
 	deliver(null, { type: "keepAwakePreference", enabled: keepAwakeEnabled });
 	deliver(null, { type: "keepRunningPreference", enabled: keepRunningEnabled });
 	deliver(null, { type: "graphicsPreference", softwareRendering });
+	deliver(null, { type: "updatePreference", autoDownload });
 	return {
 		agentRunState: (ref, running) => {
 			const key = sessionKey(ref);
@@ -85,6 +87,10 @@ export function createHostShellActivity(options: CreateHostShellActivityOptions)
 			if (settings.disableHardwareAcceleration !== softwareRendering) {
 				softwareRendering = settings.disableHardwareAcceleration;
 				deliver(null, { type: "graphicsPreference", softwareRendering });
+			}
+			if (settings.autoDownloadUpdates !== autoDownload) {
+				autoDownload = settings.autoDownloadUpdates;
+				deliver(null, { type: "updatePreference", autoDownload });
 			}
 		},
 		dispose: () => {

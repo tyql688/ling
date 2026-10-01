@@ -25,7 +25,7 @@ Ling 将 Pi 会话、项目文件、变更审阅和终端放在同一个工作�
 
 macOS 桌面端要求 **macOS 13 或更新版本**。
 
-Windows 安装包目前未签名，系统可能提示发布者未知。请从 [Releases](https://github.com/tyql688/ling/releases/latest) 手动下载安装更新；Windows 版设置页提供下载入口。
+Windows 安装包使用 Ling 固定的自签名发布证书，首次安装时系统可能提示未知发布者或 SmartScreen 警告。应用会自动检查更新，默认自动下载，并在重启或正常退出时安装；可在设置中关闭自动下载。仅支持手动更新的版本需要先从 [Releases](https://github.com/tyql688/ling/releases/latest) 安装一次新版。
 
 ```sh
 git clone https://github.com/tyql688/ling.git

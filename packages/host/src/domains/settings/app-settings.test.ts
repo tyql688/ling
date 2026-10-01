@@ -29,6 +29,48 @@ afterEach(async () => {
 });
 
 describe("app settings ownership", () => {
+	it("defaults automatic downloads on for version 6 and persists an explicit choice", async () => {
+		const { store, userDataDir } = await createStore();
+		await writeFile(
+			join(userDataDir, "settings.json"),
+			JSON.stringify({
+				schema: "ling/app-settings",
+				version: 6,
+				writtenAt: 1,
+				data: {
+					keepRunningOnWindowClose: true,
+					disableHardwareAcceleration: false,
+					notifyBackgroundCompletion: true,
+					notifyAttentionNeeded: false,
+					playNotificationSounds: false,
+					projectLaunchers: { editor: null, terminal: null, "file-manager": null },
+					integratedTerminalProfileId: null,
+					fileMentionsRespectGitignore: true,
+					keepAwakeWhileRunning: true,
+				},
+			}),
+		);
+		expect(store.readAppSettings()).toMatchObject({
+			status: "ready",
+			settings: {
+				autoDownloadUpdates: true,
+				keepRunningOnWindowClose: true,
+				notifyAttentionNeeded: false,
+			},
+		});
+		await store.updateAppSettings({ type: "autoDownloadUpdates", enabled: false });
+		await store.dispose();
+		const reopened = createAppSettingsStore({ userDataDir, database: database(userDataDir) });
+		stores.push(reopened);
+		expect(reopened.readAppSettings()).toMatchObject({
+			status: "ready",
+			settings: {
+				autoDownloadUpdates: false,
+				keepRunningOnWindowClose: true,
+				notifyAttentionNeeded: false,
+			},
+		});
+	});
 	it("keeps cached preferences and shutdown admission separate between instances", async () => {
 		const first = await createStore();
 		const second = await createStore();

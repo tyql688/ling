@@ -98,6 +98,8 @@ export function createLingApiClient(options: LingApiClientOptions): LingApi {
 		env: options.env,
 		ui: options.ui,
 		window: {
+			onCommandPending: options.shell.window.onCommandPending,
+			takePendingCommand: options.shell.window.takePendingCommand,
 			setZoomFactor: options.shell.window.setZoomFactor,
 			setLanguage: options.shell.window.setLanguage,
 		},

@@ -10,7 +10,7 @@ import { z } from "zod";
 
 const log = createLogger("host-database");
 /** Ling owns its schema independently of legacy JSON envelope versions. */
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 /** Another Host or a backup may briefly hold the writer lock; bound the synchronous wait. */
 const DATABASE_BUSY_TIMEOUT_MS = 2500;
 /** Health is a summary, not an unbounded dump of damaged historical files. */
@@ -20,7 +20,7 @@ const countSchema = z.object({ count: z.number().int().nonnegative() });
 
 const CREATE_SCHEMA = `
 CREATE TABLE schema_version(version INTEGER NOT NULL) STRICT;
-INSERT INTO schema_version VALUES(3);
+INSERT INTO schema_version VALUES(4);
 CREATE TABLE legacy_imports(key TEXT PRIMARY KEY, source TEXT NOT NULL, state TEXT NOT NULL CHECK(state IN ('complete','failed')), message TEXT, updated_at INTEGER NOT NULL) STRICT;
 CREATE TABLE projects(cwd TEXT PRIMARY KEY, is_open INTEGER NOT NULL DEFAULT 0 CHECK(is_open IN (0,1)), open_order INTEGER NOT NULL DEFAULT 0, display_name TEXT, pinned_at REAL, last_opened_at INTEGER NOT NULL DEFAULT 0, name_revision INTEGER NOT NULL DEFAULT 0, pin_revision INTEGER NOT NULL DEFAULT 0) STRICT;
 CREATE TABLE session_meta(cwd TEXT NOT NULL, session_id TEXT NOT NULL, pinned_at REAL, archived_at REAL, read_at REAL, fork_source TEXT CHECK(fork_source IS NULL OR json_valid(fork_source)), PRIMARY KEY(cwd,session_id)) STRICT;
@@ -111,6 +111,11 @@ CREATE TABLE session_meta_migrated(cwd TEXT NOT NULL, session_id TEXT NOT NULL, 
 INSERT INTO session_meta_migrated SELECT cwd,session_id,pinned_at,archived_at,read_at,fork_source FROM session_meta;
 DROP TABLE session_meta;
 ALTER TABLE session_meta_migrated RENAME TO session_meta;`,
+					// Imported SQLite preferences inherit the update-download default without changing a saved choice.
+					3: `INSERT INTO app_settings(key,value)
+SELECT 'autoDownloadUpdates','true'
+WHERE EXISTS (SELECT 1 FROM legacy_imports WHERE key='ling/app-settings' AND state='complete')
+ON CONFLICT(key) DO NOTHING;`,
 				};
 				for (let version = row.version; version < SCHEMA_VERSION; version++) {
 					const migration = migrations[version];

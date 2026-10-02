@@ -17,9 +17,10 @@ function database(userDataDir: string) {
 async function createStore() {
 	const userDataDir = await temporaryDirectory("settings");
 	roots.push(userDataDir);
-	const store = createAppSettingsStore({ userDataDir, database: database(userDataDir) });
+	const db = database(userDataDir);
+	const store = createAppSettingsStore({ userDataDir, database: db });
 	stores.push(store);
-	return { store, userDataDir };
+	return { store, userDataDir, db };
 }
 
 afterEach(async () => {
@@ -29,6 +30,65 @@ afterEach(async () => {
 });
 
 describe("app settings ownership", () => {
+	it.each([undefined, false, true])("upgrades SQLite version 3 with automatic downloads %s", async (autoDownload) => {
+		const { store, userDataDir, db } = await createStore();
+		await store.updateAppSettings({ type: "keepRunningOnWindowClose", enabled: true });
+		await store.updateAppSettings({ type: "notifyAttentionNeeded", enabled: false });
+		await store.updateAppSettings({ type: "fileMentionsRespectGitignore", enabled: true });
+		if (autoDownload === undefined) db.run("DELETE FROM app_settings WHERE key='autoDownloadUpdates'");
+		else await store.updateAppSettings({ type: "autoDownloadUpdates", enabled: autoDownload });
+		db.run("UPDATE schema_version SET version=3");
+		db.run("INSERT INTO drafts VALUES('retained', '{\"text\":\"unsent\"}',7,11)");
+		const retained = db.all("SELECT key,value FROM app_settings WHERE key!='autoDownloadUpdates' ORDER BY key");
+		await store.dispose();
+		db.dispose();
+
+		const upgraded = database(userDataDir);
+		const reopened = createAppSettingsStore({ userDataDir, database: upgraded });
+		stores.push(reopened);
+		expect(reopened.readAppSettings()).toMatchObject({
+			status: "ready",
+			settings: {
+				autoDownloadUpdates: autoDownload ?? true,
+				keepRunningOnWindowClose: true,
+				notifyAttentionNeeded: false,
+				fileMentionsRespectGitignore: true,
+			},
+		});
+		expect(upgraded.get("SELECT version FROM schema_version")).toEqual({ version: 4 });
+		expect(upgraded.all("SELECT key,value FROM app_settings WHERE key!='autoDownloadUpdates' ORDER BY key")).toEqual(
+			retained,
+		);
+		expect(upgraded.get("SELECT * FROM drafts WHERE key='retained'")).toEqual({
+			key: "retained",
+			payload: '{"text":"unsent"}',
+			revision: 7,
+			updated_at: 11,
+		});
+		await reopened.updateAppSettings({ type: "autoDownloadUpdates", enabled: false });
+		await reopened.dispose();
+		upgraded.dispose();
+		const restarted = createAppSettingsStore({ userDataDir, database: database(userDataDir) });
+		stores.push(restarted);
+		expect(restarted.getAppSettings().autoDownloadUpdates).toBe(false);
+	});
+
+	it.each(["missing current value", "invalid historical value"])("keeps %s visible as corruption", async (scenario) => {
+		const { store, userDataDir, db } = await createStore();
+		store.getAppSettings();
+		if (scenario === "missing current value") {
+			db.run("DELETE FROM app_settings WHERE key='autoDownloadUpdates'");
+		} else {
+			db.run("UPDATE schema_version SET version=3");
+			db.run("UPDATE app_settings SET value='\"disabled\"' WHERE key='autoDownloadUpdates'");
+		}
+		await store.dispose();
+		db.dispose();
+		const reopened = createAppSettingsStore({ userDataDir, database: database(userDataDir) });
+		stores.push(reopened);
+		expect(reopened.readAppSettings().status).toBe("recoveryRequired");
+	});
+
 	it("defaults automatic downloads on for version 6 and persists an explicit choice", async () => {
 		const { store, userDataDir } = await createStore();
 		await writeFile(

@@ -99,6 +99,51 @@ it("refuses a future schema without rewriting it and can retry after the incompa
 	expect(db.retry().status).toBe("ready");
 });
 
+it("rolls back the settings migration with its version and retries without losing existing values", async () => {
+	const root = await create();
+	const db = createHostDatabase(root);
+	owners.push(db);
+	db.run("INSERT INTO app_settings VALUES('keepRunningOnWindowClose','true')");
+	db.markImported("ling/app-settings", join(root, "settings.json"));
+	db.run("UPDATE schema_version SET version=3");
+	db.run(
+		"CREATE TRIGGER refuse_download_setting BEFORE INSERT ON app_settings WHEN new.key='autoDownloadUpdates' BEGIN SELECT RAISE(ABORT,'settings write interrupted'); END",
+	);
+	db.dispose();
+	const reopened = createHostDatabase(root);
+	owners.push(reopened);
+	expect(reopened.health().status).toBe("unavailable");
+	const inspect = new DatabaseSync(reopened.path);
+	try {
+		expect(inspect.prepare("SELECT version FROM schema_version").get()).toEqual({ version: 3 });
+		expect(inspect.prepare("SELECT * FROM app_settings").all()).toEqual([
+			{ key: "keepRunningOnWindowClose", value: "true" },
+		]);
+		inspect.exec("DROP TRIGGER refuse_download_setting");
+	} finally {
+		inspect.close();
+	}
+	expect(reopened.retry().status).toBe("ready");
+	expect(reopened.get("SELECT version FROM schema_version")).toEqual({ version: 4 });
+	expect(reopened.all("SELECT * FROM app_settings ORDER BY key")).toEqual([
+		{ key: "autoDownloadUpdates", value: "true" },
+		{ key: "keepRunningOnWindowClose", value: "true" },
+	]);
+});
+
+it("leaves unimported settings for their legacy owner during a database upgrade", async () => {
+	const root = await create();
+	const db = createHostDatabase(root);
+	owners.push(db);
+	db.run("UPDATE schema_version SET version=3");
+	db.dispose();
+	const reopened = createHostDatabase(root);
+	owners.push(reopened);
+	expect(reopened.health().status).toBe("ready");
+	expect(reopened.get("SELECT version FROM schema_version")).toEqual({ version: 4 });
+	expect(reopened.all("SELECT * FROM app_settings")).toEqual([]);
+});
+
 it("deletes session metadata atomically and preserves unrelated sessions on rollback", async () => {
 	const root = await create(),
 		db = createHostDatabase(root);

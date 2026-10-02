@@ -1,10 +1,11 @@
-import type { PiSettingsRecoveryStatus, PiSettingsSnapshot, PiSettingsUpdate } from "@ling/contracts/pi-settings";
+import type { PiSettingsRecoveryStatus } from "@ling/contracts/pi-settings";
 import { createRequestFence, type RequestFence } from "@renderer/lib/request-fence";
 import { formatRequestError } from "@renderer/lib/errors";
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { createPersistedSettingsMutationQueue } from "./persisted-settings";
+import { createPiSettingsMutations, type PiSettingsChange } from "./pi-settings-mutations";
 
 type ProxySettingReadResult = { status: "ready"; value: string } | { status: "unavailable"; error: unknown };
 
@@ -63,31 +64,31 @@ export function usePiSettings() {
 	const hostPiSettingsApi = useDomainApi("piSettings");
 
 	const { t } = useTranslation();
-	const [snapshot, setSnapshot] = useState<PiSettingsSnapshot | null>(null);
-	const [settingsError, setSettingsError] = useState<string | null>(null);
+	const mutations = useMemo(() => createPiSettingsMutations(hostPiSettingsApi), [hostPiSettingsApi]);
+	const { snapshot, pending, error } = useSyncExternalStore(mutations.subscribe, mutations.getSnapshot);
+	const [readError, setReadError] = useState<string | null>(null);
 	const [recoveryStatus, setRecoveryStatus] = useState<PiSettingsRecoveryStatus | null>(null);
 	const [repairing, setRepairing] = useState(false);
-	const mutationQueueRef = useRef<ReturnType<typeof createPersistedSettingsMutationQueue> | null>(null);
-	mutationQueueRef.current ??= createPersistedSettingsMutationQueue();
-	const mutationQueue = mutationQueueRef.current;
 	const readFenceRef = useRef<RequestFence<typeof hostPiSettingsApi> | null>(null);
 	readFenceRef.current ??= createRequestFence<typeof hostPiSettingsApi>();
 	const readFence = readFenceRef.current;
 	useEffect(
 		() => () => {
 			readFence.invalidate();
-			mutationQueue.invalidate();
+			mutations.invalidate();
 		},
-		[mutationQueue, readFence],
+		[mutations, readFence],
 	);
 
 	const load = useCallback(async () => {
 		const revision = readFence.begin(hostPiSettingsApi);
 		try {
+			await mutations.whenSettled();
+			if (!readFence.isCurrent(revision, hostPiSettingsApi)) return;
 			const nextSnapshot = await hostPiSettingsApi.get();
 			if (!readFence.isCurrent(revision, hostPiSettingsApi)) return;
-			setSnapshot(nextSnapshot);
-			setSettingsError(null);
+			mutations.replace(nextSnapshot);
+			setReadError(null);
 			setRecoveryStatus(null);
 		} catch (cause) {
 			if (!readFence.isCurrent(revision, hostPiSettingsApi)) return;
@@ -95,15 +96,15 @@ export function usePiSettings() {
 			try {
 				const nextRecoveryStatus = await hostPiSettingsApi.getRecoveryStatus();
 				if (!readFence.isCurrent(revision, hostPiSettingsApi)) return;
-				setSettingsError(nextError);
+				setReadError(nextError);
 				setRecoveryStatus(nextRecoveryStatus);
 			} catch {
 				if (!readFence.isCurrent(revision, hostPiSettingsApi)) return;
-				setSettingsError(nextError);
+				setReadError(nextError);
 				setRecoveryStatus({ status: "unavailable", code: "PI_SETTINGS_READ_FAILED" });
 			}
 		}
-	}, [hostPiSettingsApi, readFence, t]);
+	}, [hostPiSettingsApi, mutations, readFence, t]);
 
 	useEffect(() => {
 		void load();
@@ -113,45 +114,20 @@ export function usePiSettings() {
 		readFence.invalidate();
 		setRepairing(true);
 		try {
-			const outcome = await mutationQueue.run(hostPiSettingsApi.repairHttpIdleTimeout, hostPiSettingsApi.get);
-			if (!mutationQueue.isCurrent(outcome.revision)) return;
-			const { result } = outcome;
-			if (result.status === "saved") {
-				setSnapshot(result.value);
-				setSettingsError(null);
+			if (await mutations.repair(hostPiSettingsApi.repairHttpIdleTimeout)) {
+				setReadError(null);
 				setRecoveryStatus(null);
-			} else {
-				if (result.persisted.status === "ready") {
-					setSnapshot(result.persisted.value);
-					setRecoveryStatus(null);
-				}
-				setSettingsError(formatRequestError(result.error, t));
 			}
 		} finally {
 			setRepairing(false);
 		}
 	};
 
-	const apply = async (
-		update: PiSettingsUpdate | ((current: PiSettingsSnapshot) => PiSettingsUpdate),
-	): Promise<boolean> => {
+	const apply = (update: PiSettingsChange, key?: string): Promise<boolean> => {
 		readFence.invalidate();
-		const outcome = await mutationQueue.run(
-			async () =>
-				hostPiSettingsApi.update(typeof update === "function" ? update(await hostPiSettingsApi.get()) : update),
-			hostPiSettingsApi.get,
-		);
-		if (!mutationQueue.isCurrent(outcome.revision)) return outcome.result.status === "saved";
-		const { result } = outcome;
-		if (result.status === "saved") {
-			setSnapshot(result.value);
-			setSettingsError(null);
-			return true;
-		}
-		if (result.persisted.status === "ready") setSnapshot(result.persisted.value);
-		setSettingsError(formatRequestError(result.error, t));
-		return false;
+		return mutations.apply(update, key);
 	};
 
-	return { snapshot, settingsError, recoveryStatus, repairing, load, repairHttpIdleTimeout, apply };
+	const settingsError = error ? formatRequestError(error.cause, t) : readError;
+	return { snapshot, pending, settingsError, recoveryStatus, repairing, load, repairHttpIdleTimeout, apply };
 }

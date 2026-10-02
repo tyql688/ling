@@ -1,20 +1,36 @@
 import { cn } from "@renderer/lib/utils";
-import { Check } from "lucide-react";
+import { Check, LoaderCircle } from "lucide-react";
 import type { ComponentProps } from "react";
 
 interface ChoiceButtonProps extends ComponentProps<"button"> {
 	selected: boolean;
+	pending?: boolean;
 	/** Suppress press feedback in surfaces where movement would distract. */
 	static?: boolean;
 }
 
 /** One skin-owned treatment for single and multiple choice controls. */
-export function ChoiceButton({ selected, static: isStatic = false, children, className, ...props }: ChoiceButtonProps) {
+export function ChoiceButton({
+	selected,
+	pending = false,
+	static: isStatic = false,
+	children,
+	className,
+	disabled,
+	onClick,
+	...props
+}: ChoiceButtonProps) {
 	return (
 		<button
 			{...props}
 			type="button"
 			aria-pressed={selected}
+			aria-busy={pending || props["aria-busy"]}
+			aria-disabled={disabled || pending || props["aria-disabled"]}
+			disabled={disabled && !pending}
+			onClick={(event) => {
+				if (!pending && !disabled) onClick?.(event);
+			}}
 			className={cn(
 				"inline-flex min-h-10 min-w-0 max-w-full items-center gap-2 rounded-choice border border-transparent px-3.5 py-2 text-ui font-medium disabled:cursor-not-allowed disabled:opacity-45 pointer-coarse:min-h-11",
 				// Brief, interruptible feedback honors both skin motion and system reduced motion.
@@ -28,7 +44,15 @@ export function ChoiceButton({ selected, static: isStatic = false, children, cla
 		>
 			{children}
 			{/* A consistent thin stroke keeps the state mark secondary to the option label. */}
-			<Check aria-hidden="true" strokeWidth={1.5} className={cn("ms-1 size-3.5 shrink-0", !selected && "invisible")} />
+			{pending ? (
+				<LoaderCircle aria-hidden="true" className="ms-1 size-3.5 shrink-0 animate-spin motion-reduce:animate-none" />
+			) : (
+				<Check
+					aria-hidden="true"
+					strokeWidth={1.5}
+					className={cn("ms-1 size-3.5 shrink-0", !selected && "invisible")}
+				/>
+			)}
 		</button>
 	);
 }

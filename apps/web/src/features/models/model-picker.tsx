@@ -5,7 +5,7 @@ import { pickerItemClass } from "@renderer/components/ui/menu-styles";
 import { isImeCommandMenuKey, useImeGuard } from "@renderer/hooks/use-ime-guard";
 import { cn } from "@renderer/lib/utils";
 import { Command } from "cmdk";
-import { ArrowLeft, Check, ChevronDown, Search, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, LoaderCircle, Search, X } from "lucide-react";
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -26,6 +26,7 @@ interface ModelPickerProps {
 	onSelect: (option: ModelPickerOption) => void;
 	children: ReactNode;
 	disabled?: boolean;
+	pending?: boolean;
 	triggerClassName?: string;
 	triggerId?: string | undefined;
 	triggerAriaLabelledBy?: string | undefined;
@@ -358,6 +359,7 @@ function ModelPickerContent({
 export function ModelPicker({
 	children,
 	disabled = false,
+	pending = false,
 	ownerKey,
 	placement = "bottom-end",
 	triggerClassName,
@@ -372,10 +374,10 @@ export function ModelPicker({
 	const panelRef = useRef<HTMLDivElement>(null);
 	const id = useId();
 	const scopeKey = ownerKey ?? id;
-	const open = !disabled && openOwner === scopeKey;
+	const open = !disabled && !pending && openOwner === scopeKey;
 	useEffect(() => {
 		setOpenOwner(null);
-	}, [disabled, scopeKey]);
+	}, [disabled, pending, scopeKey]);
 	useEffect(() => {
 		if (!open) return;
 		const dismissOutside = (event: Event) => {
@@ -406,6 +408,7 @@ export function ModelPicker({
 				variant="ghost"
 				size={null}
 				disabled={disabled}
+				pending={pending}
 				aria-label={triggerAriaLabelledBy === undefined ? t("modelPicker.title") : undefined}
 				aria-labelledby={triggerAriaLabelledBy}
 				aria-describedby={triggerAriaDescribedBy}
@@ -415,7 +418,14 @@ export function ModelPicker({
 				className={cn("min-w-0 justify-between gap-1.5", triggerClassName)}
 			>
 				{children}
-				<ChevronDown className="size-3 shrink-0 text-text-muted" aria-hidden="true" />
+				{pending ? (
+					<LoaderCircle
+						className="size-3 shrink-0 animate-spin text-text-muted motion-reduce:animate-none"
+						aria-hidden="true"
+					/>
+				) : (
+					<ChevronDown className="size-3 shrink-0 text-text-muted" aria-hidden="true" />
+				)}
 			</Button>
 			{open && (
 				<PickerPopover anchorRef={triggerRef} placement={placement}>

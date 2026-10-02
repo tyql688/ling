@@ -1,5 +1,6 @@
 import { cn } from "@renderer/lib/utils";
 import { motion } from "motion/react";
+import { LoaderCircle } from "lucide-react";
 import { useId, type CSSProperties } from "react";
 
 /** Inline segmented toggle (e.g. Queue | Guide). */
@@ -12,6 +13,7 @@ export function Segmented<T extends string>({
 	ariaDescribedBy,
 	variant = "surface",
 	disabled,
+	pending,
 	className,
 	style,
 }: {
@@ -19,6 +21,7 @@ export function Segmented<T extends string>({
 	onChange: (next: T) => void;
 	options: ReadonlyArray<{ value: T; label: string; disabled?: boolean | undefined }>;
 	disabled?: boolean | undefined;
+	pending?: boolean | undefined;
 	className?: string | undefined;
 	style?: CSSProperties | undefined;
 	ariaLabel?: string | undefined;
@@ -30,7 +33,8 @@ export function Segmented<T extends string>({
 	const pillId = useId();
 	return (
 		<fieldset
-			disabled={disabled}
+			disabled={disabled && !pending}
+			aria-busy={pending || undefined}
 			style={style}
 			aria-label={ariaLabel}
 			aria-labelledby={ariaLabelledBy}
@@ -46,7 +50,11 @@ export function Segmented<T extends string>({
 					key={option.value}
 					type="button"
 					disabled={option.disabled}
-					onClick={() => onChange(option.value)}
+					aria-disabled={pending || disabled || undefined}
+					aria-busy={(pending && option.value === value) || undefined}
+					onClick={() => {
+						if (!pending && !disabled) onChange(option.value);
+					}}
 					aria-pressed={option.value === value}
 					className={cn(
 						"relative rounded-control-inset px-3 py-1 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50",
@@ -64,7 +72,18 @@ export function Segmented<T extends string>({
 							transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
 						/>
 					)}
-					<span className="relative">{option.label}</span>
+					<span className="relative inline-flex items-center gap-1.5">
+						{option.label}
+						{pending !== undefined && (
+							<LoaderCircle
+								aria-hidden="true"
+								className={cn(
+									"size-3 shrink-0",
+									pending && option.value === value ? "animate-spin motion-reduce:animate-none" : "invisible",
+								)}
+							/>
+						)}
+					</span>
 				</button>
 			))}
 		</fieldset>

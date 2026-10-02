@@ -1,6 +1,6 @@
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { cn } from "@renderer/lib/utils";
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, LoaderCircle } from "lucide-react";
 import type { ReactNode, ComponentPropsWithRef } from "react";
 import { menuContentClass, menuItemClass } from "./menu-styles";
 
@@ -17,10 +17,15 @@ function SelectTrigger({
 	children,
 	size = "default",
 	variant = "default",
+	pending = false,
+	onPointerDown,
+	onClick,
+	onKeyDown,
 	...props
 }: ComponentPropsWithRef<typeof SelectPrimitive.Trigger> & {
 	size?: "default" | "sm" | "icon";
 	variant?: "default" | "ghost";
+	pending?: boolean;
 }) {
 	return (
 		<SelectPrimitive.Trigger
@@ -36,10 +41,24 @@ function SelectTrigger({
 				className,
 			)}
 			{...props}
+			aria-busy={pending || props["aria-busy"]}
+			aria-disabled={props.disabled || pending || props["aria-disabled"]}
+			onPointerDown={(event) => {
+				if (pending) event.preventDefault();
+				else onPointerDown?.(event);
+			}}
+			onClick={(event) => {
+				if (pending) event.preventDefault();
+				else onClick?.(event);
+			}}
+			onKeyDown={(event) => {
+				if (pending && [" ", "Enter", "ArrowUp", "ArrowDown"].includes(event.key)) event.preventDefault();
+				else onKeyDown?.(event);
+			}}
 		>
 			{children}
 			<SelectPrimitive.Icon asChild>
-				<ChevronDownIcon />
+				{pending ? <LoaderCircle className="animate-spin motion-reduce:animate-none" /> : <ChevronDownIcon />}
 			</SelectPrimitive.Icon>
 		</SelectPrimitive.Trigger>
 	);

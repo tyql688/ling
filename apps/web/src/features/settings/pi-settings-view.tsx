@@ -71,7 +71,8 @@ function ProxyRow() {
  */
 export function PiSettingsView() {
 	const { t } = useTranslation();
-	const { snapshot, settingsError, recoveryStatus, repairing, load, repairHttpIdleTimeout, apply } = usePiSettings();
+	const { snapshot, pending, settingsError, recoveryStatus, repairing, load, repairHttpIdleTimeout, apply } =
+		usePiSettings();
 	const { providers, error: providersError, refresh: refreshProviders } = useProviders();
 	const usableProviders = useMemo(
 		() => (providers ?? []).filter((provider) => isProviderUsable(provider) && provider.models.length > 0),
@@ -132,6 +133,7 @@ export function PiSettingsView() {
 	const defaultModelName = modelOptions.find(
 		(model) => model.provider === snapshot.defaultProvider && model.id === snapshot.defaultModel,
 	)?.name;
+	const toolsPending = [...pending].some((key) => key === "defaultTools" || key.startsWith("defaultTools:"));
 
 	const timeoutLabel = (ms: number) =>
 		ms === 0 ? t("settings.timeoutDisabled") : ms < 60_000 ? `${ms / 1000}s` : `${ms / 60_000}min`;
@@ -172,6 +174,7 @@ export function PiSettingsView() {
 				<SettingsFieldRow label={t("settings.defaultModel")}>
 					{({ controlId, labelId, descriptionId }) => (
 						<ModelPicker
+							pending={pending.has("defaultModel")}
 							options={modelOptions}
 							selected={defaultModelValue}
 							defaultModel={defaultModelValue}
@@ -193,7 +196,13 @@ export function PiSettingsView() {
 								if (value) void apply({ type: "thinkingLevel", level: value as ThinkingLevel });
 							}}
 						>
-							<SelectTrigger id={controlId} aria-labelledby={labelId} aria-describedby={descriptionId} className="h-8">
+							<SelectTrigger
+								pending={pending.has("thinkingLevel")}
+								id={controlId}
+								aria-labelledby={labelId}
+								aria-describedby={descriptionId}
+								className="h-8"
+							>
 								<SelectValue>
 									{() =>
 										snapshot.defaultThinkingLevel === null
@@ -236,14 +245,16 @@ export function PiSettingsView() {
 												key={tool}
 												type="button"
 												selected={selected}
+												pending={pending.has("defaultTools") || pending.has(`defaultTools:${tool}`)}
 												onClick={() =>
-													void apply((current) =>
-														piSettingsUpdateSchema.parse({
+													void apply(
+														(current) => ({
 															type: "defaultTools",
 															tools: current.defaultTools.includes(tool)
 																? current.defaultTools.filter((name) => name !== tool)
 																: [...current.defaultTools, tool],
 														}),
+														`defaultTools:${tool}`,
 													)
 												}
 												className="w-full justify-between font-mono text-xs"
@@ -257,7 +268,8 @@ export function PiSettingsView() {
 								className="mt-2"
 								variant="ghost"
 								size="sm"
-								disabled={!snapshot.defaultToolsConfigured}
+								disabled={!snapshot.defaultToolsConfigured || toolsPending}
+								pending={pending.has("defaultTools")}
 								onClick={() => void apply({ type: "defaultTools", tools: null })}
 							>
 								{t("settings.defaultToolsReset")}
@@ -272,6 +284,7 @@ export function PiSettingsView() {
 					{({ labelId, descriptionId }) => (
 						<Segmented
 							value={snapshot.codemode.mode}
+							pending={pending.has("codemode:mode")}
 							onChange={(mode) => void apply({ type: "codemode", settings: { mode } })}
 							ariaLabelledBy={labelId}
 							ariaDescribedBy={descriptionId}
@@ -296,6 +309,7 @@ export function PiSettingsView() {
 				<SettingsRow layout="toggle" label={t("settings.compaction")} description={t("settings.compactionDescription")}>
 					<Switch
 						checked={snapshot.compactionEnabled}
+						pending={pending.has("compaction")}
 						onCheckedChange={(enabled) => void apply({ type: "compaction", enabled })}
 						aria-label={t("settings.compaction")}
 					/>
@@ -305,6 +319,7 @@ export function PiSettingsView() {
 					{({ labelId, descriptionId }) => (
 						<Segmented
 							value={snapshot.cacheWarming}
+							pending={pending.has("cacheWarming")}
 							onChange={(mode) => void apply({ type: "cacheWarming", mode })}
 							ariaLabelledBy={labelId}
 							ariaDescribedBy={descriptionId}
@@ -315,6 +330,7 @@ export function PiSettingsView() {
 				<SettingsRow layout="toggle" label={t("settings.retry")} description={t("settings.retryDescription")}>
 					<Switch
 						checked={snapshot.retryEnabled}
+						pending={pending.has("retry")}
 						onCheckedChange={(enabled) => void apply({ type: "retry", enabled })}
 						aria-label={t("settings.retry")}
 					/>
@@ -350,6 +366,7 @@ export function PiSettingsView() {
 				>
 					<Switch
 						checked={snapshot.blockImages}
+						pending={pending.has("blockImages")}
 						onCheckedChange={(blocked) => void apply({ type: "blockImages", blocked })}
 						aria-label={t("settings.blockImages")}
 					/>
@@ -361,6 +378,7 @@ export function PiSettingsView() {
 				>
 					<Switch
 						checked={snapshot.imageAutoResize}
+						pending={pending.has("imageAutoResize")}
 						onCheckedChange={(enabled) => void apply({ type: "imageAutoResize", enabled })}
 						aria-label={t("settings.imageAutoResize")}
 					/>
@@ -369,6 +387,7 @@ export function PiSettingsView() {
 					{({ labelId, descriptionId }) => (
 						<Segmented
 							value={snapshot.steeringMode}
+							pending={pending.has("steeringMode")}
 							onChange={(mode) => void apply({ type: "steeringMode", mode })}
 							options={deliveryOptions}
 							ariaLabelledBy={labelId}
@@ -380,6 +399,7 @@ export function PiSettingsView() {
 					{({ labelId, descriptionId }) => (
 						<Segmented
 							value={snapshot.followUpMode}
+							pending={pending.has("followUpMode")}
 							onChange={(mode) => void apply({ type: "followUpMode", mode })}
 							options={deliveryOptions}
 							ariaLabelledBy={labelId}
@@ -395,6 +415,7 @@ export function PiSettingsView() {
 					{({ labelId, descriptionId }) => (
 						<Segmented
 							value={snapshot.defaultProjectTrust}
+							pending={pending.has("defaultProjectTrust")}
 							onChange={(trust) => void apply({ type: "defaultProjectTrust", trust })}
 							options={projectTrustOptions}
 							ariaLabelledBy={labelId}
@@ -416,7 +437,13 @@ export function PiSettingsView() {
 									);
 							}}
 						>
-							<SelectTrigger id={controlId} aria-labelledby={labelId} aria-describedby={descriptionId} className="h-8">
+							<SelectTrigger
+								pending={pending.has("httpIdleTimeoutMs")}
+								id={controlId}
+								aria-labelledby={labelId}
+								aria-describedby={descriptionId}
+								className="h-8"
+							>
 								<SelectValue>{() => timeoutLabel(snapshot.httpIdleTimeoutMs)}</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
@@ -446,6 +473,7 @@ export function PiSettingsView() {
 				>
 					<Switch
 						checked={snapshot.installTelemetry}
+						pending={pending.has("installTelemetry")}
 						onCheckedChange={(enabled) => void apply({ type: "installTelemetry", enabled })}
 						aria-label={t("settings.installTelemetry")}
 					/>
@@ -453,6 +481,7 @@ export function PiSettingsView() {
 				<SettingsRow layout="toggle" label={t("settings.analytics")} description={t("settings.analyticsDescription")}>
 					<Switch
 						checked={snapshot.analytics}
+						pending={pending.has("analytics")}
 						onCheckedChange={(enabled) => void apply({ type: "analytics", enabled })}
 						aria-label={t("settings.analytics")}
 					/>

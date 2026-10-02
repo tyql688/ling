@@ -9,6 +9,8 @@ const execute = promisify(execFile);
 /** Read the signer from the same native verification state that validates the executable digest. */
 const VERIFY_SIGNATURE = String.raw`
 $ErrorActionPreference = 'Stop'
+# Module initialization progress shares stderr with verification errors.
+$ProgressPreference = 'SilentlyContinue'
 $OutputEncoding = [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 Add-Type -TypeDefinition @'
 using System;

@@ -19,6 +19,7 @@ export default tseslint.config(
 			"apps/desktop/.stage/**",
 			"apps/desktop/build/**",
 			"apps/desktop/artifacts/**",
+			"tmp/**",
 			"tmpcode/**",
 			".playwright-cli/**",
 		],

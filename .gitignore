@@ -37,4 +37,5 @@ apps/desktop/artifacts/
 .claude/
 
 # Local research clones
+/tmp/
 tmpcode/

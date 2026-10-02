@@ -1,4 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 
 export type PiSessionLifecycleState = "active" | "replacing" | "disposing" | "disposed";
 

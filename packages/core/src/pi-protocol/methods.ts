@@ -1,4 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { piDomainMethods } from "./domain-methods";
 import { piRuntimeMethods } from "./runtime-methods";
 import { piLifecycleMethods } from "./lifecycle-methods";

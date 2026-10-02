@@ -1,7 +1,6 @@
 import { type BoundedJsonObject, boundedJsonObjectValidationError } from "@ling/contracts/bounded-json";
 import { MODEL_SAMPLING_PARAMS_LIMITS, modelCompatValidationError } from "@ling/contracts/model";
 import { RESERVED_OBJECT_KEYS } from "@ling/contracts/text-validation";
-import { stripJsonComments } from "@ling/core/pi-sdk/jsonc";
 
 export interface ModelsJsonModel {
 	id: string;
@@ -69,6 +68,15 @@ function assertCompat(value: unknown, location: string): void {
 	if (issue) {
 		throw new Error(`models.json ${location} has invalid compat: ${issue}`);
 	}
+}
+
+/** Shared models.json accepts line comments and trailing commas without changing quoted strings. */
+function stripJsonComments(input: string): string {
+	return input
+		.replace(/"(?:\\.|[^"\\])*"|\/\/[^\n]*/g, (match) => (match[0] === '"' ? match : ""))
+		.replace(/"(?:\\.|[^"\\])*"|,(\s*[}\]])/g, (match, tail: string | undefined) =>
+			tail === undefined ? match : tail,
+		);
 }
 
 /** Throws with a readable message on malformed JSON — CRUD must not clobber a broken file. */

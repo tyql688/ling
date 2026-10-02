@@ -1,6 +1,7 @@
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import type { ModelState, SessionRef, ThinkingLevel } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import type { ModelState, ThinkingLevel } from "@ling/contracts/session";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import { formatRequestError } from "@renderer/lib/errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {

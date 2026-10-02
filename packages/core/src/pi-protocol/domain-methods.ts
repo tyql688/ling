@@ -37,12 +37,14 @@ import {
 	SKILL_RESOURCE_CONTENT_MAX_BYTES,
 	SKILL_RESOURCE_RELATIVE_PATH_MAX_CHARS,
 } from "@ling/contracts/skill";
-import type { SessionMessage } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import { piResourceReloadModeSchema } from "@ling/contracts/session";
 import { z } from "zod";
 import * as outputs from "./domain-payload-schemas";
 import { sessionMessagesSchema } from "./runtime-payload-schemas";
-import { piSettingsUpdateSchema } from "./domain-request-validation";
+import { createPiSettingsUpdateSchema } from "@ling/contracts/pi-settings-requests";
+import { isAbsolute } from "node:path";
+import { isTildePath } from "../paths";
 import { piMethod, piVoidMethod } from "./method";
 import type { PiWorkerProjectSnapshot, PiWorkerSessionDiscovery, PiWorkerSessionInfo } from "./protocol";
 import {
@@ -53,6 +55,7 @@ import {
 	recoverableQuery,
 } from "./request-policy";
 import { COLLECTION_MAX_ITEMS, fieldSchema } from "./runtime-payload-schemas";
+const piSettingsUpdateSchema = createPiSettingsUpdateSchema((value) => isAbsolute(value) || isTildePath(value));
 // Keep discovery and project admission bounded inside the isolated worker.
 const COLLECTION_CAPACITY = 100_000;
 // Project-wide operations share the runtime registry admission capacity.

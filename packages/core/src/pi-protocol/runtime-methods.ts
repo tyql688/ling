@@ -1,6 +1,10 @@
-import type { ExtensionAutocompleteSuggestions, ModelState, ToolResultSessionMessage } from "@ling/contracts/session";
-import { piResourceReloadModeSchema } from "@ling/contracts/session";
-import { EXTENSION_UI_INPUT_MAX_CHARS, SESSION_IMAGE_MAX_ITEMS } from "@ling/contracts/session";
+import {
+	type ExtensionAutocompleteSuggestions,
+	EXTENSION_UI_INPUT_MAX_CHARS,
+} from "@ling/contracts/session-extension-ui";
+import { type ModelState, piResourceReloadModeSchema, SESSION_IMAGE_MAX_ITEMS } from "@ling/contracts/session";
+import type { ToolResultSessionMessage } from "@ling/contracts/session-messages";
+
 import { z } from "zod";
 import { mcpCommandSchema } from "@ling/contracts/mcp";
 import { companionRunRequestSchema, companionRunSchema, toolResultSnapshotSchema } from "@ling/contracts/companions";

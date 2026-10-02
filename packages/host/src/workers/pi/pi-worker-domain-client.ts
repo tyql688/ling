@@ -1,4 +1,5 @@
-import type { PiResourceReloadMode, SessionMessage } from "@ling/contracts/session";
+import type { PiResourceReloadMode } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import type {
 	ModelConfiguration,
 	ModelConfigurationRequest,

@@ -1,4 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { ReviewSnapshotFile } from "../change-review/change-review";
 
 export type TurnFileTrackingFailureCode = "CAPTURE_FAILED" | "DIFF_LIMIT_EXCEEDED" | "TURN_LIMIT_EXCEEDED";

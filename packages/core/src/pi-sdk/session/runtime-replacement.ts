@@ -1,6 +1,6 @@
 import { toError } from "../../ling-error";
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey, uniqueSessionRefs } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey, uniqueSessionRefs } from "@ling/contracts/session-ref";
+
 import type {
 	SessionRuntimeReplacementCoordinator,
 	SessionRuntimeReplacementEvent,

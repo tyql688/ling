@@ -1,5 +1,5 @@
 import type { ChangeReviewTrackingState } from "@ling/contracts/git";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { ReviewSnapshotFile } from "@ling/core/change-review/change-review";
 import type { PiTurnContext, PiTurnFallbackCapture, PiTurnLifecycleHost } from "@ling/core/pi-protocol/turn-review";
 import type { SessionRuntimeChangeReviewEvent } from "@ling/core/pi-protocol/runtime-types";

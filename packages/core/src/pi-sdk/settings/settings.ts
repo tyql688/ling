@@ -19,7 +19,7 @@ import { z } from "zod";
 import { assertNpmCommandParts, parseNpmCommand } from "@ling/contracts/npm-command";
 import { homedir } from "node:os";
 import { createLogger } from "../../logger";
-import { createInMemorySettingsManager, createSettingsManager } from "../sdk-factories";
+import { SettingsManager } from "@earendil-works/pi-coding-agent";
 import type { PiSettingsManager } from "../types";
 import { createPiGlobalSettingsStore } from "./global-settings-store";
 import { createPiHttpProxy } from "./http-proxy";
@@ -124,7 +124,7 @@ export function createPiSettings(agentDir: string) {
 	function manager(): PiSettingsManager {
 		// This surface edits Pi's global settings. Do not accidentally merge a
 		// ~/.pi/settings.json project override just because Ling uses homedir as cwd.
-		return createSettingsManager(homedir(), agentDir, { projectTrusted: false });
+		return SettingsManager.create(homedir(), agentDir, { projectTrusted: false });
 	}
 
 	function getPiNpmCommandExecutable(): string {
@@ -139,7 +139,7 @@ export function createPiSettings(agentDir: string) {
 	async function getPiSettings(): Promise<PiSettingsSnapshot> {
 		return enqueueGlobalSettingsMutation(async () => {
 			// Async reads must not contend with Pi's synchronous lock retry on this same thread.
-			const settings = createInMemorySettingsManager(await globalSettingsStore.read());
+			const settings = SettingsManager.inMemory(await globalSettingsStore.read());
 			assertNoSettingsErrors(settings, "load");
 			const retrySettings = settings.getRetrySettings();
 			const codemode = settings.getSettings().codemode;
@@ -338,7 +338,7 @@ export function createPiSettings(agentDir: string) {
 	function getPiDeviceId(): Promise<string> {
 		return enqueueGlobalSettingsMutation(() =>
 			globalSettingsStore.transact(async (settings) => {
-				const manager = createInMemorySettingsManager(settings);
+				const manager = SettingsManager.inMemory(settings);
 				const id = z.uuid().parse(manager.getOrCreateDeviceId());
 				await manager.flush();
 				if (settings.deviceId === id) return { commit: false, result: id };

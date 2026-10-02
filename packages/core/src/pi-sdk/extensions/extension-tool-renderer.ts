@@ -1,5 +1,5 @@
 import { record } from "@ling/contracts/records";
-import type { RenderedTextSnapshot } from "@ling/contracts/session";
+import type { RenderedTextSnapshot } from "@ling/contracts/session-messages";
 import { toCommandError } from "../../command-resolver";
 import type { PiAgentSession, PiBranchProjectionSource } from "../types";
 import { EXTENSION_UI_RENDER_WIDTH } from "./extension-ui-overlay-layout";

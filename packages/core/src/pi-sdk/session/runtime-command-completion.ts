@@ -1,5 +1,8 @@
-import type { ExtensionAutocompleteSuggestions } from "@ling/contracts/session";
-import { EXTENSION_AUTOCOMPLETE_MAX_ITEMS } from "@ling/contracts/session";
+import {
+	type ExtensionAutocompleteSuggestions,
+	EXTENSION_AUTOCOMPLETE_MAX_ITEMS,
+} from "@ling/contracts/session-extension-ui";
+
 import { throwIfOperationAborted, waitForOperation } from "../../ling-error";
 import { assertPiExtensionAutocompleteSuggestions } from "../extensions/extension-ui-autocomplete";
 import type { PiAgentSession } from "../types";

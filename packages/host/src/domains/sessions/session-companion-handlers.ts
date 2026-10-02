@@ -1,9 +1,9 @@
 import type {
 	ComposerHistoryStatus,
-	ExtensionAutocompleteSuggestions,
 	RuntimeCommandCatalogSnapshot,
 	RuntimeExtensionUiSnapshot,
 } from "@ling/contracts/session";
+import type { ExtensionAutocompleteSuggestions } from "@ling/contracts/session-extension-ui";
 import { sessionProcedures } from "@ling/contracts/session-procedures";
 import { SESSION_COMMAND_ARGUMENT_COMPLETION_OWNER_ID } from "@ling/contracts/owner-ref";
 import { createLogger } from "@ling/core/logger";

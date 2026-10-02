@@ -1,5 +1,6 @@
-import type { SessionRef, SessionRelation } from "@ling/contracts/session";
-import { toSessionRef } from "@ling/contracts/session-ref";
+import { type SessionRef, toSessionRef } from "@ling/contracts/session-ref";
+import type { SessionRelation } from "@ling/contracts/session";
+
 import { pathIdentity } from "@ling/core/paths";
 
 interface RelatableSessionSummary {

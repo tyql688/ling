@@ -1,7 +1,7 @@
 import { createShellProcedureClient } from "@ling/contracts/api/shell-procedures";
 import type { AppPlatform } from "@ling/contracts/application";
 import { PROJECT_FILE_REFERENCE_MAX_ITEMS } from "@ling/contracts/project";
-import type { ExtensionTerminalInputReplayRequest } from "@ling/contracts/session";
+import type { ExtensionTerminalInputReplayRequest } from "@ling/contracts/session-extension-ui";
 import {
 	type ShellApi,
 	type ShellNotificationPermission,

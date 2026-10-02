@@ -1,6 +1,7 @@
 import { questionAnswerText } from "./question-answer-message";
 import { createLingError } from "../../ling-error";
-import type { ExtensionAutocompleteSuggestions, ModelState, ThinkingLevel } from "@ling/contracts/session";
+import type { ExtensionAutocompleteSuggestions } from "@ling/contracts/session-extension-ui";
+import type { ModelState, ThinkingLevel } from "@ling/contracts/session";
 import type { PiAgentSessionRuntime } from "../types";
 import { completePiRuntimeCommandArgument } from "./runtime-command-completion";
 import type { PiRuntimeOperationCoordinator } from "./runtime-operations";

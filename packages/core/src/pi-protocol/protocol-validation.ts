@@ -1,4 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { lingErrorDtoSchema } from "@ling/contracts/ling-error";
 import { assertJsonFrameSize } from "@ling/core/json-frame";
 import { PI_WORKER_MAIN_METHODS } from "@ling/core/pi-protocol/callback-methods";

@@ -6,24 +6,22 @@ import {
 	nestedToolCallsSchema,
 	SESSION_NESTED_CALL_MAX_ITEMS,
 	type NestedToolCalls,
-} from "@ling/contracts/session-messages";
-import {
 	type AssistantContentPart,
 	type AssistantSessionMessage,
 	type AssistantUsage,
-	type BoundedJson,
 	type BranchSummarySessionMessage,
 	type CompactionSummarySessionMessage,
 	type CustomSessionMessage,
 	type ModelChangeSessionMessage,
 	type RenderedCustomSessionMessage,
-	sessionImageMimeTypeSchema,
 	type SessionMessage,
 	type ToolResultContentPart,
 	type ToolResultSessionMessage,
 	type UserContentPart,
 	type UserSessionMessage,
-} from "@ling/contracts/session";
+} from "@ling/contracts/session-messages";
+import type { BoundedJson } from "@ling/contracts/bounded-json";
+import { sessionImageMimeTypeSchema } from "@ling/contracts/session";
 
 /** Max traversal depth during normalization; 6 covers common nested content, deeper shapes are truncated as suspected cycles/malicious nesting. */
 const MAX_DEPTH = 6;

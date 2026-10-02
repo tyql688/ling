@@ -1,7 +1,7 @@
 import { reduceSessionView } from "./session-view";
 import { sessionViewFamily } from "../state/session";
-import { uniqueSessionRefs, sessionKey } from "@ling/contracts/session-ref";
-import type { SessionRef } from "@ling/contracts/session";
+import { uniqueSessionRefs, sessionKey, type SessionRef } from "@ling/contracts/session-ref";
+
 import { sessionStreamController } from "@renderer/features/sessions/runtime/session-stream-controller";
 import { forgetSessionScrollMemory } from "@renderer/features/sessions/runtime/transcript-scroll-memory";
 import { draftsAtom } from "@renderer/features/sessions/state/drafts";

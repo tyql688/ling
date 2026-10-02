@@ -3,8 +3,8 @@ import type {
 	ExtensionAutocompleteItem,
 	ExtensionAutocompleteSuggestions,
 	ExtensionTerminalInputResult,
-	SessionRef,
-} from "@ling/contracts/session";
+} from "@ling/contracts/session-extension-ui";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { SessionRuntimeTranscriptProjectionReason } from "@ling/core/pi-protocol/runtime-types";
 import type { PiExtensionUi } from "../extensions/extension-ui-context";
 import { hasPiMarkdownTransformers } from "../extensions/markdown-transformer";

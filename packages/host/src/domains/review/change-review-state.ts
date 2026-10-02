@@ -1,5 +1,5 @@
 import type { ChangeReviewScope, ChangeReviewSnapshot, ChangeReviewTrackingState } from "@ling/contracts/git";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { GitReviewSnapshot, GitUnpushedReviewSnapshot } from "@ling/host/domains/git/git-service";
 import type { ReviewScopeSummary, ReviewSnapshotFile } from "@ling/core/change-review/change-review";
 import type { ProjectFileWatcherLease } from "@ling/host/domains/review/project-file-watcher";

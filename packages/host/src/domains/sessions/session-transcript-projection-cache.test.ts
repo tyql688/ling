@@ -1,5 +1,5 @@
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
-import type { SessionMessage } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import { mkdir, readdir, readFile, rm, truncate, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

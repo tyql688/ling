@@ -1,4 +1,5 @@
-import type { SessionCommandCatalog, SessionRef } from "@ling/contracts/session";
+import type { SessionCommandCatalog } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiRuntimeClient } from "./runtime-client";
 import type {
 	SessionRuntimeEvent,

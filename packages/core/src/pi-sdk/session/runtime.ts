@@ -1,6 +1,6 @@
 import type { PiResourceReloadMode } from "@ling/contracts/session";
 import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { throwAggregateFailures } from "@ling/core/ling-error";
 import type { SessionRuntimePort } from "@ling/core/pi-protocol/runtime-port";
 import type {

@@ -1,7 +1,7 @@
 import type { ProjectTrustChoice } from "@ling/contracts/project";
 import type { CompanionToolCall, CompanionToolResult, PiAdapterPlan } from "@ling/contracts/companions";
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import type { PiTurnLifecycleHost } from "@ling/core/pi-protocol/turn-review";
 import type { ExtensionUiBridge, ExtensionUiRequester } from "@ling/core/pi-protocol/extension-ui";
 import { throwAggregateFailures } from "@ling/core/ling-error";

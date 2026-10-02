@@ -1,5 +1,6 @@
 import type { SessionCatalogFileFingerprint, SessionCatalogInfo, SessionCatalogDiscovery } from "./runtime-types";
-import type { SessionRef, ThinkingLevel } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
+import type { ThinkingLevel } from "@ling/contracts/session";
 import type { SessionRuntimeForkSource, SessionRuntimePort } from "./runtime-port";
 
 export type SessionRuntimeBindingCleanup = () => void;

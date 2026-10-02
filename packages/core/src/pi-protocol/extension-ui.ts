@@ -8,9 +8,9 @@ import {
 	EXTENSION_UI_WORKING_FRAME_MAX_ITEMS,
 	type ExtensionUiStateEvent,
 	type ExtensionUiStateSnapshot,
-	type SessionRef,
-} from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+} from "@ling/contracts/session-extension-ui";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import { requestCancelled } from "../ling-error";
 
 interface ExtensionUiPromptOptions {

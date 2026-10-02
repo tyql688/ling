@@ -1,5 +1,5 @@
-import type { RuntimeCommandCatalogSnapshot, RuntimeExtensionUiSnapshot, SessionRef } from "@ling/contracts/session";
-import { sameSessionRef } from "@ling/contracts/session-ref";
+import type { RuntimeCommandCatalogSnapshot, RuntimeExtensionUiSnapshot } from "@ling/contracts/session";
+import { type SessionRef, sameSessionRef } from "@ling/contracts/session-ref";
 
 export interface SessionCompanionTarget {
 	runtimeId: string;

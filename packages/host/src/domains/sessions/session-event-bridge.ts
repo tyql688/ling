@@ -1,8 +1,8 @@
 import { changeReviewProcedures } from "@ling/contracts/change-review-procedures";
 import type { ChangeReviewTrackingEvent } from "@ling/contracts/git";
-import type { SessionRef } from "@ling/contracts/session";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 import { sessionProcedures } from "@ling/contracts/session-procedures";
-import { sessionKey } from "@ling/contracts/session-ref";
+
 import { createLogger } from "@ling/core/logger";
 import type {
 	SessionChangeReviewEventListener,

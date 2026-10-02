@@ -3,8 +3,8 @@ import CssWorker from "monaco-editor/language/css/css.worker?worker";
 import HtmlWorker from "monaco-editor/language/html/html.worker?worker";
 import JsonWorker from "monaco-editor/language/json/json.worker?worker";
 import TypeScriptWorker from "monaco-editor/language/typescript/ts.worker?worker";
-import { typescript } from "monaco-editor";
-import { configureEditorJsonSchemas } from "./editor-json-schemas";
+import { json, typescript } from "monaco-editor";
+import { editorJsonSchemas } from "@ling/contracts/editor-json-schemas";
 
 // Project semantics belong to Host's language server. The local worker keeps syntax feedback
 // available during startup without producing competing project-free completion and diagnostics.
@@ -26,7 +26,12 @@ for (const defaults of [typescript.typescriptDefaults, typescript.javascriptDefa
 		inlayHints: false,
 	});
 }
-configureEditorJsonSchemas();
+json.jsonDefaults.setDiagnosticsOptions({
+	validate: true,
+	allowComments: true,
+	enableSchemaRequest: false,
+	schemas: editorJsonSchemas(),
+});
 
 interface MonacoEnvironment {
 	getWorker(moduleId: string, label: string): Worker;

@@ -1,4 +1,4 @@
-import type { SessionMessage } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import {
 	Dialog,
 	DialogCloseButton,

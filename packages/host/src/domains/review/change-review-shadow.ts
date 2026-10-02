@@ -1,7 +1,7 @@
 import { isInside } from "@ling/core/paths";
 import type { ChangeReviewPartialReason } from "@ling/contracts/git";
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import { requireCommand, toCommandError } from "@ling/core/command-resolver";
 import { assertGitPath, parseBatchedDiff } from "@ling/host/domains/git/git-output-parsers";
 import { createLogger } from "@ling/core/logger";

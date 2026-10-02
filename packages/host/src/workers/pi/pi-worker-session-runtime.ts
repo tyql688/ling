@@ -1,4 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiMethodParams, PiMethodResult, PiRequestParams } from "@ling/core/pi-protocol/methods";
 import type { PiWorkerRuntimeEvent, PiWorkerRuntimeState } from "@ling/core/pi-protocol/protocol";
 import type { PiRuntimeMethod } from "@ling/core/pi-protocol/runtime-methods";

@@ -1,15 +1,27 @@
 import { appVersionSchema } from "@ling/contracts/application";
-import type { SessionMessage, SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import type { SessionMessage } from "@ling/contracts/session-messages";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import { toError } from "@ling/core/ling-error";
 import { sessionMessagesSchema } from "@ling/core/pi-protocol/runtime-payload-schemas";
-import type { SessionTranscriptProjectionCache } from "@ling/host/domains/sessions/transcript-projection-cache-port";
 import { FileSizeLimitError, readUtf8FileBounded, writeTextFileAtomic } from "@ling/core/store/atomic-file-store";
 import { createHash } from "node:crypto";
 import { unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { setImmediate } from "node:timers/promises";
 import { z } from "zod";
+
+type SessionTranscriptProjectionCacheWriteResult = "written" | "projectionTooLarge";
+
+export interface SessionTranscriptProjectionCache {
+	read(ref: SessionRef, cacheKey: string): Promise<readonly SessionMessage[] | null>;
+	write(
+		ref: SessionRef,
+		cacheKey: string,
+		messages: readonly SessionMessage[],
+	): Promise<SessionTranscriptProjectionCacheWriteResult>;
+	delete(ref: SessionRef): Promise<void>;
+}
 
 /** Format revision for persisted transcript projections; changing the projected shape invalidates older files. */
 const CACHE_FORMAT_VERSION = 2 as const;

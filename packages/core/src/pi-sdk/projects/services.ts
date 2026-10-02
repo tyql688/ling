@@ -1,4 +1,5 @@
 import { mergePiResourceReloadModes, type PiResourceReloadMode } from "@ling/contracts/session";
+
 import type { McpUi } from "../mcp/mcp-extension";
 import type { PiModelRuntimes } from "../models/model-runtime";
 import { createPiToolOriginRecorder } from "../extensions/pi-tool-origin";
@@ -14,7 +15,7 @@ import type {
 	PiSettingsManager,
 	PiExtensionUiContext,
 } from "../types";
-import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
+import { type ModelRuntime, SettingsManager } from "@earendil-works/pi-coding-agent";
 import { realpath, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { toCommandError } from "../../command-resolver";
@@ -24,7 +25,6 @@ import { pathIdentity } from "../../paths";
 import { assertNoBlockingDiagnostics, collectServiceDiagnostics } from "../diagnostics";
 import { reconcilePiExtensionFlagValues } from "../extensions/extension-flags";
 import type { LingSkillResources } from "../resources/skill-toggles";
-import { createSettingsManager } from "../sdk-factories";
 
 import {
 	createBoundedAgentSessionServices,
@@ -388,7 +388,7 @@ async function createProjectServices(
 	let loadedServices: PiAgentSessionServices | null = null;
 	try {
 		throwIfOperationAborted(signal);
-		const settingsManager = createSettingsManager(slot.cwd, owner.agentDir);
+		const settingsManager = SettingsManager.create(slot.cwd, owner.agentDir);
 		await prepareFreshProjectExtensionGeneration(slot.cwd, owner.agentDir);
 		throwIfOperationAborted(signal);
 		modelRuntime = await owner.createCwdModelRuntime(slot.cwd, owner.agentDir, signal);
@@ -871,7 +871,7 @@ async function reloadProjectSettingsNow(
 				// Build a complete project generation beside the live one. Reusing and
 				// mutating the live ResourceLoader first would leave settings, extensions,
 				// and provider overlays from different generations when validation fails.
-				const candidateSettingsManager = createSettingsManager(services.cwd, services.agentDir);
+				const candidateSettingsManager = SettingsManager.create(services.cwd, services.agentDir);
 				await candidateSettingsManager.reload();
 				if (!isCurrentOpen(slot, generation, services)) continue;
 				if (mode === "full") await prepareFreshProjectExtensionGeneration(services.cwd, services.agentDir);

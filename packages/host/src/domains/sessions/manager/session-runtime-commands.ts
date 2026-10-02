@@ -1,36 +1,40 @@
-import type { ExtensionUiEditorTextRequest } from "@ling/contracts/session-extension-ui";
+import type {
+	ExtensionUiEditorTextRequest,
+	ApplyExtensionAutocompleteRequest,
+	ApplyExtensionAutocompleteResult,
+	ExtensionAutocompleteRequest,
+	ExtensionAutocompleteSuggestions,
+	ExtensionTerminalInputResult,
+	SessionCommandArgumentCompletionRequest,
+	SessionRuntimeBindingRequest,
+} from "@ling/contracts/session-extension-ui";
 import type { McpCommandRequest } from "@ling/contracts/mcp";
 import type { ExtensionUiBridge } from "@ling/core/pi-protocol/extension-ui";
 import type { SessionRegistry } from "./session-registry";
-import type { SessionTranscriptProjectionCache } from "../transcript-projection-cache-port";
+import type { SessionTranscriptProjectionCache } from "../session-transcript-projection-cache";
 import type { MessageFileReference } from "@ling/contracts/file-reference-text";
+import type {
+	ImageAttachment,
+	ToolResultSessionMessage,
+	SessionImageSource,
+	SessionMessage,
+} from "@ling/contracts/session-messages";
 import {
-	type ApplyExtensionAutocompleteRequest,
-	type ApplyExtensionAutocompleteResult,
-	type ExtensionAutocompleteRequest,
-	type ExtensionAutocompleteSuggestions,
-	type ExtensionTerminalInputResult,
-	type ImageAttachment,
 	type ModelState,
 	type ReadSessionCompanionRequest,
 	type ReadToolResultRequest,
-	type ToolResultSessionMessage,
 	type ReadTranscriptPageRequest,
 	type ReadTranscriptPageResponse,
 	type RuntimeCommandCatalogSnapshot,
 	type RuntimeExtensionUiSnapshot,
 	type SendMode,
-	type SessionCommandArgumentCompletionRequest,
-	type SessionImageSource,
-	type SessionMessage,
-	type SessionRef,
-	type SessionRuntimeBindingRequest,
 	type SessionSnapshot,
 	type SessionSnapshotRequest,
 	type SetSessionModelRequest,
 	type SetSessionThinkingLevelRequest,
 	SESSION_MESSAGE_TEXT_MAX_CHARS,
 } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { stripFileReferenceTargets } from "@ling/contracts/file-reference-text";
 import { createLingError, throwIfOperationAborted } from "@ling/core/ling-error";
 import { createCommandCatalogSnapshot, createExtensionUiSnapshot } from "./session-companion";

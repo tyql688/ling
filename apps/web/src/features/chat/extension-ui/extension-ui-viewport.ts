@@ -1,5 +1,5 @@
 import type { LingApi } from "@ling/contracts/api/ling-api";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { EXTENSION_DOCK_LINE_CLASS, readExtensionDockContentWidth } from "./extension-dock-layout";
 
 interface ExtensionViewportMeasurement {

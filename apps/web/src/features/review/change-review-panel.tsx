@@ -27,7 +27,8 @@ import { ChangeReviewHeader, ChangeReviewScopeTabs } from "./change-review-heade
 
 import { ChangeReviewDetailPane } from "./change-review-preview";
 
-import { countReviewed, isFileReviewed, type ReviewedMap } from "./change-review-reviewed";
+import { countReviewed, isFileReviewed } from "./change-review-reviewed";
+import type { ReviewedMap } from "@ling/contracts/user-state";
 
 import { ChangeReviewCommitDialog, ChangeReviewDiscardDialog } from "./change-review-write-flow";
 

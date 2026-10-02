@@ -8,7 +8,7 @@ import type {
 	ChangeReviewUnpushedState,
 	ChangeScopeSummary,
 } from "@ling/contracts/git";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import {
 	buildChangeScopes,
 	buildTurnReviewScope,

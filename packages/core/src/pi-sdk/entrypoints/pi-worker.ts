@@ -38,7 +38,8 @@ import {
 	piWorkerErrorDto,
 } from "../../pi-protocol/protocol-validation";
 import { iteratePiWorkerResponseFrames, preparePiWorkerResponse } from "../../pi-protocol/response-stream";
-import { getAgentInfo, getPiAgentDir } from "../agent-info";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { getAgentInfo } from "../agent-info";
 import { createPiProjectTrustResolver } from "../projects/project-trust";
 import { createPiProjectServices } from "../projects/services";
 import { createPiTurnLifecycle } from "../session/turn-lifecycle";
@@ -168,7 +169,7 @@ export function startPiWorkerServer(options: StartPiWorkerServerOptions): PiWork
 	const startupCleanups: (() => void | Promise<void>)[] = [];
 	let startupShutdown: (() => Promise<void>) | null = null;
 	try {
-		const agentDir = getPiAgentDir();
+		const agentDir = getAgentDir();
 		const settings = createPiSettings(agentDir);
 		startupCleanups.push(settings.dispose);
 		const { initHttpProxy, applySystemProxyFallback } = settings.network;

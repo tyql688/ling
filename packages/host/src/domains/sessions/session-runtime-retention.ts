@@ -1,6 +1,6 @@
-import { uniqueSessionRefs, sessionKey } from "@ling/contracts/session-ref";
+import { uniqueSessionRefs, sessionKey, type SessionRef } from "@ling/contracts/session-ref";
 import type { ManagedSessionManager } from "@ling/host/domains/sessions/manager/session-manager";
-import type { SessionRef } from "@ling/contracts/session";
+
 import { createLogger } from "@ling/core/logger";
 
 const log = createLogger("session-runtime-retention");

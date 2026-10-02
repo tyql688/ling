@@ -1,4 +1,4 @@
-import type { SessionMessage } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import { partsText, type TextBearingPart } from "@renderer/features/chat/transcript/message-text";
 import { ANCHOR_SCROLL_MARGIN_PX } from "./transcript-scroll-policy";
 

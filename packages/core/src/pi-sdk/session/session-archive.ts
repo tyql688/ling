@@ -1,4 +1,4 @@
-import type { SessionMessage } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { createLingError } from "../../ling-error";
 import { projectPiBranchMessages } from "./session-message-projector";

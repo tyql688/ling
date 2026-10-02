@@ -1,5 +1,4 @@
 import { activeSkinAppearanceAtom } from "@renderer/lib/appearance/skin-state";
-import { useIsDarkTheme } from "@renderer/lib/appearance/use-is-dark-theme";
 import { useAtomValue } from "jotai";
 import * as monaco from "monaco-editor";
 import { useLayoutEffect } from "react";
@@ -12,8 +11,8 @@ function tokenColor(color: string): string {
 }
 
 export function useMonacoSkinTheme(): string {
-	const isDark = useIsDarkTheme();
 	const appearance = useAtomValue(activeSkinAppearanceAtom);
+	const isDark = appearance.appearance === "dark";
 	const themeName = isDark ? "ling-skin-dark" : "ling-skin-light";
 
 	useLayoutEffect(() => {

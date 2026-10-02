@@ -1,9 +1,7 @@
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import type {
-	CancelSessionOperationRequest,
-	ExtensionAutocompleteSuggestions,
-	SessionRef,
-} from "@ling/contracts/session";
+import type { CancelSessionOperationRequest } from "@ling/contracts/session";
+import type { ExtensionAutocompleteSuggestions } from "@ling/contracts/session-extension-ui";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import {
 	createBuiltinSessionOperationRef,
 	SESSION_AUTOCOMPLETE_OWNER_ID,

@@ -1,5 +1,5 @@
 import type { MessageFileReference } from "@ling/contracts/file-reference-text";
-import type { ImageAttachment } from "@ling/contracts/session";
+import type { ImageAttachment } from "@ling/contracts/session-messages";
 import type { McpCommand } from "@ling/contracts/mcp";
 import { runMcpCommand } from "../mcp/mcp-extension";
 import { throwAggregateFailures } from "../../ling-error";

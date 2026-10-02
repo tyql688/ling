@@ -9,13 +9,18 @@ import {
 import { createLingError } from "@ling/core/ling-error";
 import { parsePiWorkerSessionRef } from "@ling/core/pi-protocol/protocol-validation";
 import { normalizePluginSource } from "@ling/core/plugin-host/source";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { ProjectAccess } from "@ling/host/runtime/project-access";
 import type { PluginClient } from "@ling/host/workers/plugin/client";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { PluginMutationRunner } from "./plugin-mutation";
-import { installPluginRequestSchema, removePluginRequestSchema, updatePluginRequestSchema } from "./plugin-schemas";
+import { createPluginRequestSchemas } from "@ling/contracts/plugin-requests";
+import { absolutePathSchema } from "@ling/core/paths";
+
+const { installPluginRequestSchema, removePluginRequestSchema, updatePluginRequestSchema } = createPluginRequestSchemas(
+	absolutePathSchema("Plugin project path"),
+);
 
 /** Keep package listings bounded in the model context; source/scope filters narrow larger inventories. */
 const TOOL_PACKAGE_LIMIT = 100;

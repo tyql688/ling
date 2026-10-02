@@ -1,11 +1,7 @@
-import type {
-	ReadTranscriptPageRequest,
-	SessionMessage,
-	SessionRef,
-	TranscriptPage,
-	TranscriptPageDirection,
-} from "@ling/contracts/session";
-import { sameSessionRef, sessionKey } from "@ling/contracts/session-ref";
+import type { ReadTranscriptPageRequest, TranscriptPage, TranscriptPageDirection } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
+import { type SessionRef, sameSessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 /** Paging protocol/cursor version; bumping invalidates old cursors (deliberately, to prevent cross-generation reads). */

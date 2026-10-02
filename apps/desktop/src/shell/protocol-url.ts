@@ -1,4 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { isAbsolute } from "node:path";
 
 const APP_URL_SCHEME = "ling";

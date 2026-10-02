@@ -1,13 +1,8 @@
-import {
-	type ApprovalRequest,
-	type DialogDismissEvent,
-	EXTENSION_UI_INPUT_MAX_CHARS,
-	EXTENSION_UI_TEXT_MAX_CHARS,
-	type ExtensionUiRequest,
-	type SessionRef,
-} from "@ling/contracts/session";
+import type { ApprovalRequest, DialogDismissEvent, ExtensionUiRequest } from "@ling/contracts/session";
+import { EXTENSION_UI_INPUT_MAX_CHARS, EXTENSION_UI_TEXT_MAX_CHARS } from "@ling/contracts/session-extension-ui";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 import { sessionProcedures } from "@ling/contracts/session-procedures";
-import { sessionKey } from "@ling/contracts/session-ref";
+
 import type { ExtensionUiBridge } from "@ling/core/pi-protocol/extension-ui";
 import type { SessionRegistry } from "@ling/host/domains/sessions/manager/session-registry";
 import type { HostClientState } from "@ling/host/transport/client-state";

@@ -1,7 +1,7 @@
 import type { ShellProcedureClient } from "./shell-procedures";
 import type { AppPlatform, SystemPermissionStatus, ThemeSource } from "../application";
 import type { HostShellEvent } from "../host-shell";
-import type { ExtensionTerminalInputReplayRequest } from "../session";
+import type { ExtensionTerminalInputReplayRequest } from "../session-extension-ui";
 
 export interface ShellCapabilities {
 	directoryPicker: boolean;

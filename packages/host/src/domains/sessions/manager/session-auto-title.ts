@@ -1,5 +1,5 @@
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import { createLogger } from "@ling/core/logger";
 import type { ManagedSession } from "./session-managed-state";
 

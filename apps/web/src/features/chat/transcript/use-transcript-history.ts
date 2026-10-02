@@ -1,7 +1,8 @@
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import type { CancelSessionOperationRequest, SessionRef, TranscriptPage } from "@ling/contracts/session";
+import type { CancelSessionOperationRequest, TranscriptPage } from "@ling/contracts/session";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 import { createBuiltinSessionOperationRef, SESSION_TRANSCRIPT_OWNER_ID } from "@ling/contracts/owner-ref";
-import { sessionKey } from "@ling/contracts/session-ref";
+
 import {
 	captureRendererSessionState,
 	isRendererSessionStateCurrent,

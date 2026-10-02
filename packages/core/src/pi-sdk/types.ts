@@ -5,7 +5,6 @@ import type {
 	AgentSessionServices,
 	CreateAgentSessionOptions,
 	CreateAgentSessionRuntimeFactory,
-	ExtensionRuntime,
 	ExtensionUIContext,
 	InlineExtension,
 	LoadExtensionsResult,
@@ -43,7 +42,6 @@ export type PiAgentSessionEvent = AgentSessionEvent;
 export type PiAgentSessionServices = AgentSessionServices;
 export type PiCreateAgentSessionOptions = CreateAgentSessionOptions;
 export type PiCreateAgentSessionRuntimeFactory = CreateAgentSessionRuntimeFactory;
-export type PiExtensionRuntime = ExtensionRuntime;
 export type PiExtensionUiContext = ExtensionUIContext;
 export type PiInlineExtension = InlineExtension;
 export type PiLoadExtensionsResult = LoadExtensionsResult;

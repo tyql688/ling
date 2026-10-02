@@ -1,7 +1,9 @@
 import type { BoundedJsonObject } from "@ling/contracts/bounded-json";
 import type { ModelLoginEvent } from "@ling/contracts/model";
 import type { ProjectPiConfig } from "@ling/contracts/project";
-import type { ExtensionUiStateEvent, SessionCommandCatalog, SessionRef } from "@ling/contracts/session";
+import type { ExtensionUiStateEvent } from "@ling/contracts/session-extension-ui";
+import type { SessionCommandCatalog } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
 import type {
 	SessionCatalogDiscovery,

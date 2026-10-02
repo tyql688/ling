@@ -1,5 +1,5 @@
 import { createReadTool } from "@earendil-works/pi-coding-agent";
-import type { ImageAttachment } from "@ling/contracts/session";
+import type { ImageAttachment } from "@ling/contracts/session-messages";
 import type { PiAgentSession } from "../types";
 
 /** Pi 0.87 normalizes prompt images but not steer/followUp images. Reuse its public

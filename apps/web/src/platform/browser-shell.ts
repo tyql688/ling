@@ -1,7 +1,7 @@
 import type { HostConnectionInfo, HostShellEvent } from "@ling/contracts/host-shell";
-import type { SessionRef } from "@ling/contracts/session";
+import { type SessionRef, sameSessionRef, sessionKey } from "@ling/contracts/session-ref";
 import { toError } from "@ling/contracts/ling-error";
-import { sameSessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import type { ShellApi, ShellEnvironment } from "@ling/contracts/api/shell-api";
 import type { HostApi } from "@ling/contracts/api/host-procedures";
 

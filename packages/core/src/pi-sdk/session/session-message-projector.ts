@@ -1,4 +1,4 @@
-import type { SessionMessage, ToolResultSessionMessage } from "@ling/contracts/session";
+import type { SessionMessage, ToolResultSessionMessage } from "@ling/contracts/session-messages";
 import { createLingError } from "@ling/core/ling-error";
 import { inspectPiSessionEntryIdentity } from "../../transcript/session-entry-identity";
 import { renderPiCustomEntry, renderPiCustomMessage } from "../extensions/extension-message-renderer";

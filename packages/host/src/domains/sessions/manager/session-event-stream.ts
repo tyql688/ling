@@ -1,9 +1,5 @@
-import type {
-	LingSessionEvent,
-	SessionEventEnvelope,
-	SessionRef,
-	SessionRuntimeWatermark,
-} from "@ling/contracts/session";
+import type { LingSessionEvent, SessionEventEnvelope, SessionRuntimeWatermark } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { sessionEventPolicy } from "@ling/contracts/session-event-policy";
 import { randomUUID } from "node:crypto";
 

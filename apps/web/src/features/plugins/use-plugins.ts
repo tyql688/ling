@@ -1,6 +1,14 @@
-import { useDomainApi } from "@renderer/lib/host-api-context";
-import type { PluginMutationResponse, PluginPackageScope } from "@ling/contracts/plugin";
 import type { PiResourceReloadSummary } from "@ling/contracts/session";
+import { useDomainApi } from "@renderer/lib/host-api-context";
+import type { AgentInfo } from "@ling/contracts/application";
+import type {
+	ConfiguredPackage,
+	PluginProgressEvent,
+	PluginUpdateInfo,
+	PluginMutationResponse,
+	PluginPackageScope,
+} from "@ling/contracts/plugin";
+
 import { toError } from "@ling/contracts/ling-error";
 import { type OperationRef, createBuiltinOperationRef, sameOperationRef } from "@ling/contracts/owner-ref";
 import {
@@ -9,18 +17,17 @@ import {
 	type PluginMutationAction,
 	pluginMutationRevision,
 } from "@ling/contracts/plugin-operation";
-import {
-	agentInfoAtom,
-	availableUpdatesAtom,
-	checkingUpdatesAtom,
-	configuredPackagesAtom,
-	pluginsBusyAtom,
-	pluginsErrorAtom,
-	progressLogAtom,
-} from "@renderer/features/plugins/state";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+const agentInfoAtom = atom<AgentInfo | null>(null);
+const configuredPackagesAtom = atom<ConfiguredPackage[]>([]);
+const availableUpdatesAtom = atom<PluginUpdateInfo[]>([]);
+const checkingUpdatesAtom = atom(false);
+const pluginsBusyAtom = atom(false);
+const progressLogAtom = atom<PluginProgressEvent[]>([]);
+const pluginsErrorAtom = atom<Error | null>(null);
 
 export function usePlugins() {
 	const hostPluginsApi = useDomainApi("plugins");

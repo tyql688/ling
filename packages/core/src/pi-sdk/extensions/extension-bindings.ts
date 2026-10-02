@@ -1,5 +1,5 @@
 import type { PiExtensionUi } from "./extension-ui-context";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { createUnsupportedExtensionUiError } from "../../pi-protocol/extension-ui";
 import { createLogger } from "../../logger";
 import type { PiModelProjection } from "../models/model-projection";

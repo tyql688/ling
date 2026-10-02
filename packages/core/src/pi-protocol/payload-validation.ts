@@ -4,7 +4,7 @@ import {
 	EXTENSION_UI_RENDERED_LINE_MAX_ITEMS,
 	EXTENSION_UI_TEXT_MAX_CHARS,
 	EXTENSION_UI_WORKING_FRAME_MAX_ITEMS,
-} from "@ling/contracts/session";
+} from "@ling/contracts/session-extension-ui";
 import { z } from "zod";
 import { parsePiWorkerDomainEvent } from "./domain-payload-schemas";
 import type { PiWorkerEvent } from "./protocol";

@@ -1,4 +1,4 @@
-import type { SessionMessage } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import { partsText } from "@renderer/features/chat/transcript/message-text";
 
 type AssistantMessage = Extract<SessionMessage, { role: "assistant" }>;

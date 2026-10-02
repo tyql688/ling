@@ -1,4 +1,5 @@
-import type { SessionImageSource, SessionRef } from "@ling/contracts/session";
+import type { SessionImageSource } from "@ling/contracts/session-messages";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { sessionImageUrl } from "@ling/contracts/markdown-image-url";
 import { useMemo } from "react";
 import { useSessionImageRef } from "./session-image-source";

@@ -1,12 +1,13 @@
+import type { SessionQueuedMessage } from "@ling/contracts/session";
 import { appPageAtom, newConversationCwdAtom, composerFocusRequestIdAtom } from "@renderer/lib/navigation-state";
 import { sessionsAtom, activeSessionRefAtom } from "@renderer/features/sessions/state/session";
 import { sameSessionRef } from "@ling/contracts/session-ref";
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import type { SessionQueuedMessage } from "@ling/contracts/session";
+
 import type { ImageAttachment } from "@ling/contracts/session-messages";
 import { projectFileReferenceTargets, type MessageFileReference } from "@ling/contracts/file-reference-text";
 import { sessionKey, toSessionRef, type SessionRef } from "@ling/contracts/session-ref";
-import type { PendingAttachment } from "@renderer/features/chat/composer/use-image-attachments";
+import type { PendingAttachment } from "@renderer/features/sessions/state/image-attachment-policy";
 import {
 	onRendererSessionStateEvicted,
 	setRendererSessionError,

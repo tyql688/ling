@@ -1,10 +1,6 @@
-import type {
-	EditQueuedRequest,
-	LingSessionEvent,
-	SessionMessage,
-	SessionQueue,
-	SessionRef,
-} from "@ling/contracts/session";
+import type { EditQueuedRequest, LingSessionEvent, SessionQueue } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
 import type { ReviewSnapshotFile } from "../change-review/change-review";
 

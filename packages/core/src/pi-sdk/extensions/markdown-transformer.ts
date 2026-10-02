@@ -1,5 +1,5 @@
 import type { MarkdownTransformContext, MarkdownTransformer } from "@earendil-works/pi-coding-agent";
-import type { AssistantContentPart, SessionMessage, UserContentPart } from "@ling/contracts/session";
+import type { AssistantContentPart, SessionMessage, UserContentPart } from "@ling/contracts/session-messages";
 import type { PiAgentSession, PiBranchProjectionSource } from "../types";
 
 const DEFAULT_MARKDOWN_WIDTH = 88;

@@ -1,4 +1,4 @@
-import type { AssistantUsage, SessionMessage } from "@ling/contracts/session";
+import type { AssistantUsage, SessionMessage } from "@ling/contracts/session-messages";
 import { usageModelKey } from "@ling/contracts/usage";
 
 export interface SessionUsageSummary {

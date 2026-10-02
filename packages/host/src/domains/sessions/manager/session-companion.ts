@@ -1,10 +1,10 @@
+import type { ExtensionUiStateSnapshot } from "@ling/contracts/session-extension-ui";
 import type {
-	ExtensionUiStateSnapshot,
 	RuntimeCommandCatalogSnapshot,
 	RuntimeExtensionUiSnapshot,
 	SessionCommandCatalog,
-	SessionRef,
 } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { createLingError } from "@ling/core/ling-error";
 
 /** Companion snapshot protocol version. */

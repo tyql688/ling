@@ -2,7 +2,8 @@ import type { ChangeReviewFile } from "@ling/contracts/git";
 import type { SessionRef } from "@ling/contracts/session-ref";
 import { sessionKey } from "@ling/contracts/session-ref";
 import { useAtom } from "jotai";
-import { reviewedStateAtomFamily, type ReviewedMap } from "./change-review-reviewed";
+import { reviewedStateAtomFamily } from "./change-review-reviewed";
+import type { ReviewedMap } from "@ling/contracts/user-state";
 
 interface ChangeReviewReviewedController {
 	reviewedMap: ReviewedMap;

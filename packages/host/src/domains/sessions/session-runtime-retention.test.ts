@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { ManagedSessionManager } from "./manager/session-manager";
 import { createSessionRuntimeRetentionHost } from "./session-runtime-retention";
 import { createHostClientState } from "../../transport/client-state";

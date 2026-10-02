@@ -1,4 +1,5 @@
 import { SESSION_IMAGE_MAX_ITEMS } from "@ling/contracts/session";
+
 import {
 	appendPendingAttachments,
 	type AttachmentIssue,
@@ -7,8 +8,6 @@ import {
 } from "@renderer/features/sessions/state/image-attachment-policy";
 import pLimit from "p-limit";
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
-
-export type { PendingAttachment } from "@renderer/features/sessions/state/image-attachment-policy";
 
 /** Optional external attachment state. When passed, the hook operates on it instead of an
  * internal `useState` — lets the session Composer persist attachments per-session in a

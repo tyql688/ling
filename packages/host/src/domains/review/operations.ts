@@ -3,9 +3,9 @@ import type {
 	CancelChangeReviewDiffResponse,
 	ChangeReviewDiffRequest,
 } from "@ling/contracts/git";
-import type { SessionRef } from "@ling/contracts/session";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 import { CHANGE_REVIEW_DIFF_OWNER_ID, isBuiltinOperationRef, sameOperationRef } from "@ling/contracts/owner-ref";
-import { sessionKey } from "@ling/contracts/session-ref";
+
 import { pathIdentity } from "@ling/core/paths";
 import type { OperationExecutionHandle, OperationExecutionRecord } from "../../operations/operation-execution";
 

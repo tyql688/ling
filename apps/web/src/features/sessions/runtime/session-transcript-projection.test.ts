@@ -1,4 +1,5 @@
-import type { SessionEventEnvelope, SessionMessage, SessionSnapshot, TranscriptPage } from "@ling/contracts/session";
+import type { SessionEventEnvelope, SessionSnapshot, TranscriptPage } from "@ling/contracts/session";
+import type { SessionMessage, AssistantSessionMessage } from "@ling/contracts/session-messages";
 import {
 	emptySessionTranscriptState,
 	emptySessionView,
@@ -10,7 +11,7 @@ import { createStore } from "jotai/vanilla";
 import { describe, expect, it } from "vitest";
 import { applyTranscriptTail, mergeHistoricalTranscriptPages } from "./session-transcript-projection";
 import { reduceSessionView } from "./session-view";
-import type { AssistantSessionMessage } from "@ling/contracts/session-messages";
+
 import {
 	applySessionMessageDelta,
 	createSessionMessageDelta,

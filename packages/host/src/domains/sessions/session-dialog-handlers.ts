@@ -1,10 +1,9 @@
 import type {
 	ApplyExtensionAutocompleteResult,
-	ApprovalRequest,
 	ExtensionAutocompleteSuggestions,
 	ExtensionTerminalInputResult,
-	ExtensionUiRequest,
-} from "@ling/contracts/session";
+} from "@ling/contracts/session-extension-ui";
+import type { ApprovalRequest, ExtensionUiRequest } from "@ling/contracts/session";
 import { sessionProcedures } from "@ling/contracts/session-procedures";
 import { SESSION_AUTOCOMPLETE_OWNER_ID } from "@ling/contracts/owner-ref";
 import type { SessionRuntimeCommands } from "@ling/host/domains/sessions/manager/session-runtime-commands";

@@ -1,7 +1,7 @@
 import { ABSOLUTE_PATH_MAX_CHARS, SESSION_ID_MAX_CHARS } from "@ling/contracts/path-bounds";
 import { isRecord as isDatasetRecord } from "@ling/contracts/records";
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import type { ReviewSnapshotFile } from "@ling/core/change-review/change-review";
 import { requestCancelled, toError } from "@ling/core/ling-error";
 import { readUtf8FileSyncBounded } from "@ling/core/store/atomic-file-store";

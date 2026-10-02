@@ -1,4 +1,4 @@
-import type { ToolResultSessionMessage } from "@ling/contracts/session";
+import type { ToolResultSessionMessage } from "@ling/contracts/session-messages";
 import { isTodoOrigin, todoDetailsSchema, type TodoDetails } from "@ling/contracts/todo";
 import { Button } from "@renderer/components/ui/button";
 import { useFeatureNavigation } from "@renderer/components/workbench/feature-navigation";

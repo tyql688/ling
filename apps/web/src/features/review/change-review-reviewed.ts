@@ -5,7 +5,6 @@ import { mutateUserStateAtom, userStateAtom } from "@renderer/lib/user-state/sta
 import { atom } from "jotai";
 import { atomFamily } from "jotai-family";
 
-export type { ReviewedMap } from "@ling/contracts/user-state";
 const EMPTY_REVIEWED: ReviewedMap = {};
 export const reviewedStateAtomFamily = atomFamily((key: string) =>
 	atom(

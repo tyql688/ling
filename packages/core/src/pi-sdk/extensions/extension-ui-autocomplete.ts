@@ -6,12 +6,11 @@ import {
 	EXTENSION_AUTOCOMPLETE_TOTAL_MAX_CHARS,
 	EXTENSION_UI_INPUT_MAX_CHARS,
 	EXTENSION_UI_TEXT_MAX_CHARS,
-} from "@ling/contracts/session";
-import type {
-	ApplyExtensionAutocompleteResult,
-	ExtensionAutocompleteItem,
-	ExtensionAutocompleteSuggestions,
+	type ApplyExtensionAutocompleteResult,
+	type ExtensionAutocompleteItem,
+	type ExtensionAutocompleteSuggestions,
 } from "@ling/contracts/session-extension-ui";
+
 import type { SessionRef } from "@ling/contracts/session-ref";
 import { sessionKey } from "@ling/contracts/session-ref";
 import { throwIfOperationAborted, waitForOperation } from "../../ling-error";

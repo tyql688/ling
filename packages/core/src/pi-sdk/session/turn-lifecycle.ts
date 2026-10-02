@@ -1,4 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiTurnContext, PiTurnFallbackCapture, PiTurnLifecycleHost } from "@ling/core/pi-protocol/turn-review";
 import type {
 	PiInlineExtension,

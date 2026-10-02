@@ -1,7 +1,7 @@
 import type { HostNotificationKind, HostShellEvent } from "@ling/contracts/host-shell";
 import type { UiLanguage } from "@ling/contracts/application";
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import { createRuntimeLifetime } from "@ling/node-runtime/runtime-lifetime";
 import { app, Menu, nativeImage, Notification, powerSaveBlocker, Tray, type BrowserWindow } from "electron";
 import { basename, join } from "node:path";

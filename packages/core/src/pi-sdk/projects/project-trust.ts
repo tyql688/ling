@@ -1,8 +1,12 @@
+import {
+	getAgentDir,
+	hasTrustRequiringProjectResources,
+	ProjectTrustStore,
+	SettingsManager,
+} from "@earendil-works/pi-coding-agent";
 import type { ProjectTrustChoice } from "@ling/contracts/project";
 import { homedir } from "node:os";
 import { createLogger } from "../../logger";
-import { getPiAgentDir } from "../agent-info";
-import { createProjectTrustStore, createSettingsManager, hasPiTrustRequiringProjectResources } from "../sdk-factories";
 
 const log = createLogger("pi-project-trust");
 
@@ -17,18 +21,18 @@ type PiProjectTrustPrompt = (cwd: string) => Promise<ProjectTrustChoice | null>;
 export function createPiProjectTrustResolver(promptForTrust: PiProjectTrustPrompt): (cwd: string) => Promise<boolean> {
 	const sessionTrustedProjects = new Set<string>();
 	return async (cwd) => {
-		if (!hasPiTrustRequiringProjectResources(cwd)) return true;
+		if (!hasTrustRequiringProjectResources(cwd)) return true;
 		// One entry per project the user explicitly session-trusted, released with the host
 		// process. That is the user's own decision, so it is not capped or evicted.
 		if (sessionTrustedProjects.has(cwd)) return true;
 
-		const store = createProjectTrustStore();
+		const store = new ProjectTrustStore(getAgentDir());
 		const stored = store.get(cwd);
 		if (stored !== null) return stored;
 
 		// Same bootstrap trick as pi's CLI: read global settings with the project treated as
 		// untrusted, purely to learn the defaultProjectTrust policy.
-		const policy = createSettingsManager(homedir(), getPiAgentDir(), {
+		const policy = SettingsManager.create(homedir(), getAgentDir(), {
 			projectTrusted: false,
 		}).getDefaultProjectTrust();
 		if (policy === "always") return true;

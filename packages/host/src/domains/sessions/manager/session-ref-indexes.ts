@@ -1,5 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 
 interface ReplacedRuntimeRefTombstone {
 	previousRef: SessionRef;

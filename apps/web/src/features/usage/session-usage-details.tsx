@@ -1,4 +1,4 @@
-import type { SessionMessage } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import { DisclosureRow } from "@renderer/components/ui/disclosure-row";
 import { formatCost } from "@renderer/lib/format";
 import { formatCompactNumber } from "@renderer/lib/format-number";

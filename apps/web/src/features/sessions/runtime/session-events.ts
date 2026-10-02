@@ -1,10 +1,6 @@
 import { applySessionMessageDelta } from "@ling/contracts/session-message-delta";
-import type {
-	AutoRetryStatus,
-	LingSessionEvent,
-	SessionMessage,
-	SummarizationRetryStatus,
-} from "@ling/contracts/session";
+import type { AutoRetryStatus, LingSessionEvent, SummarizationRetryStatus } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import {
 	attachDurableMessageIdentity,
 	mergeSessionMessageIdentity,

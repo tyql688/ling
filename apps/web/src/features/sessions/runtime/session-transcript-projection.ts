@@ -1,4 +1,5 @@
-import type { SessionEventEnvelope, SessionMessage, TranscriptPage } from "@ling/contracts/session";
+import type { SessionEventEnvelope, TranscriptPage } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import { mergeSessionMessageIdentity } from "./session-message-identity";
 import type { SessionTranscriptState } from "@renderer/features/sessions/state/session";
 

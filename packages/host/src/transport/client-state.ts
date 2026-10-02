@@ -1,5 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 
 export interface HostClientState {
 	claimSession(clientId: string, ref: SessionRef): void;

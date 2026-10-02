@@ -1,12 +1,12 @@
 import { createLogger } from "../../logger";
-import { getPiAgentDir } from "../agent-info";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { createPiPackageHostService } from "../resources/package-host-service";
 import { createPiSettings } from "../settings/settings";
 
 const log = createLogger("plugin-host");
 
 export function createPiPluginHost(systemProxyFallback: string | null) {
-	const settings = createPiSettings(getPiAgentDir());
+	const settings = createPiSettings(getAgentDir());
 	try {
 		settings.network.initHttpProxy();
 	} catch (error) {

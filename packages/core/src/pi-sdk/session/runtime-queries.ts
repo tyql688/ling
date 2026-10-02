@@ -1,6 +1,6 @@
 import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
+import type { ImageAttachment } from "@ling/contracts/session-messages";
 import {
-	type ImageAttachment,
 	type ModelState,
 	type SessionCommandCatalog,
 	sessionImageMimeTypeSchema,

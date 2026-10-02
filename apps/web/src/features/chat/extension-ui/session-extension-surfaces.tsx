@@ -1,5 +1,5 @@
 import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
-import { EMPTY_EXTENSION_UI_STATE } from "@ling/contracts/session";
+import { EMPTY_EXTENSION_UI_STATE } from "@ling/contracts/session-extension-ui";
 import { PanelBoundary } from "@renderer/components/error-fallback";
 import { extensionUiSnapshotFamily } from "@renderer/features/sessions/state/session";
 import { useCommandFeedback } from "@renderer/hooks/use-command-feedback";

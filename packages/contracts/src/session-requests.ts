@@ -5,6 +5,9 @@ import {
 	EXTENSION_AUTOCOMPLETE_LABEL_MAX_CHARS,
 	EXTENSION_UI_INPUT_MAX_CHARS,
 	EXTENSION_UI_TEXT_MAX_CHARS,
+	type ExtensionAutocompleteItem,
+} from "./session-extension-ui";
+import {
 	SESSION_IMAGE_MAX_BYTES,
 	SESSION_IMAGE_MAX_ITEMS,
 	sessionImageMimeTypeSchema,
@@ -12,7 +15,6 @@ import {
 	SESSION_MESSAGE_TEXT_MAX_CHARS,
 	SESSION_TITLE_MAX_CHARS,
 	THINKING_LEVELS,
-	type ExtensionAutocompleteItem,
 } from "./session";
 import { operationRefSchema } from "./owner-ref";
 import { boundedString, nonEmptyBoundedString, safeIdSchema } from "./schema-primitives";

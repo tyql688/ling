@@ -1,7 +1,8 @@
+import { CONFIG_DIR_NAME, DefaultPackageManager, getAgentDir, SettingsManager } from "@earendil-works/pi-coding-agent";
 import type { PiSettings } from "../settings/settings";
 import { type PluginProgressEvent, PLUGIN_SOURCE_LIST_MAX_ITEMS } from "@ling/contracts/plugin";
 import { isLingError, throwAggregateFailures } from "@ling/core/ling-error";
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import pLimit from "p-limit";
 import { requireCommand, toCommandError } from "../../command-resolver";
@@ -19,8 +20,24 @@ import {
 	parsePluginHostResponse,
 } from "../../plugin-host/protocol";
 import { normalizePluginSource, pluginSourceUsesGit, pluginSourceUsesNpm } from "../../plugin-host/source";
-import { createPiPackageManagerHandle } from "../sdk-factories";
-import type { PiSettingsManager } from "../types";
+import type { PiProgressEvent, PiSettingsManager } from "../types";
+
+function createPiPackageManagerHandle(
+	cwd: string,
+	onProgress: (event: PiProgressEvent) => void,
+	options?: Parameters<typeof SettingsManager.create>[2],
+) {
+	const agentDir = getAgentDir();
+	const projectCwd = resolve(cwd);
+	const settingsManager = SettingsManager.create(cwd, agentDir, options);
+	const packageManager = new DefaultPackageManager({ cwd: projectCwd, agentDir, settingsManager });
+	packageManager.setProgressCallback(onProgress);
+	return {
+		packageManager,
+		settingsManager,
+		packageSourceBaseDirs: { global: agentDir, project: join(projectCwd, CONFIG_DIR_NAME) },
+	};
+}
 
 function localOption(scope: PluginPackageScope): { local: boolean } {
 	return { local: scope === "project" };

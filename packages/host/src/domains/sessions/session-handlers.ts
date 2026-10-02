@@ -1,4 +1,4 @@
-import { sameSessionRef } from "@ling/contracts/session-ref";
+import { sameSessionRef, type SessionRef } from "@ling/contracts/session-ref";
 import { createLingError } from "@ling/core/ling-error";
 import { assertProjectDirectory } from "@ling/host/runtime/project-directory";
 import type {
@@ -10,7 +10,6 @@ import type {
 	SessionCatalogStatus,
 	SessionCatalogChange,
 	SessionDeletionOutcome,
-	SessionRef,
 	SessionSnapshot,
 	SessionSummary,
 } from "@ling/contracts/session";

@@ -11,54 +11,6 @@ import type { ExtensionUiStateSnapshot } from "./session-extension-ui";
 import type { CompactionSummarySessionMessage, ImageAttachment, SessionMessage } from "./session-messages";
 import type { SessionRef } from "./session-ref";
 
-export type { BoundedJson } from "./bounded-json";
-export {
-	EMPTY_EXTENSION_UI_STATE,
-	EXTENSION_AUTOCOMPLETE_DESCRIPTION_MAX_CHARS,
-	EXTENSION_AUTOCOMPLETE_LABEL_MAX_CHARS,
-	EXTENSION_AUTOCOMPLETE_MAX_ITEMS,
-	EXTENSION_AUTOCOMPLETE_MAX_LINES,
-	EXTENSION_AUTOCOMPLETE_TOTAL_MAX_CHARS,
-	EXTENSION_UI_INPUT_MAX_CHARS,
-	EXTENSION_UI_KEY_MAX_CHARS,
-	EXTENSION_UI_RENDERED_LINE_MAX_ITEMS,
-	EXTENSION_UI_STATE_COLLECTION_MAX_ITEMS,
-	EXTENSION_UI_TEXT_MAX_CHARS,
-	EXTENSION_UI_WORKING_FRAME_MAX_ITEMS,
-} from "./session-extension-ui";
-export type {
-	ApplyExtensionAutocompleteRequest,
-	ApplyExtensionAutocompleteResult,
-	ExtensionAutocompleteItem,
-	ExtensionAutocompleteRequest,
-	ExtensionAutocompleteSuggestions,
-	ExtensionTerminalInputReplayRequest,
-	ExtensionTerminalInputResult,
-	ExtensionUiStateEvent,
-	ExtensionUiStateSnapshot,
-	SessionCommandArgumentCompletionRequest,
-	SessionRuntimeBindingRequest,
-} from "./session-extension-ui";
-export type {
-	AssistantContentPart,
-	AssistantSessionMessage,
-	AssistantUsage,
-	BranchSummarySessionMessage,
-	CompactionSummarySessionMessage,
-	CustomSessionMessage,
-	ImageAttachment,
-	ModelChangeSessionMessage,
-	RenderedCustomSessionMessage,
-	RenderedTextSnapshot,
-	SessionImageSource,
-	SessionMessage,
-	ToolResultContentPart,
-	ToolResultSessionMessage,
-	UserContentPart,
-	UserSessionMessage,
-} from "./session-messages";
-export type { SessionRef } from "./session-ref";
-
 /** Thinking-level closed set (shallow → deep), aligned with Pi capabilities; the selector renders in this order and free strings are rejected. */
 export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
 export type ThinkingLevel = (typeof THINKING_LEVELS)[number];

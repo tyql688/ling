@@ -5,8 +5,8 @@ import {
 	type HostShellEvent,
 	type HostShellState,
 } from "@ling/contracts/host-shell";
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import type { AppSettingsSnapshot } from "@ling/contracts/application";
 import type { HostClientState } from "./client-state";
 import type { HostEventPublisher } from "./event-bus";

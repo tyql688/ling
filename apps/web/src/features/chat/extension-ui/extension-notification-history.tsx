@@ -1,5 +1,5 @@
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import type { ExtensionUiStateSnapshot } from "@ling/contracts/session";
+import type { ExtensionUiStateSnapshot } from "@ling/contracts/session-extension-ui";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@renderer/components/ui/tooltip";
 import { cn } from "@renderer/lib/utils";
 import { AlertCircle, AlertTriangle, ExternalLink, Info } from "lucide-react";

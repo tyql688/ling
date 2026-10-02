@@ -16,7 +16,7 @@ import {
 import { requestCancelled, throwAggregateFailures } from "../../ling-error";
 import { createLogger } from "../../logger";
 import { redactProxyUrl } from "../../proxy-url";
-import { createSettingsManager } from "../sdk-factories";
+import { SettingsManager } from "@earendil-works/pi-coding-agent";
 import type { PiSettingsManager } from "../types";
 
 const log = createLogger("http-proxy");
@@ -142,7 +142,7 @@ export function createPiHttpProxy({
 
 	function globalSettingsManager(): PiSettingsManager {
 		// Same construction as the global package manager: cwd is irrelevant for global reads.
-		return createSettingsManager(homedir(), agentDir);
+		return SettingsManager.create(homedir(), agentDir);
 	}
 
 	function configureDispatcher(timeoutMs: number): void {

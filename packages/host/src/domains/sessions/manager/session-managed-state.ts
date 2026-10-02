@@ -1,10 +1,6 @@
 import type { ToolExecutionProgress } from "@ling/contracts/session-tool-progress";
-import type {
-	AutoRetryStatus,
-	SessionCommandCatalog,
-	SessionRef,
-	SummarizationRetryStatus,
-} from "@ling/contracts/session";
+import type { AutoRetryStatus, SessionCommandCatalog, SummarizationRetryStatus } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { ApprovalRequester, ExtensionUiRequester } from "@ling/core/pi-protocol/extension-ui";
 import type { SessionEventStream } from "./session-event-stream";
 import type { SessionFileSyncController } from "./session-file-sync";

@@ -1,7 +1,7 @@
 import { shellProcedures } from "@ling/contracts/api/shell-procedures";
 import type { ShellWindowCommand, ThemeSource } from "@ling/contracts/application";
 import type { HostConnectionInfo } from "@ling/contracts/host-shell";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { supportsWindowsAcrylicBuild } from "@ling/contracts/api/shell-api";
 import { createRuntimeLifetime } from "@ling/node-runtime/runtime-lifetime";
 import { BrowserWindow, Menu, nativeTheme, screen } from "electron";

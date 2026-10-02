@@ -1,9 +1,9 @@
 import {
 	SESSION_SUMMARY_PREVIEW_MAX_CHARS,
 	SESSION_TITLE_MAX_CHARS,
-	type SessionRef,
 	type SessionSummary,
 } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { SessionRuntimePort } from "@ling/core/pi-protocol/runtime-port";
 import type { SessionCatalogFileFingerprint, SessionCatalogInfo } from "@ling/core/pi-protocol/runtime-types";
 

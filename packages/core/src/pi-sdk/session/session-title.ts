@@ -1,10 +1,11 @@
 import { SESSION_TITLE_MAX_CHARS } from "@ling/contracts/session";
 import {
-	createInMemoryPiSessionManager,
-	createInMemorySettingsManager,
-	createPiAgentSession,
-	createPiExtensionRuntime,
-} from "../sdk-factories";
+	createAgentSession,
+	createExtensionRuntime,
+	SessionManager,
+	SettingsManager,
+} from "@earendil-works/pi-coding-agent";
+
 import type { PiAgentSessionServices, PiCreateAgentSessionOptions, PiModel, PiResourceLoader } from "../types";
 
 /** Truncation suffix appended when a title exceeds SESSION_TITLE_MAX_CHARS; a three-character ellipsis, consistent with common UI. */
@@ -30,7 +31,7 @@ const TITLE_SYSTEM_PROMPT = [
  */
 function createTitleResourceLoader(): PiResourceLoader {
 	return {
-		getExtensions: () => ({ extensions: [], errors: [], runtime: createPiExtensionRuntime() }),
+		getExtensions: () => ({ extensions: [], errors: [], runtime: createExtensionRuntime() }),
 		getSkills: () => ({ skills: [], diagnostics: [] }),
 		getPrompts: () => ({ prompts: [], diagnostics: [] }),
 		getThemes: () => ({ themes: [], diagnostics: [] }),
@@ -107,13 +108,13 @@ export async function generateSessionTitle(
 		agentDir: services.agentDir,
 		modelRuntime: services.modelRuntime,
 		resourceLoader: createTitleResourceLoader(),
-		settingsManager: createInMemorySettingsManager({ compaction: { enabled: false }, retry: { enabled: false } }),
-		sessionManager: createInMemoryPiSessionManager(services.cwd),
+		settingsManager: SettingsManager.inMemory({ compaction: { enabled: false }, retry: { enabled: false } }),
+		sessionManager: SessionManager.inMemory(services.cwd),
 		tools: [],
 		model,
 	};
 
-	const { session } = await createPiAgentSession(options);
+	const { session } = await createAgentSession(options);
 	try {
 		await session.prompt(
 			[

@@ -1,6 +1,7 @@
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import type { ExtensionUiStateSnapshot, SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import type { ExtensionUiStateSnapshot } from "@ling/contracts/session-extension-ui";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import { SessionProgressIndicator } from "@renderer/features/chat/transcript/session-progress-indicator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@renderer/components/ui/tooltip";
 import { cn } from "@renderer/lib/utils";

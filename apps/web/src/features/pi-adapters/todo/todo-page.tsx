@@ -1,4 +1,6 @@
 import type { SessionRef } from "@ling/contracts/session-ref";
+import { UI_LANGUAGES, type UiLanguage } from "@ling/contracts/application";
+import type { i18n } from "i18next";
 import { todoProgress } from "@ling/contracts/todo";
 import { Button } from "@renderer/components/ui/button";
 import { FeedbackNotice } from "@renderer/components/ui/feedback";
@@ -9,9 +11,14 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TodoTasks } from "./todo-tasks";
 import { useTodo } from "./use-todo";
-import { uiLanguage } from "@renderer/features/companions/ui-language";
 import { BuiltinFeatureNotice } from "@renderer/features/companions/builtin-features";
 import { useBuiltinFeatures } from "@renderer/features/companions/builtin-feature-state";
+
+/** Unsupported renderer languages let the Host choose its English fallback. */
+function uiLanguage(instance: i18n): UiLanguage | undefined {
+	const language = instance.resolvedLanguage ?? instance.language;
+	return UI_LANGUAGES.find((candidate) => candidate === language);
+}
 
 export function TodoPage({ sessionRef }: { sessionRef: SessionRef }) {
 	const { t, i18n } = useTranslation();

@@ -1,5 +1,5 @@
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import type { ApprovalRequester, ExtensionUiBridge, ExtensionUiRequester } from "@ling/core/pi-protocol/extension-ui";
 import type { PiWorkerCallMain } from "../../pi-protocol/callback-methods";
 

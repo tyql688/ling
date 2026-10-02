@@ -4,9 +4,9 @@ import { createSessionLifecycleEvents } from "./session-lifecycle-events";
 import { createSessionRegistry } from "./session-registry";
 import { createSessionRuntimeCommands } from "./session-runtime-commands";
 import type { BeforeBindSession, SessionRuntimeProvider } from "@ling/core/pi-protocol/runtime-provider";
-import type { SessionTranscriptProjectionCache } from "../transcript-projection-cache-port";
+import type { SessionTranscriptProjectionCache } from "../session-transcript-projection-cache";
+import { type SessionRef, sessionKey, toSessionRef } from "@ling/contracts/session-ref";
 import {
-	type SessionRef,
 	type PiResourceReloadMode,
 	type SessionResourceReloadSummary,
 	type SessionSummary,
@@ -14,7 +14,7 @@ import {
 	SESSION_RESOURCE_RELOAD_FAILURE_MAX_CHARS,
 	SESSION_RESOURCE_RELOAD_MAX_FAILURES,
 } from "@ling/contracts/session";
-import { sessionKey, toSessionRef } from "@ling/contracts/session-ref";
+
 import { errorCode } from "@ling/contracts/ling-error";
 import { createLingError, throwAggregateFailures, toError } from "@ling/core/ling-error";
 import { createLogger } from "@ling/core/logger";

@@ -7,9 +7,10 @@ import type {
 } from "./session-lifecycle-events";
 import type { SessionLifecycleOperations } from "./session-lifecycle-operations";
 import type { SessionRuntimeProvider } from "@ling/core/pi-protocol/runtime-provider";
-import type { SessionEventEnvelope, SessionRef } from "@ling/contracts/session";
+import type { SessionEventEnvelope } from "@ling/contracts/session";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 import { errorMessage } from "@ling/contracts/ling-error";
-import { sessionKey } from "@ling/contracts/session-ref";
+
 import { createLingError } from "@ling/core/ling-error";
 import { createLogger } from "@ling/core/logger";
 import { disableSessionAutoTitle, startSessionAutoTitle } from "./session-auto-title";

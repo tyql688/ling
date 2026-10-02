@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { record } from "@ling/contracts/records";
-import type { LingSessionEvent, RunOutcome, SessionMessage } from "@ling/contracts/session";
+import type { LingSessionEvent, RunOutcome } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 import { TOOL_PROGRESS_MAX_CHARS } from "@ling/contracts/session-tool-progress";
 import { createLogger } from "../../logger";
 import { toError } from "../../ling-error";

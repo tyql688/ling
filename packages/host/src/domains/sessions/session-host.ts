@@ -1,7 +1,8 @@
-import type { SessionRef, SessionRuntimeSuspendedEvent } from "@ling/contracts/session";
+import { type SessionRef, uniqueSessionRefs } from "@ling/contracts/session-ref";
+import type { SessionRuntimeSuspendedEvent } from "@ling/contracts/session";
 import type { CompanionRunRequest } from "@ling/contracts/companions";
 import { sessionProcedures } from "@ling/contracts/session-procedures";
-import { uniqueSessionRefs } from "@ling/contracts/session-ref";
+
 import type { ExtensionUiBridge } from "@ling/core/pi-protocol/extension-ui";
 import { attemptCleanup, throwAggregateFailures, toError } from "@ling/core/ling-error";
 import { createLogger } from "@ling/core/logger";

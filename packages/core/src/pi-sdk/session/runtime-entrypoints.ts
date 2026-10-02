@@ -5,7 +5,8 @@ import { createPiRuntimeFactory, type InitialRuntimeSelection } from "./runtime-
 import { createPiRuntimeProjection } from "./runtime-projection";
 import type { PiExtensionUi } from "../extensions/extension-ui-context";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
-import type { SessionRef, ThinkingLevel } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
+import type { ThinkingLevel } from "@ling/contracts/session";
 import type { SessionRuntimeForkSource } from "@ling/core/pi-protocol/runtime-port";
 import { createLingError } from "../../ling-error";
 import { existsSync } from "node:fs";

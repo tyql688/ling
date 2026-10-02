@@ -1,5 +1,6 @@
 import { notifyListeners } from "@ling/core/listeners";
-import type { SessionEventEnvelope, SessionRef } from "@ling/contracts/session";
+import type { SessionEventEnvelope } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type {
 	SessionRuntimeChangeReviewEvent,
 	SessionRuntimeReplacementEvent,

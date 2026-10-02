@@ -4,8 +4,8 @@ import {
 	EXTENSION_AUTOCOMPLETE_LABEL_MAX_CHARS,
 	EXTENSION_AUTOCOMPLETE_MAX_ITEMS,
 	EXTENSION_UI_INPUT_MAX_CHARS,
-	THINKING_LEVELS,
-} from "@ling/contracts/session";
+} from "@ling/contracts/session-extension-ui";
+import { THINKING_LEVELS } from "@ling/contracts/session";
 import {
 	fieldSchema,
 	countSchema,

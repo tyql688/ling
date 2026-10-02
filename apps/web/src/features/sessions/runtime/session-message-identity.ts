@@ -1,4 +1,4 @@
-import type { SessionMessage } from "@ling/contracts/session";
+import type { SessionMessage } from "@ling/contracts/session-messages";
 
 export function sessionMessageRowIdentity(message: SessionMessage): string {
 	return `message:${message.id}`;

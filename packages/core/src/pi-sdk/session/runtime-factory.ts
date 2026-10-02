@@ -4,12 +4,12 @@ import type { PiModelProjection } from "../models/model-projection";
 import {
 	createAgentSessionFromServices,
 	createAgentSessionRuntime,
+	getAgentDir,
 	resolveModelScopeWithDiagnostics,
 } from "@earendil-works/pi-coding-agent";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
 import { createLogger } from "../../logger";
-import { getPiAgentDir } from "../agent-info";
 import { assertNoBlockingDiagnostics, collectServiceDiagnostics } from "../diagnostics";
 import type {
 	PiAgentSession,
@@ -274,7 +274,7 @@ export function createPiRuntimeFactory({
 	): Promise<PiAgentSessionRuntime> {
 		const runtime = await createAgentSessionRuntime(createRuntimeFactory(generation, initialSelection), {
 			cwd: ref.cwd,
-			agentDir: getPiAgentDir(),
+			agentDir: getAgentDir(),
 			sessionManager,
 			...(sessionStartEvent ? { sessionStartEvent } : {}),
 		});

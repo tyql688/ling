@@ -1,5 +1,10 @@
-import type { SessionRef } from "@ling/contracts/session";
-import { toSessionRef as cloneRef, sameSessionRef as sameRef, uniqueSessionRefs } from "@ling/contracts/session-ref";
+import {
+	type SessionRef,
+	toSessionRef as cloneRef,
+	sameSessionRef as sameRef,
+	uniqueSessionRefs,
+} from "@ling/contracts/session-ref";
+
 import { toError } from "@ling/core/ling-error";
 import type { PiCall, PiMethodResult, PiRequestParams } from "@ling/core/pi-protocol/methods";
 import type { PiWorkerRuntimeEvent, PiWorkerRuntimeState } from "@ling/core/pi-protocol/protocol";

@@ -6,7 +6,7 @@ import type {
 	GitStatus,
 	RevertChangeReviewTurnRequest,
 } from "@ling/contracts/git";
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { findReviewFileByLineage, type ReviewChangeFile } from "@ling/core/change-review/change-review";
 import { commitPaths, discardPaths } from "@ling/host/domains/git/git-mutations";
 import type { GitWriteQueue } from "../git/git-write-queue";

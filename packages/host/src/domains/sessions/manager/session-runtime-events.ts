@@ -2,9 +2,10 @@ import type { ExtensionUiBridge } from "@ling/core/pi-protocol/extension-ui";
 import { notifyListeners } from "@ling/core/listeners";
 import type { SessionLifecycleEvents } from "./session-lifecycle-events";
 import { applyToolExecutionProgress } from "@ling/contracts/session-tool-progress";
-import type { SessionEventEnvelope, SessionRef } from "@ling/contracts/session";
+import type { SessionEventEnvelope } from "@ling/contracts/session";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 import { errorMessage } from "@ling/contracts/ling-error";
-import { sessionKey } from "@ling/contracts/session-ref";
+
 import { disableSessionAutoTitle, startSessionAutoTitle } from "./session-auto-title";
 import type { ManagedSession } from "./session-managed-state";
 import type { SessionReplacementReservations } from "./session-replacement-reservations";

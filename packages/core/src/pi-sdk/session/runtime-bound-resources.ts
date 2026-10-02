@@ -1,4 +1,4 @@
-import type { SessionRef } from "@ling/contracts/session";
+import type { SessionRef } from "@ling/contracts/session-ref";
 import { throwAggregateFailures } from "@ling/core/ling-error";
 import type { SessionRuntimeChangeReviewEvent } from "@ling/core/pi-protocol/runtime-types";
 import type { PiTurnLifecycle } from "./turn-lifecycle";

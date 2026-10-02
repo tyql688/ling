@@ -1,12 +1,10 @@
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import {
-	type ImageAttachment,
-	type SendMode,
-	type SessionRef,
-	EMPTY_EXTENSION_UI_STATE,
-} from "@ling/contracts/session";
+import type { ImageAttachment } from "@ling/contracts/session-messages";
+import type { SendMode } from "@ling/contracts/session";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+import { EMPTY_EXTENSION_UI_STATE } from "@ling/contracts/session-extension-ui";
 import type { MessageFileReference } from "@ling/contracts/file-reference-text";
-import { sessionKey } from "@ling/contracts/session-ref";
+
 import { setRendererSessionError } from "@renderer/features/sessions/runtime/renderer-session-state";
 import { useSessionProjectionRefresh } from "@renderer/features/sessions/runtime/session-projection-context";
 import { archivedTranscriptsAtom } from "@renderer/features/sessions/archived-session-state";

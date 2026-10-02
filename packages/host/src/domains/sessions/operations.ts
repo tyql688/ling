@@ -2,10 +2,10 @@ import type {
 	CancelSessionOperationRequest,
 	CancelSessionOperationResponse,
 	ReadTranscriptPageRequest,
-	SessionRef,
 } from "@ling/contracts/session";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 import { isBuiltinSessionOperationRef, sameOperationRef, SESSION_TRANSCRIPT_OWNER_ID } from "@ling/contracts/owner-ref";
-import { sessionKey } from "@ling/contracts/session-ref";
+
 import { pathIdentity } from "@ling/core/paths";
 import type { OperationExecutionHandle, OperationExecutionRecord } from "../../operations/operation-execution";
 

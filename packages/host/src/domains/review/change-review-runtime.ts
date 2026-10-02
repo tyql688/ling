@@ -1,5 +1,5 @@
-import type { SessionRef } from "@ling/contracts/session";
-import { sessionKey } from "@ling/contracts/session-ref";
+import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
+
 import type { ProjectFileWatchers } from "@ling/host/domains/review/project-file-watcher";
 import { getGitReviewSnapshot, type GitReviewSnapshot } from "@ling/host/domains/git/git-service";
 import { requestCancelled, throwAggregateFailures } from "@ling/core/ling-error";

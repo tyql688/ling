@@ -1444,7 +1444,7 @@
 		"emptyProject": "このプロジェクトにスキルはありません。",
 		"emptyProjectTitle": "プロジェクトスキルがありません",
 		"resources": "ファイル",
-		"resourceUnavailable": "以前開いていたリソースを利用できません：{{path}}",
+		"resourceUnavailable": "このリソースを開けません：{{path}}",
 		"instructions": "手順",
 		"resourcesLoading": "ファイルを読み込み中…",
 		"resourcesEmpty": "このスキルに添付ファイルはありません。",

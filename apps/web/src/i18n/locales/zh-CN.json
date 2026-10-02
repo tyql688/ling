@@ -1437,7 +1437,7 @@
 		"emptyProject": "该项目暂无可用技能。",
 		"emptyProjectTitle": "暂无项目技能",
 		"resources": "文件",
-		"resourceUnavailable": "之前打开的资源已不可用：{{path}}",
+		"resourceUnavailable": "无法打开此资源：{{path}}",
 		"instructions": "说明正文",
 		"resourcesLoading": "正在加载文件…",
 		"resourcesEmpty": "此技能没有附加文件。",

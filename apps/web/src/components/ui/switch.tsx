@@ -35,7 +35,14 @@ export function Switch({ checked, pending = false, onCheckedChange, className, d
 						: "translate-x-1 bg-surface text-text-primary",
 				)}
 			>
-				{pending && <LoaderCircle className="size-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+				{pending ? (
+					<LoaderCircle className="size-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+				) : (
+					<span
+						aria-hidden="true"
+						className="size-1.5 rounded-full bg-current opacity-0 group-focus-visible:opacity-100"
+					/>
+				)}
 			</span>
 		</button>
 	);

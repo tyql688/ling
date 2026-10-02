@@ -6,6 +6,7 @@ import { MarkdownDocumentContext } from "./markdown-image-root";
 import { MarkdownImage } from "@renderer/components/markdown-image";
 import { MarkdownHtmlBlock, MarkdownHtmlInline } from "@renderer/components/markdown-html";
 import { useStreamingText } from "@renderer/hooks/use-streaming-text";
+import { useStableCallback } from "@renderer/hooks/use-stable-callback";
 import { cn } from "@renderer/lib/utils";
 import { activeSkinAppearanceAtom } from "@renderer/lib/appearance/skin-state";
 import { useAtomValue } from "jotai";
@@ -105,7 +106,7 @@ function MarkdownView({
 	const id = useId();
 	const document = useContext(MarkdownDocumentContext);
 	const [externalUrl, setExternalUrl] = useState<string | null>(null);
-	const onClick = (event: MouseEvent<HTMLElement>) => {
+	const onClick = useStableCallback((event: MouseEvent<HTMLElement>) => {
 		const target = event.target;
 		if (!(target instanceof Element)) return;
 		const link = target.closest("a[href]");
@@ -130,7 +131,7 @@ function MarkdownView({
 			return;
 		}
 		setExternalUrl(href);
-	};
+	});
 	return (
 		<div
 			className={cn("chat-markdown text-text-primary", className)}
@@ -149,8 +150,8 @@ function MarkdownView({
 					fade={output.streaming && output.animate}
 					typewriter={false}
 					batchRendering={progressive}
-					// Keep batches bounded and make progress when the window has few idle callbacks.
-					renderBatchSize={240}
+					// Short batches leave room for input and layout in table- and code-heavy documents.
+					renderBatchSize={48}
 					renderBatchIdleTimeoutMs={32}
 					// Ling owns scroll geometry; parsed nodes stay addressable across the full document.
 					maxLiveNodes={0}

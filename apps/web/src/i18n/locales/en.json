@@ -1446,7 +1446,7 @@
 		"emptyProject": "This project has no skills available.",
 		"emptyProjectTitle": "No project skills",
 		"resources": "Files",
-		"resourceUnavailable": "The previously opened resource is no longer available: {{path}}",
+		"resourceUnavailable": "This resource is unavailable: {{path}}",
 		"instructions": "Instructions",
 		"resourcesLoading": "Loading files…",
 		"resourcesEmpty": "This skill has no attached files.",

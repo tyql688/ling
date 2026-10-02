@@ -2,6 +2,7 @@ import { WorkbenchReadingPane } from "@renderer/components/workbench/workbench-r
 import { useDomainApi } from "@renderer/lib/host-api-context";
 import { SKILL_RESOURCE_CONTENT_MAX_BYTES, type SkillResourceInfo } from "@ling/contracts/skill";
 import { Markdown } from "@renderer/components/markdown";
+import { MarkdownDocumentContext } from "@renderer/components/markdown-image-root";
 import { Button } from "@renderer/components/ui/button";
 import { Dialog, DialogCloseButton, DialogContent, DialogTitle } from "@renderer/components/ui/dialog";
 import { FeedbackNotice } from "@renderer/components/ui/feedback";
@@ -9,9 +10,10 @@ import { LoadingTransition } from "@renderer/components/ui/loading-transition";
 import { SettingsCollection } from "@renderer/components/ui/settings-list";
 import { SettingsRetryAction } from "@renderer/components/ui/settings-state";
 import { tildify } from "@renderer/lib/format-path";
+import { resolveProjectPath } from "@renderer/lib/project-path";
 import { cn } from "@renderer/lib/utils";
 import { useStableCallback } from "@renderer/hooks/use-stable-callback";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, FileCode2, FileText, GraduationCap, Image } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SkillScopeBadges } from "./skill-scope-badges";
@@ -33,6 +35,7 @@ interface SkillDetailContentProps {
 	onRetry: () => void;
 	onRetryResource: () => void;
 	onError: (cause: unknown) => void;
+	onSelectResource: (resource: SkillResourceInfo | null) => void;
 	scrollTop?: number;
 	onScrollChange?: (scrollTop: number) => void;
 }
@@ -43,6 +46,7 @@ export function SkillDetailContent({
 	onRetry,
 	onRetryResource,
 	onError,
+	onSelectResource,
 	scrollTop = 0,
 	onScrollChange,
 }: SkillDetailContentProps) {
@@ -51,6 +55,34 @@ export function SkillDetailContent({
 	const { t } = useTranslation();
 	const skill = detail.skill;
 	const selectedResource = detail.selectedResource;
+	const [linkError, setLinkError] = useState<string | null>(null);
+	const document = useMemo(
+		() => ({
+			resolve: (source: string) => {
+				// Web links keep the external-link confirmation. Local links use the skill's bounded inventory.
+				if (/^[a-z][a-z\d+.-]*:/i.test(source) && !/^[a-z]:[/\\]/i.test(source) && !source.startsWith("file://"))
+					return null;
+				if (source.startsWith("//")) return null;
+				return source;
+			},
+			open: (source: string) => {
+				const path = resolveProjectPath(source.replace(/[?#].*$/, ""), skill.filePath.replace(/[/\\][^/\\]+$/, ""), {
+					documentPath: selectedResource?.relativePath ?? skill.filePath.split(/[/\\]/).at(-1)!,
+					sourceKind: "url",
+				});
+				const resource = detail.resources?.find((item) => item.relativePath === path);
+				if (path === skill.filePath.split(/[/\\]/).at(-1) || resource) {
+					setLinkError(null);
+					onSelectResource(resource ?? null);
+				} else {
+					setLinkError(t("skills.resourceUnavailable", { path: source }));
+				}
+			},
+		}),
+		[skill.filePath, selectedResource, detail.resources, onSelectResource, t],
+	);
+	// The catalog and header present metadata; the reading area starts at the instructions.
+	const instructions = detail.content?.replace(/^\uFEFF?---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, "");
 	const contentRef = useRef<HTMLElement>(null);
 	const position = useRef(scrollTop);
 	const restored = useRef(scrollTop === 0);
@@ -90,7 +122,7 @@ export function SkillDetailContent({
 	}, [detail.content, detail.resourceContent]);
 	useEffect(() => savePosition, [savePosition]);
 	return (
-		<>
+		<MarkdownDocumentContext.Provider value={document}>
 			<div className="shrink-0 border-b border-border-subtle px-3 py-2 pr-10">
 				<div className="flex items-center gap-3">
 					<div className="flex size-6 shrink-0 items-center justify-center rounded-control bg-surface-hover">
@@ -112,6 +144,7 @@ export function SkillDetailContent({
 				}}
 				className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto p-4"
 			>
+				{linkError && <FeedbackNotice tone="warning">{linkError}</FeedbackNotice>}
 				<div className="flex min-h-8 shrink-0 items-center justify-between gap-3">
 					<h4 className="min-w-0 truncate text-xs font-medium uppercase tracking-wide text-text-muted">
 						{selectedResource?.relativePath ?? t("skills.detailContent")}
@@ -144,7 +177,7 @@ export function SkillDetailContent({
 						<LoadingTransition label={t("skills.detailLoading")} size="sm" className="min-h-12 justify-start px-1" />
 					) : (
 						<div className="mx-auto w-full max-w-5xl px-2 py-3 text-sm sm:px-5">
-							<Markdown text={detail.content} />
+							<Markdown text={instructions!} smooth={false} progressive />
 						</div>
 					)
 				) : selectedResource.contentKind === "binary" ? (
@@ -170,7 +203,7 @@ export function SkillDetailContent({
 					<LoadingTransition label={t("skills.detailLoading")} size="sm" className="min-h-12 justify-start px-1" />
 				) : selectedResource.kind === "reference" && selectedResource.relativePath.toLowerCase().endsWith(".md") ? (
 					<div className="mx-auto w-full max-w-5xl px-2 py-3 text-sm sm:px-5">
-						<Markdown text={detail.resourceContent} />
+						<Markdown text={detail.resourceContent} smooth={false} progressive />
 					</div>
 				) : (
 					<pre className="overflow-auto whitespace-pre-wrap break-words rounded-panel border border-border-subtle bg-surface-raised/40 px-4 py-3 font-mono text-xs leading-relaxed text-text-primary sm:px-5 sm:py-4">
@@ -178,7 +211,7 @@ export function SkillDetailContent({
 					</pre>
 				)}
 			</section>
-		</>
+		</MarkdownDocumentContext.Provider>
 	);
 }
 
@@ -328,6 +361,7 @@ export function SkillDetailDialog({
 							onRetry={onRetry}
 							onRetryResource={onRetryResource}
 							onError={onError}
+							onSelectResource={onSelectResource}
 						/>
 					</WorkbenchReadingPane>
 					<DialogCloseButton aria-label={t("skills.close")} />

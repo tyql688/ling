@@ -1444,7 +1444,7 @@
 		"emptyProject": "이 프로젝트에 스킬이 없습니다.",
 		"emptyProjectTitle": "프로젝트 스킬이 없습니다",
 		"resources": "파일",
-		"resourceUnavailable": "이전에 열었던 리소스를 사용할 수 없습니다: {{path}}",
+		"resourceUnavailable": "이 리소스를 열 수 없습니다: {{path}}",
 		"instructions": "지침",
 		"resourcesLoading": "파일 불러오는 중…",
 		"resourcesEmpty": "이 스킬에 첨부 파일이 없습니다.",

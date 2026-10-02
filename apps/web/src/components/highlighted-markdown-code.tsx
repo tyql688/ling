@@ -2,6 +2,7 @@ import { DiffsWorkerPoolProvider } from "@renderer/components/diffs-worker-pool-
 import { File as DiffsFile, type FileContents, type FileOptions } from "@pierre/diffs/react";
 import { codeHighlightLanguage } from "@renderer/lib/code-highlighting/languages";
 import { CODE_PREVIEW_DEFAULTS } from "@renderer/lib/preferences/code-preview";
+import { useInView } from "motion/react";
 import { type CSSProperties, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 // Font size/family: concrete px/stack values, because nesting var() into the Pierre shadow is unreliable.
@@ -78,11 +79,7 @@ export function HighlightedMarkdownCode({
 	// an empty replacement or mark a later code view ready with stale results.
 	const instanceKey = `${file.cacheKey}:${showLineNumbers ? 1 : 0}:${wrapLongLines ? 1 : 0}`;
 
-	return (
-		<DiffsWorkerPoolProvider>
-			<HighlightedCodeView key={instanceKey} file={file} options={options} fallback={fallback} />
-		</DiffsWorkerPoolProvider>
-	);
+	return <HighlightedCodeView key={instanceKey} file={file} options={options} fallback={fallback} />;
 }
 
 function HighlightedCodeView({
@@ -94,6 +91,9 @@ function HighlightedCodeView({
 	options: FileOptions<undefined, undefined>;
 	fallback: ReactNode;
 }) {
+	const containerRef = useRef<HTMLDivElement | null>(null);
+	// A 300px lookahead prepares nearby code; distant blocks retain their readable, full-height fallback.
+	const nearViewport = useInView(containerRef, { once: true, margin: "300px 0px" });
 	const [ready, setReady] = useState(false);
 	const highlightedRef = useRef<HTMLDivElement | null>(null);
 	useLayoutEffect(() => {
@@ -108,21 +108,25 @@ function HighlightedCodeView({
 		});
 		observer.observe(element);
 		return () => observer.disconnect();
-	}, []);
+	}, [nearViewport]);
 
 	return (
-		<div className="ling-diffs-file grid w-full overflow-x-auto bg-transparent" style={diffsStyle}>
+		<div ref={containerRef} className="ling-diffs-file grid w-full overflow-x-auto bg-transparent" style={diffsStyle}>
 			{/* The readable code owns the real height until Pierre has committed its DOM. */}
 			{!ready && <div className="col-start-1 row-start-1 min-w-0">{fallback}</div>}
-			<div
-				ref={highlightedRef}
-				className="col-start-1 row-start-1 min-w-0 self-start"
-				// Ready code still inherits the visibility of an inactive workspace or settings page.
-				style={{ visibility: ready ? undefined : "hidden" }}
-				inert={!ready}
-			>
-				<DiffsFile file={file} options={options} className="w-full" style={diffsStyle} />
-			</div>
+			{nearViewport && (
+				<div
+					ref={highlightedRef}
+					className="col-start-1 row-start-1 min-w-0 self-start"
+					// Ready code still inherits the visibility of an inactive workspace or settings page.
+					style={{ visibility: ready ? undefined : "hidden" }}
+					inert={!ready}
+				>
+					<DiffsWorkerPoolProvider>
+						<DiffsFile file={file} options={options} className="w-full" style={diffsStyle} />
+					</DiffsWorkerPoolProvider>
+				</div>
+			)}
 		</div>
 	);
 }

@@ -169,7 +169,9 @@ export function TerminalPanel({ cwd, open, controller, onOpenChange, onError }: 
 										<SquareTerminal className="size-3.5 shrink-0" aria-hidden="true" />
 										<span className="truncate">{runtime.title}</span>
 										{runtime.snapshot.status === "exited" && (
-											<span className="size-1.5 shrink-0 rounded-full bg-text-muted/40" />
+											<span role="status" className="shrink-0 text-text-muted">
+												{t("terminal.exited")}
+											</span>
 										)}
 									</button>
 									<button

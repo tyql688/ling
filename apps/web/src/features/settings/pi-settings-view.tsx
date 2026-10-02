@@ -235,7 +235,7 @@ export function PiSettingsView() {
 							className="@container/default-tools min-w-0 w-full"
 						>
 							{/* Each column leaves room for the Windows powershell label and its selection mark. */}
-							<div className="grid grid-cols-1 gap-2 @min-[18rem]/default-tools:grid-cols-2 @min-[34rem]/default-tools:grid-cols-4">
+							<div className="grid grid-cols-1 gap-2 @min-[20rem]/default-tools:grid-cols-2 @min-[30rem]/default-tools:grid-cols-3 @min-[40rem]/default-tools:grid-cols-4">
 								{[...new Set([...PI_BUILT_IN_TOOL_NAMES, ...snapshot.defaultTools])]
 									.filter((tool) => tool !== "powershell" || isWindows)
 									.map((tool) => {

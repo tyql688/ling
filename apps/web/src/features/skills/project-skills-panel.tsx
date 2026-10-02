@@ -5,7 +5,7 @@ import { useCommandFeedback } from "@renderer/hooks/use-command-feedback";
 import { SkillDetailContent, SkillDetailNavigation } from "./skill-detail-view";
 import { useSkillDetail } from "./use-skill-detail";
 import { sessionKey, type SessionRef } from "@ling/contracts/session-ref";
-import type { SkillInfo } from "@ling/contracts/skill";
+import type { SkillInfo, SkillResourceInfo } from "@ling/contracts/skill";
 import { LoadingTransition } from "@renderer/components/ui/loading-transition";
 import { SettingsRetryAction, SettingsState } from "@renderer/components/ui/settings-state";
 import { draftsAtom, EMPTY_DRAFT } from "@renderer/features/sessions/state/drafts";
@@ -51,6 +51,10 @@ export function ProjectSkillsPanel({
 		return closeDetail;
 	}, [selectedSkill, openDetail, closeDetail]);
 	const currentDetail = detail?.skill.filePath === selectedSkill?.filePath ? detail : null;
+	const chooseResource = (resource: SkillResourceInfo | null) => {
+		if (currentDetail)
+			onSelectionChange({ skill: currentDetail.skill, resourcePath: resource?.relativePath ?? null, scrollTop: 0 });
+	};
 	const resourcePath = selection?.resourcePath ?? null;
 	const resource = currentDetail?.resources?.find((item) => item.relativePath === resourcePath) ?? null;
 	const missingResource = resourcePath !== null && currentDetail?.resources != null && resource === null;
@@ -174,13 +178,7 @@ export function ProjectSkillsPanel({
 								detail={currentDetail}
 								onRetry={retryDetail}
 								onError={onError}
-								onSelectResource={(resource) =>
-									onSelectionChange({
-										skill: currentDetail.skill,
-										resourcePath: resource?.relativePath ?? null,
-										scrollTop: 0,
-									})
-								}
+								onSelectResource={chooseResource}
 							/>
 						</div>
 					)}
@@ -206,6 +204,7 @@ export function ProjectSkillsPanel({
 						onRetry={retryDetail}
 						onRetryResource={retryResource}
 						onError={onError}
+						onSelectResource={chooseResource}
 						scrollTop={selection?.scrollTop ?? 0}
 						onScrollChange={(top) => onScrollChange(selectedSkill.filePath, resourcePath, top)}
 					/>

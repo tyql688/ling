@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@renderer/components/ui/textarea";
 import { formatRequestError } from "@renderer/lib/errors";
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
@@ -74,6 +74,10 @@ export function ScheduleForm({
 	cancel(): void;
 }) {
 	const [task] = useState(currentTask);
+	const titleInput = useRef<HTMLInputElement>(null);
+	useLayoutEffect(() => {
+		titleInput.current?.focus({ preventScroll: true });
+	}, []);
 	const { t } = useTranslation();
 	const api = useDomainApi("schedules");
 	const [title, setTitle] = useState(task?.title ?? "");
@@ -169,7 +173,12 @@ export function ScheduleForm({
 			}}
 		>
 			<FormField label={t("schedules.name")} className="sm:col-span-2">
-				<Input value={title} placeholder={t("schedules.namePlaceholder")} onChange={(e) => setTitle(e.target.value)} />
+				<Input
+					ref={titleInput}
+					value={title}
+					placeholder={t("schedules.namePlaceholder")}
+					onChange={(e) => setTitle(e.target.value)}
+				/>
 			</FormField>
 			<FormField label={t("schedules.instructions")} className="sm:col-span-2">
 				<Textarea

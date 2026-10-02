@@ -32,7 +32,7 @@ export function ChoiceButton({
 				if (!pending && !disabled) onClick?.(event);
 			}}
 			className={cn(
-				"inline-flex min-h-10 min-w-0 max-w-full items-center gap-2 rounded-choice border border-transparent px-3.5 py-2 text-ui font-medium disabled:cursor-not-allowed disabled:opacity-45 pointer-coarse:min-h-11",
+				"inline-flex min-h-10 min-w-0 max-w-full items-center gap-2 rounded-choice border border-transparent px-3.5 py-2 text-ui font-medium focus-visible:underline focus-visible:decoration-2 focus-visible:underline-offset-4 disabled:cursor-not-allowed disabled:opacity-45 pointer-coarse:min-h-11",
 				// Brief, interruptible feedback honors both skin motion and system reduced motion.
 				!isStatic &&
 					"transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)] enabled:active:scale-[var(--choice-press-scale)] motion-reduce:transition-none motion-reduce:enabled:active:scale-100",

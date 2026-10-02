@@ -29,7 +29,7 @@ import {
 	Trash2,
 	X,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScheduleForm } from "./schedule-form";
 import { dateLabel, scheduleLabel } from "./schedule-labels";
@@ -59,6 +59,15 @@ export function SchedulesPage() {
 	const [chatError, setChatError] = useState<string | null>(null);
 	const [project, setProject] = useState(activeSessionRef?.cwd ?? "");
 	const page = useRef<HTMLDivElement>(null);
+	const createButton = useRef<HTMLButtonElement>(null);
+	const detailHeading = useRef<HTMLHeadingElement>(null);
+	const wasEditing = useRef(editing);
+	useLayoutEffect(() => {
+		if (wasEditing.current && !editing) {
+			(detailHeading.current ?? createButton.current)?.focus({ preventScroll: true });
+		}
+		wasEditing.current = editing;
+	}, [editing]);
 	const cwd = projects.some((item) => item.cwd === project) ? project : projects[0]?.cwd;
 	const tasks = state.value?.tasks ?? [];
 	const task = tasks.find((item) => item.id === selected) ?? null;
@@ -116,6 +125,7 @@ export function SchedulesPage() {
 								{t("schedules.createWithConversation")}
 							</Button>
 							<Button
+								ref={createButton}
 								variant="ghost"
 								disabled={!enabled || !cwd}
 								onClick={() => {
@@ -273,7 +283,7 @@ export function SchedulesPage() {
 												? t(task ? "schedules.editTask" : "schedules.newTask")
 												: t(`schedules.status.${task!.status}`)}
 										</span>
-										<h2 className="text-lg font-semibold [overflow-wrap:anywhere]">
+										<h2 ref={detailHeading} tabIndex={-1} className="text-lg font-semibold [overflow-wrap:anywhere]">
 											{task?.title ?? t("schedules.setUpTask")}
 										</h2>
 									</div>

@@ -145,7 +145,7 @@ export function QuickStartComposer(props: QuickStartComposerProps) {
 									<Button
 										variant="ghost"
 										size="sm"
-										aria-label={t("session.pickFolder")}
+										title={targetProject?.cwd}
 										className="max-w-32 gap-1.5 px-1.5 font-normal text-text-muted hover:text-text-primary @min-[40rem]/composer:max-w-44"
 									/>
 								}

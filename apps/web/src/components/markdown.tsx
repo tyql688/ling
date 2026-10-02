@@ -158,6 +158,8 @@ function MarkdownView({
 					viewportPriority={false}
 					deferNodesUntilVisible={false}
 					renderCodeBlocksAsPre
+					// Native link titles stay scoped to their anchors when a document is replaced.
+					showTooltips={false}
 					onClick={onClick}
 				/>
 			</MarkdownCodeProvider>

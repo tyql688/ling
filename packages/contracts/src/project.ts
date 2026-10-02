@@ -17,6 +17,8 @@ type ProjectAvailability = "ready" | "missing";
 export interface OpenProjectInfo {
 	cwd: string;
 	name: string;
+	/** Conversation targets use Ling's persistent working directory instead of a user-selected project. */
+	purpose: "project" | "conversation";
 	availability: ProjectAvailability;
 	meta: WorkspaceMeta;
 	diagnostics: PiDiagnostic[];

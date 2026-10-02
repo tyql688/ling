@@ -35,7 +35,8 @@ export function ProjectHoverCard({
 	onReveal,
 }: ProjectHoverCardProps) {
 	const { t } = useTranslation();
-	const ProjectIcon = project.meta.kind === "worktree" ? GitBranch : Folder;
+	const ProjectIcon =
+		project.purpose === "conversation" ? MessageCircle : project.meta.kind === "worktree" ? GitBranch : Folder;
 	const [hoverOpen, setHoverOpen] = useState(false);
 	const [actionsOpen, setActionsOpen] = useState(false);
 	const [contextMenuOpen, setContextMenuOpen] = useState(false);
@@ -57,14 +58,15 @@ export function ProjectHoverCard({
 		if (open) setHoverOpen(false);
 	};
 	const detailsTrigger = renderContextMenu?.(trigger, handleContextMenuOpenChange) ?? trigger;
+	const actionsLabel = t(project.purpose === "conversation" ? "common.moreActions" : "project.edit");
 	const actionsTrigger = (
 		<button
 			type="button"
-			aria-label={t("project.edit")}
+			aria-label={actionsLabel}
 			className="grid min-h-7 w-full min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-1.5 rounded-control px-1 text-left text-xs text-text-primary transition-colors hover:bg-surface-hover focus-visible:bg-surface-hover"
 		>
 			<Settings2 className="size-3.5 text-text-muted" aria-hidden="true" />
-			<span className="truncate">{t("project.edit")}</span>
+			<span className="truncate">{actionsLabel}</span>
 		</button>
 	);
 
@@ -115,6 +117,9 @@ export function ProjectHoverCard({
 							<Pin className={cn("size-3.5", pinned && "fill-current")} aria-hidden="true" />
 						</button>
 					</div>
+					{project.purpose === "conversation" && (
+						<p className="px-1 text-xs text-text-muted">{t("project.noProjectDescription")}</p>
+					)}
 					<div className="grid min-h-5 min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-1.5 px-1 text-xs text-text-muted">
 						<MessageCircle className="size-3.5" aria-hidden="true" />
 						<div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 tabular-nums">

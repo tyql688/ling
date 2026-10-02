@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, realpath, rm, symlink } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
@@ -20,6 +20,7 @@ import { createProjectStore } from "./project-store";
 async function createFixture() {
 	const root = await realpath(await temporaryDirectory("project-availability"));
 	const userDataDir = join(root, "userdata");
+	const conversationDirectory = join(root, "ling-home", "conversations");
 	const database = createHostDatabase(userDataDir);
 	const store = createProjectStore({ userDataDir, database });
 	const settings = createAppSettingsStore({ userDataDir, database });
@@ -52,6 +53,7 @@ async function createFixture() {
 	});
 	const projects = createProjectLifecycle({
 		projectStore: store,
+		conversationDirectory,
 		piWorker,
 		mentionCache,
 		metadataCleanup,
@@ -84,6 +86,7 @@ async function createFixture() {
 	const context = () => ({ clientId: "test", product: "web" as const, signal: new AbortController().signal });
 	return {
 		root,
+		conversationDirectory,
 		projects,
 		piWorker,
 		database,
@@ -110,6 +113,63 @@ async function createFixture() {
 		},
 	};
 }
+
+it("restores a persistent conversation target independently of user project membership", async () => {
+	const fixture = await createFixture();
+	try {
+		await fixture.projects.restoreOpenProjects();
+		const cwd = await realpath(fixture.conversationDirectory);
+		await expect(fixture.list()).resolves.toMatchObject({
+			status: "complete",
+			projects: [{ cwd, purpose: "conversation", availability: "ready" }],
+		});
+		expect(fixture.store.readOpenProjectPaths()).toEqual([]);
+		const file = join(cwd, "notes.txt");
+		await writeFile(file, "Retained conversation file");
+		const project = await fixture.open("conversations");
+		expect(project.purpose).toBe("project");
+		expect(fixture.store.readOpenProjectPaths()).toEqual([project.cwd]);
+		await fixture.remove(project.cwd);
+		expect(fixture.store.readOpenProjectPaths()).toEqual([]);
+		await fixture.piWorker.closeProject(cwd, async () => {});
+		await fixture.projects.restoreOpenProjects();
+		await fixture.projects.restoreOpenProjects();
+		expect(fixture.piWorker.listOpenProjectPaths()).toEqual([cwd]);
+		await expect(readFile(file, "utf8")).resolves.toBe("Retained conversation file");
+		await expect(fixture.remove(cwd)).rejects.toThrow("conversation directory cannot be closed");
+		expect(fixture.piWorker.listOpenProjectPaths()).toEqual([cwd]);
+		expect(fixture.store.readOpenProjectPaths()).toEqual([]);
+	} finally {
+		await fixture.dispose();
+	}
+});
+
+it("reports a failed conversation directory while retaining healthy projects and supports retry", async () => {
+	const fixture = await createFixture();
+	try {
+		const project = await fixture.open("healthy");
+		await mkdir(join(fixture.root, "ling-home"));
+		await writeFile(fixture.conversationDirectory, "A file blocks directory creation");
+		await fixture.projects.restoreOpenProjects();
+		await expect(fixture.list()).resolves.toMatchObject({
+			status: "partial",
+			projects: [project],
+			failureCount: 1,
+			firstFailure: { cwd: fixture.conversationDirectory },
+		});
+		await fixture.projects.persistOpenProjects();
+		expect(fixture.store.readOpenProjectPaths()).toEqual([project.cwd]);
+		await expect(readFile(fixture.conversationDirectory, "utf8")).resolves.toBe("A file blocks directory creation");
+		await rm(fixture.conversationDirectory);
+		await fixture.projects.restoreOpenProjects();
+		const result = await fixture.list();
+		expect(result.status).toBe("complete");
+		expect(result.projects).toHaveLength(2);
+		expect(fixture.store.readOpenProjectPaths()).toEqual([project.cwd]);
+	} finally {
+		await fixture.dispose();
+	}
+});
 
 it("keeps a deleted directory in a complete project list and probes Git again when it returns", async () => {
 	const fixture = await createFixture();

@@ -513,6 +513,8 @@
 		"expiresIn": "{{count}}s remaining"
 	},
 	"project": {
+		"noProject": "No project",
+		"noProjectDescription": "Start a conversation without choosing a folder. These conversations share a folder managed by Ling.",
 		"storeReadErrorTitle": "Ling cannot read the open-project list",
 		"storeReadErrorDescription": "Cannot read the project index. Rebuilding keeps only currently open projects; project folders and Pi conversations are preserved. Details: {{message}}",
 		"storeRepair": "Rebuild project index",

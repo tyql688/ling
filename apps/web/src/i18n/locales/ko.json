@@ -513,6 +513,8 @@
 		"expiresIn": "{{count}}초 남음"
 	},
 	"project": {
+		"noProject": "프로젝트 없음",
+		"noProjectDescription": "폴더를 선택하지 않고 대화를 시작하세요. 이 대화들은 Ling이 관리하는 폴더를 공유합니다.",
 		"storeReadErrorTitle": "열린 프로젝트 목록을 읽을 수 없습니다",
 		"storeReadErrorDescription": "프로젝트 목록을 읽을 수 없습니다. 다시 만들면 현재 열린 프로젝트만 기록합니다. 프로젝트 폴더와 Pi 대화는 삭제되지 않습니다. 상세: {{message}}",
 		"storeRepair": "프로젝트 목록 다시 만들기",

@@ -513,6 +513,8 @@
 		"expiresIn": "剩余 {{count}} 秒"
 	},
 	"project": {
+		"noProject": "无项目",
+		"noProjectDescription": "无需选择文件夹即可对话。这些会话共享由 Ling 管理的文件目录。",
 		"storeReadErrorTitle": "无法读取已打开项目列表",
 		"storeReadErrorDescription": "无法读取项目索引。重建后只记录当前打开的项目，项目文件夹和 Pi 会话会保留。详情：{{message}}",
 		"storeRepair": "重建项目索引",

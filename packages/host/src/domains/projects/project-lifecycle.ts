@@ -17,7 +17,7 @@ import { pathIdentity } from "@ling/core/paths";
 import { type MetadataCleanupHost, metadataCleanupWarning } from "@ling/host/domains/projects/metadata-cleanup";
 import type { ProjectStore } from "./project-store";
 import type { PiWorkerClient } from "@ling/host/workers/pi/pi-worker-client";
-import { realpath, stat } from "node:fs/promises";
+import { mkdir, realpath, stat } from "node:fs/promises";
 import { basename, isAbsolute, relative, sep } from "node:path";
 import { findKnownWorkspaceRoot } from "./workspace-paths";
 
@@ -88,6 +88,7 @@ interface ProjectSessionLifecycle {
 
 interface ProjectLifecycleOptions {
 	projectStore: ProjectStore;
+	conversationDirectory: string;
 	mentionCache: ProjectMentionCache;
 	runBoundedGitWriteAtRoot<Result>(
 		canonicalRoot: string,
@@ -104,6 +105,7 @@ interface ProjectLifecycleOptions {
 /** Owns project admission, durable mutation ordering and rollback for one Host lifetime. */
 export function createProjectLifecycle({
 	projectStore,
+	conversationDirectory,
 	piWorker,
 	sessions,
 	mentionCache,
@@ -117,6 +119,31 @@ export function createProjectLifecycle({
 	const { coordinateMetadataCleanup } = metadataCleanup;
 	const recovery = createProjectStoreRecovery();
 	const restorationFailures = new Map<string, Error>();
+	let conversationCwd = conversationDirectory;
+
+	function isConversationDirectory(cwd: string): boolean {
+		const identity = pathIdentity(cwd);
+		return identity === pathIdentity(conversationDirectory) || identity === pathIdentity(conversationCwd);
+	}
+
+	/** The conversation directory has a Host-owned lifetime, independent of saved project membership. */
+	function persistedProjectPaths(paths: readonly string[]): string[] {
+		return [...new Set(paths)].filter((cwd) => !isConversationDirectory(cwd));
+	}
+
+	async function restoreConversationDirectory(): Promise<void> {
+		if (!acceptingProjectMutations) return;
+		try {
+			await mkdir(conversationDirectory, { recursive: true });
+			conversationCwd = await realpath(conversationDirectory);
+			if (!acceptingProjectMutations) return;
+			await piWorker.openProject(conversationCwd);
+			restorationFailures.delete(conversationDirectory);
+		} catch (error) {
+			restorationFailures.set(conversationDirectory, toCommandError(error));
+			log.error("failed to open conversation directory:", error);
+		}
+	}
 
 	function projectRestorationFailures(): ProjectListFailure[] {
 		return [...restorationFailures].map(([cwd, error]) => ({
@@ -163,6 +190,7 @@ export function createProjectLifecycle({
 			return {
 				cwd: canonicalCwd,
 				name: basename(canonicalCwd) || canonicalCwd,
+				purpose: isConversationDirectory(canonicalCwd) ? "conversation" : "project",
 				availability: ready ? "ready" : "missing",
 				meta,
 				diagnostics: diagnostics.filter((diagnostic) => isProjectDiagnostic(diagnostic, canonicalCwd)),
@@ -183,6 +211,7 @@ export function createProjectLifecycle({
 			return;
 		}
 		restorationFailures.clear();
+		await restoreConversationDirectory();
 		await reopenStoredProjects(paths);
 		// An interrupted or partial restore must not replace the durable list with a prefix.
 		if (!acceptingProjectMutations || restorationFailures.size > 0) return;
@@ -227,15 +256,18 @@ export function createProjectLifecycle({
 	 * in the same owner used by subsequent Add/Remove writes and visible recovery state. */
 	async function recoverOpenProjectsFromBackup(): Promise<void> {
 		const paths = readOpenProjectPathsBackup();
+		await restoreConversationDirectory();
 		if (paths !== null) await reopenStoredProjects(paths);
 		if (!acceptingProjectMutations) throw new Error("Project recovery was interrupted by shutdown");
-		await projectStore.recoverOpenProjectPaths([
-			...new Set([...piWorker.listOpenProjectPaths(), ...restorationFailures.keys()]),
-		]);
+		await projectStore.recoverOpenProjectPaths(
+			persistedProjectPaths([...piWorker.listOpenProjectPaths(), ...restorationFailures.keys()]),
+		);
 	}
 
 	function persistOpenProjects(): Promise<void> {
-		return writeOpenProjectPaths([...new Set([...piWorker.listOpenProjectPaths(), ...restorationFailures.keys()])]);
+		return writeOpenProjectPaths(
+			persistedProjectPaths([...piWorker.listOpenProjectPaths(), ...restorationFailures.keys()]),
+		);
 	}
 
 	let projectMutationQueue: Promise<void> = Promise.resolve();
@@ -391,7 +423,7 @@ export function createProjectLifecycle({
 		const openPaths = piWorker.listOpenProjectPaths();
 		const remaining = openPaths.filter((path) => path !== canonicalCwd);
 		if (remaining.length === openPaths.length) throw new Error(`Unknown open project: ${canonicalCwd}`);
-		return [...new Set([...remaining, ...restorationFailures.keys()])];
+		return persistedProjectPaths([...remaining, ...restorationFailures.keys()]);
 	}
 
 	async function restoreProjectRuntime(teardown: ProjectRuntimeTeardown): Promise<void> {
@@ -447,6 +479,7 @@ export function createProjectLifecycle({
 	): Promise<ProjectRemovalOutcome> {
 		const persistedBefore = [...readOpenProjectPaths()];
 		const canonicalCwd = await canonicalOpenProjectPath(cwd);
+		if (isConversationDirectory(canonicalCwd)) throw new Error("The conversation directory cannot be closed");
 		const persistedAfter = pathsAfterProjectRemoval(canonicalCwd);
 
 		// Durable removal intent commits before any runtime is destroyed. The database transaction

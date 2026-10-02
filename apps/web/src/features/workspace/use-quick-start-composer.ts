@@ -56,7 +56,7 @@ import { useTranslation } from "react-i18next";
 /** Stable empty array while the project's model list has not loaded yet. */
 
 export interface QuickStartOptions {
-	/** Project the new conversation runs in — a project is always required. */
+	/** Canonical working directory of the selected project or managed conversation target. */
 	cwd: string;
 	/** null → Pi's default model for the new session. */
 	model: { provider: string; id: string } | null;
@@ -69,7 +69,7 @@ export interface QuickStartOptions {
 	draft: SessionDraft;
 }
 export type QuickStartComposerProps = {
-	/** Folder-backed projects offered as start targets. */
+	/** Open projects and the managed conversation directory offered as start targets. */
 	projects: OpenProjectInfo[];
 	/** Project selected by a project-scoped "new conversation" action. */
 	preferredCwd: string | null;
@@ -119,14 +119,15 @@ export function useQuickStartComposer({ projects, preferredCwd, onAddProject, on
 		interceptPopoverKey,
 		focusEditorAt,
 	} = useCompletionPopover(editorRef, text, cursorOffset);
-	// Explicit UI default: with no manual pick or scope, the new conversation targets
-	// the project the LAST conversation started in (persisted preference), then the
-	// first open project. A conversation can never start without a project.
+	// An explicit target or the last conversation takes precedence over the managed start target.
 	const [lastConversationCwd, setLastConversationCwd] = useAtom(lastConversationCwdAtom);
 	const targetProject =
 		targetCwd !== null
 			? (projects.find((project) => project.cwd === targetCwd) ?? null)
-			: (projects.find((project) => project.cwd === lastConversationCwd) ?? projects[0] ?? null);
+			: (projects.find((project) => project.cwd === lastConversationCwd) ??
+				projects.find((project) => project.purpose === "conversation") ??
+				projects[0] ??
+				null);
 	const {
 		attachments,
 		attachmentIssue,

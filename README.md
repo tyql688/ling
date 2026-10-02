@@ -12,7 +12,7 @@ Ling brings Pi conversations, project files, change review and terminals into on
 
 ## Features
 
-- **Project conversations:** streaming responses, model and thinking controls, session history, forks, queued messages and context compaction. Open a project before starting a conversation.
+- **Conversations:** streaming responses, model and thinking controls, session history, forks, queued messages and context compaction. Start without a project or open a folder to work on its files.
 - **Files and change review:** an independent reading area, Monaco editing, language support, Git history, diffs and review annotations. Reading a file keeps the original conversation and draft in place.
 - **Terminal and tasks:** project terminals, background commands and scheduled agent tasks.
 - **Pi resources:** manage packages, extensions, skills and prompts; reload resources into open projects and sessions. Pi extension prompts and status are adapted to the shared interface.
@@ -42,7 +42,7 @@ pnpm dev:web
 
 Open the authenticated local URL printed by Host. Its fragment contains a private access token. The browser works with directories on the **Host machine**; the desktop app also provides native folder dialogs. Both clients use the same project, session and file services.
 
-On first launch, configure a provider in **Settings → Models** with OAuth or an API key, then open a project. Existing Pi authentication is reused. Installing a separate Pi CLI executable is optional; model requests use the embedded SDK and may incur provider charges.
+On first launch, configure a provider in **Settings → Models** with OAuth or an API key, then start a conversation with **No project** or open a project folder. Conversations without a project share Ling's persistent working directory. Existing Pi authentication is reused. Installing a separate Pi CLI executable is optional; model requests use the embedded SDK and may incur provider charges.
 
 Host binds to loopback by default. Pi retains ownership of its credentials, settings and session files. Ling stores application state separately, including SQLite metadata and built-in feature state. See [Architecture](docs/architecture.md) and [Development](docs/development.md) for data ownership and isolated runs.
 

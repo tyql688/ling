@@ -68,13 +68,14 @@ export function buildWorkspaceSidebarModel({
 	const sidebarProjects = [...projectCwds]
 		.map<WorkspaceSidebarProject>((cwd) => {
 			const openProject = openProjectByCwd.get(cwd);
-			const displayName = projectDisplayNames[cwd];
+			const displayName = openProject?.purpose === "conversation" ? undefined : projectDisplayNames[cwd];
 			const target: ProjectActionTarget =
 				openProject === undefined
 					? {
 							project: {
 								cwd,
 								name: displayName ?? basenameFromPath(cwd),
+								purpose: "project",
 								meta: { kind: "primary" },
 								diagnostics: [],
 							},

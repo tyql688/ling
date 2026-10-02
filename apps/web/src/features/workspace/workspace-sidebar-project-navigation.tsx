@@ -21,6 +21,7 @@ import {
 	FolderPlus,
 	Folders,
 	GitBranch,
+	MessageCircle,
 	Pin,
 	Plus,
 } from "lucide-react";
@@ -116,7 +117,13 @@ export function ProjectScopeSelector({
 						onClick={() => onScopeChange(entry.project.cwd)}
 						className="min-w-0"
 					>
-						{entry.project.meta.kind === "worktree" ? <GitBranch aria-hidden="true" /> : <Folder aria-hidden="true" />}
+						{entry.project.purpose === "conversation" ? (
+							<MessageCircle aria-hidden="true" />
+						) : entry.project.meta.kind === "worktree" ? (
+							<GitBranch aria-hidden="true" />
+						) : (
+							<Folder aria-hidden="true" />
+						)}
 						<span className="min-w-0 flex-1 truncate">{entry.project.name}</span>
 						{entry.project.availability === "missing" && (
 							<span className="shrink-0 text-xs text-warning">{t("project.directoryMissing")}</span>
@@ -235,7 +242,12 @@ export function WorkspaceProjectSessions({
 				const visible = visibleSessionsIncludingSelection(sessions, count, activeSessionRef);
 				const hidden = sessions.length - visible.length;
 				const activityCount = activityCountByCwd.get(entry.project.cwd) ?? 0;
-				const ProjectIcon = entry.project.meta.kind === "worktree" ? GitBranch : Folder;
+				const ProjectIcon =
+					entry.project.purpose === "conversation"
+						? MessageCircle
+						: entry.project.meta.kind === "worktree"
+							? GitBranch
+							: Folder;
 				const toggleExpanded = () => {
 					setProjectExpandedOverrides((current) => ({
 						...current,

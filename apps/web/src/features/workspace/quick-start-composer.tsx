@@ -34,7 +34,7 @@ import {
 
 import { NEW_CONVERSATION_DRAFT_KEY } from "@renderer/features/sessions/state/drafts";
 
-import { ChevronDown, Folder, FolderOpen } from "lucide-react";
+import { ChevronDown, Folder, FolderOpen, MessageCircle } from "lucide-react";
 
 import { type QuickStartComposerProps, useQuickStartComposer } from "./use-quick-start-composer";
 import { useEffect } from "react";
@@ -145,19 +145,29 @@ export function QuickStartComposer(props: QuickStartComposerProps) {
 									<Button
 										variant="ghost"
 										size="sm"
-										title={targetProject?.cwd}
+										title={
+											targetProject?.purpose === "conversation" ? t("project.noProjectDescription") : targetProject?.cwd
+										}
 										className="max-w-32 gap-1.5 px-1.5 font-normal text-text-muted hover:text-text-primary @min-[40rem]/composer:max-w-44"
 									/>
 								}
 							>
-								<Folder className="size-3.5" aria-hidden="true" />
+								{targetProject?.purpose === "conversation" ? (
+									<MessageCircle className="size-3.5" aria-hidden="true" />
+								) : (
+									<Folder className="size-3.5" aria-hidden="true" />
+								)}
 								<span className="min-w-0 truncate">{targetProject ? targetProject.name : t("session.pickFolder")}</span>
 								<ChevronDown className="size-3" aria-hidden="true" />
 							</DropdownMenuTrigger>
 							<DropdownMenuContent className="w-56" side="top">
 								{projects.map((project) => (
 									<DropdownMenuItem key={project.cwd} onClick={() => setTargetCwd(project.cwd)}>
-										<Folder className="size-3.5" aria-hidden="true" />
+										{project.purpose === "conversation" ? (
+											<MessageCircle className="size-3.5" aria-hidden="true" />
+										) : (
+											<Folder className="size-3.5" aria-hidden="true" />
+										)}
 										<span className="min-w-0 flex-1 truncate">{project.name}</span>
 									</DropdownMenuItem>
 								))}

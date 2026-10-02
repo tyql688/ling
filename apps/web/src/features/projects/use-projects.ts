@@ -29,6 +29,11 @@ export function useProjects({ onProjectRemoved }: { onProjectRemoved(cwd: string
 	const refreshFenceRef = useRef<RequestFence<typeof PROJECT_LIST_IDENTITY> | null>(null);
 	refreshFenceRef.current ??= createRequestFence<typeof PROJECT_LIST_IDENTITY>();
 	const refreshFence = refreshFenceRef.current;
+	const labelProject = useCallback(
+		(project: OpenProjectInfo): OpenProjectInfo =>
+			project.purpose === "conversation" ? { ...project, name: t("project.noProject") } : project,
+		[t],
+	);
 
 	const refresh = useCallback(async () => {
 		const request = refreshFence.begin(PROJECT_LIST_IDENTITY);
@@ -55,7 +60,7 @@ export function useProjects({ onProjectRemoved }: { onProjectRemoved(cwd: string
 			}
 			const result = await hostProjectApi.list();
 			if (!refreshFence.isCurrent(request, PROJECT_LIST_IDENTITY)) return;
-			setProjects(result.projects);
+			setProjects(result.projects.map(labelProject));
 			setStoreRecoveryError(null);
 			setStoreRecoveryAllowed(false);
 			setStorePersistenceError(writeDegraded ? t("project.storeWriteErrorDescription") : null);
@@ -79,7 +84,7 @@ export function useProjects({ onProjectRemoved }: { onProjectRemoved(cwd: string
 		} finally {
 			if (refreshFence.isCurrent(request, PROJECT_LIST_IDENTITY)) setLoading(false);
 		}
-	}, [hostProjectApi, refreshFence, setProjects, t]);
+	}, [hostProjectApi, refreshFence, setProjects, labelProject, t]);
 
 	useEffect(() => {
 		void refresh();
@@ -134,14 +139,15 @@ export function useProjects({ onProjectRemoved }: { onProjectRemoved(cwd: string
 			: null,
 	);
 	const addProject = useCallback(async (): Promise<OpenProjectInfo | null> => {
-		const info = await hostProjectApi.add();
+		const result = await hostProjectApi.add();
+		const info = result === null ? null : labelProject(result);
 		if (info) {
 			refreshFence.invalidate();
 			setLoading(false);
 			setProjects((current) => (current.some((p) => p.cwd === info.cwd) ? current : [...current, info]));
 		}
 		return info;
-	}, [hostProjectApi, refreshFence, setProjects]);
+	}, [hostProjectApi, refreshFence, setProjects, labelProject]);
 
 	/** Every removal path retires the same renderer-side project state. */
 	const applyProjectRemoval = useCallback(
@@ -163,13 +169,13 @@ export function useProjects({ onProjectRemoved }: { onProjectRemoved(cwd: string
 
 	const createWorktree = useCallback(
 		async (request: CreateWorktreeRequest): Promise<OpenProjectInfo> => {
-			const info = await hostGitApi.createWorktree(request);
+			const info = labelProject(await hostGitApi.createWorktree(request));
 			refreshFence.invalidate();
 			setLoading(false);
 			setProjects((current) => (current.some((p) => p.cwd === info.cwd) ? current : [...current, info]));
 			return info;
 		},
-		[hostGitApi, refreshFence, setProjects],
+		[hostGitApi, refreshFence, setProjects, labelProject],
 	);
 
 	const removeWorktree = useCallback(

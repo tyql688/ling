@@ -513,6 +513,8 @@
 		"expiresIn": "残り {{count}} 秒"
 	},
 	"project": {
+		"noProject": "プロジェクトなし",
+		"noProjectDescription": "フォルダーを選ばずに会話を始められます。これらの会話は Ling が管理するフォルダーを共有します。",
 		"storeReadErrorTitle": "開いているプロジェクト一覧を読み取れません",
 		"storeReadErrorDescription": "プロジェクト一覧を読み取れません。再構築すると現在開いているプロジェクトのみ記録します。プロジェクトのフォルダーや Pi の会話は削除されません。詳細：{{message}}",
 		"storeRepair": "プロジェクト一覧を再構築",

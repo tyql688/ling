@@ -125,7 +125,7 @@ function useProjectActions({
 
 	addItem("copy-path", t("project.copyPath"), <Copy aria-hidden="true" />, () => onCopyPath(project.cwd));
 
-	if (projectOpen) {
+	if (projectOpen && project.purpose === "project") {
 		addSeparator("resources-separator");
 		addItem("create-worktree", t("worktree.createPermanent"), <GitBranch aria-hidden="true" />, () =>
 			onCreateWorktree(project),
@@ -136,7 +136,9 @@ function useProjectActions({
 	addItem("toggle-pin", t(pinned ? "project.unpin" : "project.pin"), <Pin aria-hidden="true" />, () =>
 		onTogglePinned(project.cwd),
 	);
-	addItem("rename", t("project.rename"), <Pencil aria-hidden="true" />, () => onRename(project.cwd, project.name));
+	if (project.purpose === "project") {
+		addItem("rename", t("project.rename"), <Pencil aria-hidden="true" />, () => onRename(project.cwd, project.name));
+	}
 	addItem(
 		"archive",
 		t("project.archiveChats"),
@@ -145,7 +147,7 @@ function useProjectActions({
 		!canArchiveSessions,
 	);
 
-	if (projectOpen) {
+	if (projectOpen && project.purpose === "project") {
 		addSeparator("remove-separator");
 		if (project.meta.kind === "worktree") {
 			addItem(

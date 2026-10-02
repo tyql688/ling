@@ -1,4 +1,5 @@
 import { createAttachmentFiles } from "../domains/files/attachment-files";
+import { join } from "node:path";
 import type { HostShellEvent } from "@ling/contracts/host-shell";
 import type { SessionRef } from "@ling/contracts/session-ref";
 import { createProjectFileWatchers } from "@ling/host/domains/review/project-file-watcher";
@@ -237,6 +238,7 @@ export async function createHostBusinessRuntime(options: HostBusinessRuntimeOpti
 		lifetime.defer("sessions", "session host", sessions.dispose);
 		const projects = createProjectLifecycle({
 			projectStore,
+			conversationDirectory: join(paths.dataHome, "conversations"),
 			mentionCache,
 			piWorker,
 			sessions,

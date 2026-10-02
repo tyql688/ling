@@ -110,7 +110,7 @@ export function SettingsView() {
 
 	const { t } = useTranslation();
 	const capabilities = hostUiApi.capabilities;
-	const { state: updateState } = useUpdates();
+	const { state: updateState, openUpdates } = useUpdates();
 	const [sendShortcut, setSendShortcut] = useAtom(sendShortcutAtom);
 	const [composerEditorMode, setComposerEditorMode] = useAtom(composerEditorModeAtom);
 	const [followUpBehavior, setFollowUpBehavior] = useAtom(followUpBehaviorAtom);
@@ -532,7 +532,14 @@ export function SettingsView() {
 
 			<SettingsSection title={t("settings.about")}>
 				<SettingsRow label={t("settings.version")}>
-					<span className="text-sm text-text-muted">{updateState?.appVersion ?? t("common.loading")}</span>
+					<div className="flex items-center gap-3">
+						<span className="text-sm text-text-muted">{updateState?.appVersion ?? t("common.loading")}</span>
+						{capabilities.updates && (
+							<Button size="sm" variant="outline" onClick={openUpdates}>
+								{t("settings.updateCheck")}
+							</Button>
+						)}
+					</div>
 				</SettingsRow>
 				{updateState?.supported && (
 					<BooleanSettingRow

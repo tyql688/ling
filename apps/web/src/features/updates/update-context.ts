@@ -4,7 +4,10 @@ import { createContext, useContext } from "react";
 export const UpdateContext = createContext<{
 	state: UpdateState | null;
 	phase: UpdateEvent | null;
+	busy: boolean;
 	openUpdates(): void;
+	downloadUpdate(): void;
+	installUpdate(): void;
 } | null>(null);
 
 export function useUpdates() {

@@ -15,7 +15,7 @@ import { useDomainApi } from "@renderer/lib/host-api-context";
 import { appModeAtom } from "@renderer/lib/navigation-state";
 import { cn } from "@renderer/lib/utils";
 import { useSetAtom } from "jotai";
-import { ArrowDownToLine, CircleArrowUp, LoaderCircle } from "lucide-react";
+import { ArrowDownToLine, CircleAlert, CircleArrowUp, LoaderCircle } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { UpdateContext, useUpdates } from "./update-context";
@@ -73,6 +73,8 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 		},
 		[report],
 	);
+	const downloadUpdate = useCallback(() => run(updates.download), [run, updates]);
+	const installUpdate = useCallback(() => run(updates.install), [run, updates]);
 	const check = useCallback(
 		() =>
 			run(async () => {
@@ -144,7 +146,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 		}
 	})();
 	return (
-		<UpdateContext value={{ state, phase, openUpdates }}>
+		<UpdateContext value={{ state, phase, busy, openUpdates, downloadUpdate, installUpdate }}>
 			{children}
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent size="small" className="space-y-5">
@@ -182,12 +184,12 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 								</Button>
 							)}
 						{state?.supported && phase?.type === "available" && (
-							<Button size="sm" disabled={busy} onClick={() => run(updates.download)}>
+							<Button size="sm" disabled={busy} onClick={downloadUpdate}>
 								{t("settings.updateDownload")}
 							</Button>
 						)}
 						{state?.supported && phase?.type === "downloaded" && (
-							<Button size="sm" disabled={busy} onClick={() => run(updates.install)}>
+							<Button size="sm" disabled={busy} onClick={installUpdate}>
 								{t("settings.updateInstall")}
 							</Button>
 						)}
@@ -200,27 +202,40 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 
 export function UpdateButton() {
 	const { capabilities } = useDomainApi("ui");
-	const { phase, openUpdates } = useUpdates();
+	const { phase, busy, openUpdates, downloadUpdate, installUpdate } = useUpdates();
 	const { t } = useTranslation();
-	if (!capabilities.updates) return null;
-	const busy = phase?.type === "checking" || phase?.type === "download-progress" || phase?.type === "installing";
-	const ready = phase?.type === "available" || phase?.type === "downloaded";
-	const label =
-		phase?.type === "download-progress"
-			? t("settings.updateDownloading", { percent: phase.percent })
-			: phase?.type === "downloaded"
-				? t("settings.updateInstall")
-				: t("settings.updateCheck");
+	if (!capabilities.updates || !phase || phase.type === "checking" || phase.type === "not-available") return null;
+	const ready = phase.type === "available" || phase.type === "downloaded";
+	const spinning = phase.type === "download-progress" || phase.type === "installing" || (busy && ready);
+	const label = (() => {
+		switch (phase.type) {
+			case "available":
+				return t("settings.updateDownload");
+			case "download-progress":
+				return t("settings.updateDownloading", { percent: phase.percent });
+			case "downloaded":
+				return t("settings.updateInstall");
+			case "installing":
+				return t("settings.updateInstalling");
+			case "error":
+				return phase.restartRequired
+					? t("settings.updateRestartRequired", { message: phase.message })
+					: t("settings.updateFailed", { message: phase.message });
+		}
+	})();
 	return (
 		<TooltipIconButton
 			label={label}
-			onClick={openUpdates}
-			className={cn("ml-auto", ready && "text-accent", phase?.type === "error" && "text-danger")}
+			onClick={phase.type === "available" ? downloadUpdate : phase.type === "downloaded" ? installUpdate : openUpdates}
+			disabled={(busy && ready) || phase.type === "installing"}
+			className={cn("ml-auto", ready && "text-accent", phase.type === "error" && "text-danger")}
 		>
-			{busy ? (
+			{spinning ? (
 				<LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-			) : phase?.type === "available" ? (
+			) : phase.type === "available" ? (
 				<ArrowDownToLine className="size-4" aria-hidden="true" />
+			) : phase.type === "error" ? (
+				<CircleAlert className="size-4" aria-hidden="true" />
 			) : (
 				<CircleArrowUp className="size-4" aria-hidden="true" />
 			)}

@@ -84,7 +84,7 @@ Propagate errors or explicit typed failure results through Core, Host, and Deskt
 
 `.agents/skills/` contains repository development guidance and is never packaged. `builtin-skills/<name>/SKILL.md` ships to end users. Keep both tiers English and read [skill-authoring](.agents/skills/skill-authoring/SKILL.md) before editing either.
 
-Use [commit](.agents/skills/commit/SKILL.md) for staging/commit work, [release](.agents/skills/release/SKILL.md) for version/build/tag/publication work, and [update-pi-dependency](.agents/skills/update-pi-dependency/SKILL.md) for SDK upgrades or compatibility reviews. Run [maintain-pi-dependencies](.agents/skills/maintain-pi-dependencies/SKILL.md) before every release candidate and for bundled Todo, permission, voice or official MCP updates. Follow the user's requested endpoint; editing a workflow does not authorize executing its mutations.
+Use [commit](.agents/skills/commit/SKILL.md) for staging/commit work, [release](.agents/skills/release/SKILL.md) for version/build/tag/publication work, [interface-acceptance](.agents/skills/interface-acceptance/SKILL.md) for UI/UE/UX audits, responsiveness fixes and real interface retesting, and [update-pi-dependency](.agents/skills/update-pi-dependency/SKILL.md) for SDK upgrades or compatibility reviews. Run [maintain-pi-dependencies](.agents/skills/maintain-pi-dependencies/SKILL.md) before every release candidate and for bundled Todo, permission, voice or official MCP updates. Follow the user's requested endpoint; editing a workflow does not authorize executing its mutations.
 
 ## Verification
 

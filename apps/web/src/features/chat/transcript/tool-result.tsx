@@ -140,6 +140,7 @@ function LoadedToolResult(props: ToolResultProps) {
 			) : (
 				<ToolResultContent {...props} />
 			)}
+			<ToolResultImages content={message.content} />
 			{message.nestedCalls && (
 				<details className="mt-3 text-xs">
 					<summary className="cursor-pointer text-text-muted">
@@ -209,13 +210,9 @@ function ToolResultContent({
 	variant?: "card" | "inline";
 }) {
 	const { t } = useTranslation();
-	const [previewImage, setPreviewImage] = useState<PreviewImage | null>(null);
 	const diff = extractDiff(message.details);
 	const text = clampToolOutput(partsText(message.content), t);
 	const displayCommand = command === undefined ? undefined : clampToolOutput(command, t);
-	// Pi's TUI draws these inline through the terminal image protocols; a `read` on a PNG,
-	// an MCP screenshot, or an extension tool all arrive here as image content parts.
-	const images = useMessageImages(message.content);
 	const isTerminal = toolCategoryForName(message.toolName) === "run";
 	const isSearch = message.toolName === "grep" || message.toolName === "find";
 	const outputClassName = cn(
@@ -258,26 +255,31 @@ function ToolResultContent({
 			) : (
 				<pre className={outputClassName}>{text}</pre>
 			)}
-			{images.length > 0 && (
-				<div className="mt-2 flex flex-wrap gap-1.5">
-					<ImagePreviewDialog image={previewImage} onClose={() => setPreviewImage(null)} />
-					{images.map((image, imageIndex) => {
-						const src = image.src;
-						return (
-							<button
-								// eslint-disable-next-line react/no-array-index-key -- images never reorder within a tool result
-								key={imageIndex}
-								type="button"
-								className="size-24 overflow-hidden rounded-control border border-border-subtle"
-								onClick={() => setPreviewImage({ src })}
-								aria-label={t("session.imagePreview")}
-							>
-								<img src={src} alt="" className="size-full object-cover" />
-							</button>
-						);
-					})}
-				</div>
-			)}
+		</div>
+	);
+}
+
+/** Image content accompanies both native tool output and extension-rendered text. */
+function ToolResultImages({ content }: { content: ToolResultMsg["content"] }) {
+	const { t } = useTranslation();
+	const images = useMessageImages(content);
+	const [previewImage, setPreviewImage] = useState<PreviewImage | null>(null);
+	if (images.length === 0) return null;
+	return (
+		<div className="mt-2 flex flex-wrap gap-1.5">
+			<ImagePreviewDialog image={previewImage} onClose={() => setPreviewImage(null)} />
+			{images.map((image, imageIndex) => (
+				<button
+					// eslint-disable-next-line react/no-array-index-key -- images never reorder within a tool result
+					key={imageIndex}
+					type="button"
+					className="size-24 overflow-hidden rounded-control border border-border-subtle"
+					onClick={() => setPreviewImage({ src: image.src })}
+					aria-label={t("session.imagePreview")}
+				>
+					<img src={image.src} alt="" className="size-full object-cover" />
+				</button>
+			))}
 		</div>
 	);
 }

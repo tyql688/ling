@@ -294,7 +294,7 @@ export interface ProviderSummary {
 	credentialType: "oauth" | "api_key" | null;
 	authMethods: {
 		apiKey: { name: string; interactive: boolean } | null;
-		oauth: { name: string; loginLabel: string | null } | null;
+		oauth: { name: string; loginLabel: string | null; isSubscription: boolean } | null;
 	};
 	/** True when the effective provider is registered by an extension in the active project. */
 	projectExtension: boolean;

@@ -387,7 +387,7 @@ export function useComposerCompletions({
 			onCommandError("Command completion no longer matches the current text");
 			return;
 		}
-		const beforePrefix = text.slice(0, prefixStart);
+		const beforePrefix = text.slice(0, prefixStart).replace(/^[^\S\r\n]+(?=\/)/, "");
 		const afterCursor = text.slice(activeCursorOffset);
 		const nextText = `${beforePrefix}${entry.item.value}${afterCursor}`;
 		const nextCursorOffset = beforePrefix.length + entry.item.value.length;

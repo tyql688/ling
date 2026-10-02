@@ -33,6 +33,7 @@ const oauthSchema = z
 		clientId: text.optional(),
 		clientSecret: text.optional(),
 		clientName: text.refine((value) => value.trim().length > 0, "OAuth client name must not be empty").optional(),
+		authServerMetadataUrl: text.optional(),
 		callbackPort: z.number().int().min(1).max(65535).optional(),
 		callbackUrl: text
 			.refine((value) => {
@@ -84,6 +85,22 @@ export const mcpServerSchema = z
 	.catchall(z.json());
 export type McpServer = z.infer<typeof mcpServerSchema>;
 export const mcpConfiguredServerSchema = mcpServerSchema.superRefine((entry, context) => {
+	if (entry.oauth?.authServerMetadataUrl !== undefined) {
+		const value = entry.oauth.authServerMetadataUrl;
+		const url = URL.canParse(value) ? new URL(value) : null;
+		if (
+			!url ||
+			!(
+				url.protocol === "https:" ||
+				(url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))
+			)
+		)
+			context.addIssue({
+				code: "custom",
+				path: ["oauth", "authServerMetadataUrl"],
+				message: "OAuth metadata must use an HTTPS URL or an HTTP loopback URL.",
+			});
+	}
 	if (Number(!!entry.command) + Number(!!entry.url) !== 1)
 		context.addIssue({ code: "custom", message: "Provide exactly one connection: command or HTTP URL." });
 	if ((entry.command && entry.type && entry.type !== "stdio") || (entry.url && entry.type === "stdio"))

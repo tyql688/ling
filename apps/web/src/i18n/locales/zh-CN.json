@@ -702,6 +702,7 @@
 		"connectedOther": "models.json",
 		"notConfigured": "未配置",
 		"oauthSection": "订阅登录",
+		"accountSection": "账号登录",
 		"oauthLogin": "使用 {{name}} 登录",
 		"oauthLoggedIn": "已通过 {{name}} 登录",
 		"logout": "退出登录",
@@ -1075,7 +1076,8 @@
 		"codemodeMode_on": "混合模式",
 		"codemodeMode_only": "仅 Codemode",
 		"codemodeInlineBudget": "内联工具预算",
-		"codemodeInlineBudgetDescription": "Codemode 工具说明的预估 token 预算。目录超出预算时按需发现；设为 0 始终使用按需发现。"
+		"codemodeInlineBudgetDescription": "Codemode 工具说明的预估 token 预算。目录超出预算时按需发现；设为 0 始终使用按需发现。",
+		"codemodeDescription": "脚本可以调用已配置的分类和图像生成模型，生成的图片及模型用量会显示在会话中。"
 	},
 	"languages": {
 		"en": "English",
@@ -2043,6 +2045,11 @@
 		"exposureHint_codemode": "Pi 先读取服务简介，需要时再发现工具、读取使用说明。服务在后台连接。",
 		"exposureHint_deferred": "Pi 通过工具搜索找到所需工具，再直接调用。服务在后台连接。",
 		"exposureHint_direct": "每次请求都包含工具说明。首次发送消息时会短暂等待服务连接。",
-		"exposureHint_hidden": "注册工具，但模型无法调用。"
+		"exposureHint_hidden": "注册工具，但模型无法调用。",
+		"oauthMetadataUrl": "OAuth 服务元数据地址",
+		"oauthMetadataUrlHint": "选填。自动发现登录服务失败时，填写服务方提供的元数据地址。仅接受 HTTPS 或本机回环地址。",
+		"invalidOAuthMetadataUrl": "请输入完整的 HTTPS 元数据地址，或使用 localhost、127.0.0.1、[::1] 的 HTTP 地址。",
+		"addRadius": "添加 Radius",
+		"radiusHint": "请在设置 → 模型中登录 Radius，此 MCP 服务会使用该登录信息。"
 	}
 }

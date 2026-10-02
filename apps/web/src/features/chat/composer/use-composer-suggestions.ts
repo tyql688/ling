@@ -81,7 +81,7 @@ export function useComposerSuggestions({
 		if (!catalog) return null;
 		const textBeforeCursor = text.slice(0, cursorOffset);
 		const currentLineBeforeCursor = textBeforeCursor.split("\n").at(-1) ?? "";
-		const match = currentLineBeforeCursor.match(/^\/([\w:-]+)\s+([\s\S]*)$/);
+		const match = currentLineBeforeCursor.match(/^\s*\/([\w:-]+)\s+([\s\S]*)$/);
 		const commandName = match?.[1];
 		if (!commandName) return null;
 		const command = catalog.extensions.find((entry) => entry.name === commandName);
@@ -116,7 +116,7 @@ export function useComposerSuggestions({
 	// the command's own argument completion owns "@" for its whole line.
 	const slashToken = slashTokenAt(text, cursorOffset);
 	const mentionCompletions = useProjectMentionCompletions({
-		cwd: text.startsWith("/") ? null : sessionRef.cwd,
+		cwd: text.trimStart().startsWith("/") ? null : sessionRef.cwd,
 		text,
 		cursorOffset,
 	});

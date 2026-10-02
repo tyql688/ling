@@ -79,6 +79,64 @@ it("normalizes exposure aliases without rewriting saved configuration", async ()
 	expect(await readFile(f.path, "utf8")).toBe(source);
 });
 
+it("validates OAuth metadata destinations while preserving editable drafts", () => {
+	for (const authServerMetadataUrl of [
+		"https://login.example.com/.well-known/openid-configuration",
+		"http://localhost:9000/metadata",
+		"http://127.0.0.1:9000/metadata",
+		"http://[::1]:9000/metadata",
+	])
+		expect(
+			mcpConfiguredServerSchema.parse({ url: "https://example.com/mcp", oauth: { authServerMetadataUrl } }).oauth,
+		).toEqual({ authServerMetadataUrl });
+	for (const authServerMetadataUrl of [
+		"https://",
+		"http://example.com/metadata",
+		"http://localhost.evil.test/metadata",
+		"file:///metadata.json",
+	]) {
+		const server = { url: "https://example.com/mcp", oauth: { authServerMetadataUrl } };
+		expect(mcpServerSchema.safeParse(server).success).toBe(true);
+		expect(mcpConfiguredServerSchema.safeParse(server).success).toBe(false);
+	}
+});
+
+it("persists OAuth metadata through Pi and rejects invalid updates without changing the file", async () => {
+	const f = await fixture();
+	const server = {
+		url: "https://example.com/mcp",
+		oauth: {
+			clientName: "ling-fixture",
+			authServerMetadataUrl: "https://login.example.com/.well-known/openid-configuration",
+			futureOption: "retained",
+		},
+	};
+	await f.file.write(
+		{ expectedRevision: (await f.file.read()).revision, name: "remote", change: { kind: "save", server } },
+		f.signal,
+	);
+	const snapshot = await readPiMcpConfiguration(f.root, null);
+	expect(snapshot.loaded.errors).toEqual([]);
+	expect(snapshot.loaded.servers[0]).toMatchObject({ config: { oauth: server.oauth } });
+	const before = await f.file.read();
+	await expect(
+		f.file.write(
+			{
+				expectedRevision: before.revision,
+				name: "remote",
+				change: {
+					kind: "patch",
+					server: { oauth: { authServerMetadataUrl: "http://remote.example/metadata" } },
+					removeFields: [],
+				},
+			},
+			f.signal,
+		),
+	).rejects.toThrow("OAuth metadata");
+	expect((await f.file.read()).revision).toBe(before.revision);
+	expect((await f.file.read()).servers.remote).toEqual(server);
+});
+
 it("limits provider authentication to secure HTTP endpoints and preserves OAuth client names", () => {
 	for (const url of [
 		"https://example.com/mcp",

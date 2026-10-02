@@ -284,6 +284,7 @@ function providerAuthMethods(
 			? {
 					name: provider.auth.oauth.name,
 					loginLabel: provider.auth.oauth.loginLabel ?? null,
+					isSubscription: provider.auth.oauth.isSubscription === true,
 				}
 			: null,
 	};

@@ -36,12 +36,12 @@ const SOURCE_ONLY_EXTENSIONS = new Set([".map", ".c", ".h", ".cc", ".cpp", ".gyp
 const BUILTINS = new Set(builtinModules);
 
 /**
- * Pi 0.99.2's provider bundles guard these optional integrations at their call sites. Every other
+ * Pi 1.0.0's provider bundles guard these optional integrations at their call sites. Every other
  * literal external import must resolve. Reaudit this list with the SDK bundle on a Pi upgrade.
  */
 const OPTIONAL_BUNDLE_IMPORTS = new Set(["supports-color", "kerberos", "bufferutil", "utf-8-validate"]);
 
-/** SDK 0.99.2 supplies these peers to Pi extension factories through its virtual module registry. */
+/** SDK 1.0.0 supplies these peers to Pi extension factories through its virtual module registry. */
 const PI_VIRTUAL_PEERS = new Set([
 	"typebox",
 	"@sinclair/typebox",

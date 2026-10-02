@@ -174,6 +174,10 @@ export default function(pi) {
     pi.registerTool({ name, label: name, description: name, parameters: Type.Object({}), defaultActive,
       async execute() { return { content: [{ type: "text", text: name }] }; } });
   }
+  pi.registerCommand("fixture-register", { description: "Register a deferred tool", handler: async (name) => {
+    pi.registerTool({ name, label: name, description: name, parameters: Type.Object({}), exposure: "deferred",
+      async execute() { return { content: [{ type: "text", text: name }] }; } });
+  } });
 }
 `,
 					);
@@ -237,6 +241,74 @@ export default function(pi) {
 									.extensions.filter((item) => item.tools.has("generate_image"))
 									.map((item) => item.path),
 							).toEqual([extension]);
+						} finally {
+							await runtime.dispose();
+							projects.releasePiRuntimeServices(runtime.services);
+						}
+					}
+					await writeFile(join(agentDir, "settings.json"), "{}");
+					await projects.reloadProjectSettings([cwd]);
+					for (const reload of [false, true]) {
+						const manager = SessionManager.inMemory(cwd);
+						const rootId = manager.appendMessage({
+							role: "system",
+							content: "Fixture root",
+							toolsAdded: [{ name: "read", description: "read", parameters: { type: "object", properties: {} } }],
+							timestamp: 0,
+						});
+						manager.appendMessage({
+							role: "system",
+							content: "Fixture",
+							toolsAdded: ["read", "bash", "fixture_inactive", "fixture_deferred", "fixture_late"].map((name) => ({
+								name,
+								description: name,
+								parameters: { type: "object", properties: {} },
+							})),
+							timestamp: 1,
+						});
+						manager.appendMessage({ role: "system", content: "", toolsRemoved: [{ name: "bash" }], timestamp: 2 });
+						const runtime = await factory.createRuntimeForSession(
+							{ cwd, sessionId: manager.getSessionId() },
+							manager,
+							reload
+								? {
+										model: null,
+										thinkingLevel: "off",
+										scopedModels: [],
+										activeToolNames: ["read", "fixture_inactive", "fixture_deferred", "fixture_late"],
+										availableToolNames: [
+											"read",
+											"bash",
+											"edit",
+											"write",
+											"fixture_active",
+											"fixture_inactive",
+											"generate_image",
+											"fixture_deferred",
+											"fixture_late",
+										],
+										defaultToolNames: ["read", "bash", "edit", "write"],
+										extensionFlagValues: new Map(),
+									}
+								: null,
+						);
+						try {
+							await runtime.session.bindExtensions({});
+							expect(runtime.session.getActiveToolNames().sort()).toEqual(["fixture_inactive", "read"]);
+							await runtime.session.prompt("/fixture-register fixture_deferred");
+							expect(runtime.session.getActiveToolNames().sort()).toEqual([
+								"fixture_deferred",
+								"fixture_inactive",
+								"read",
+							]);
+							await runtime.session.prompt("/fixture-register fixture_unselected");
+							expect(runtime.session.getActiveToolNames()).not.toContain("fixture_unselected");
+							// Selection changes and tree navigation own the pending loadout as well.
+							if (reload) await runtime.session.navigateTree(rootId);
+							else runtime.session.setActiveToolsByName(["read"]);
+							await runtime.session.prompt("/fixture-register fixture_late");
+							await runtime.session.prompt("/fixture-register fixture_deferred");
+							expect(runtime.session.getActiveToolNames()).toEqual(["read"]);
 						} finally {
 							await runtime.dispose();
 							projects.releasePiRuntimeServices(runtime.services);

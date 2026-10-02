@@ -709,6 +709,7 @@
 		"connectedOther": "models.json",
 		"notConfigured": "Not configured",
 		"oauthSection": "Subscription login",
+		"accountSection": "Account login",
 		"oauthLogin": "Sign in with {{name}}",
 		"oauthLoggedIn": "Signed in via {{name}}",
 		"logout": "Sign out",
@@ -1082,7 +1083,8 @@
 		"codemodeMode_on": "Combined",
 		"codemodeMode_only": "Codemode only",
 		"codemodeInlineBudget": "Inline tool budget",
-		"codemodeInlineBudgetDescription": "Estimated token budget for tool descriptions in Codemode. Larger catalogs are discovered on demand; 0 always uses discovery."
+		"codemodeInlineBudgetDescription": "Estimated token budget for tool descriptions in Codemode. Larger catalogs are discovered on demand; 0 always uses discovery.",
+		"codemodeDescription": "Scripts can use configured classifier and image models. Generated images and model usage appear in the conversation."
 	},
 	"languages": {
 		"en": "English",
@@ -2052,6 +2054,11 @@
 		"exposureHint_codemode": "Pi lists a short service summary, then finds tools and reads instructions when needed. Connections run in the background.",
 		"exposureHint_deferred": "Pi finds tools with tool search, then calls them directly. Connections run in the background.",
 		"exposureHint_direct": "Pi includes the tools in each request. The first prompt waits briefly for the service to connect.",
-		"exposureHint_hidden": "Tools are registered but cannot be called by the model."
+		"exposureHint_hidden": "Tools are registered but cannot be called by the model.",
+		"oauthMetadataUrl": "OAuth server metadata URL",
+		"oauthMetadataUrlHint": "Optional. If automatic sign-in discovery fails, use the metadata URL provided by the service. Requires HTTPS or a loopback address.",
+		"invalidOAuthMetadataUrl": "Enter a complete HTTPS metadata URL, or an HTTP URL on localhost, 127.0.0.1 or [::1].",
+		"addRadius": "Add Radius",
+		"radiusHint": "Sign in to Radius in Settings → Models. This service uses that login for MCP requests."
 	}
 }

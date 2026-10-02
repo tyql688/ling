@@ -279,7 +279,7 @@ export function PiSettingsView() {
 				</SettingsFieldRow>
 			</SettingsSection>
 
-			<SettingsSection title="Codemode">
+			<SettingsSection title="Codemode" description={t("settings.codemodeDescription")}>
 				<SettingsFieldRow label={t("settings.codemodeMode")} description={t("settings.codemodeModeDescription")}>
 					{({ labelId, descriptionId }) => (
 						<Segmented

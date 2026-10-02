@@ -120,7 +120,9 @@ const providerSummarySchema = z.strictObject({
 	credentialType: z.enum(["oauth", "api_key"]).nullable(),
 	authMethods: z.strictObject({
 		apiKey: z.strictObject({ name: fieldSchema, interactive: z.boolean() }).nullable(),
-		oauth: z.strictObject({ name: fieldSchema, loginLabel: fieldSchema.nullable() }).nullable(),
+		oauth: z
+			.strictObject({ name: fieldSchema, loginLabel: fieldSchema.nullable(), isSubscription: z.boolean() })
+			.nullable(),
 	}),
 	projectExtension: z.boolean(),
 	projectCwd: absolutePathSchema.nullable(),

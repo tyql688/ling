@@ -7,12 +7,12 @@ export interface ComposerCompletionToken {
 	end: number;
 }
 
-/** Slash commands are valid only at the start of the first line. Text after the cursor does not affect the trigger. */
+/** Matches commands on the first line; completion replaces indentation so Pi receives a leading slash. */
 export function slashTokenAt(text: string, cursorOffset: number): ComposerCompletionToken | null {
 	const cursor = Math.min(Math.max(cursorOffset, 0), text.length);
 	const beforeCursor = text.slice(0, cursor);
 	if (beforeCursor.includes("\n")) return null;
-	const match = beforeCursor.match(/^\/([^\s/]*)$/);
+	const match = beforeCursor.match(/^\s*\/([^\s/]*)$/);
 	if (!match) return null;
 	const tail = text.slice(cursor).match(/^[^\s/]*/)?.[0] ?? "";
 	return { start: 0, query: match[1] ?? "", end: cursor + tail.length };

@@ -16,6 +16,7 @@ import type {
 	PiAgentSessionServices,
 	PiAgentSessionRuntime,
 	PiCreateAgentSessionRuntimeFactory,
+	PiLoadExtensionsResult,
 	PiSessionManager,
 } from "../types";
 
@@ -56,15 +57,14 @@ export interface InitialRuntimeSelection {
 
 type PiSessionStartEvent = NonNullable<Parameters<PiCreateAgentSessionRuntimeFactory>[0]["sessionStartEvent"]>;
 
-function restoreReloadToolSelection(session: PiAgentSession, previous: RuntimeGenerationState): void {
+function reloadToolSelection(session: PiAgentSession, previous: RuntimeGenerationState): string[] {
 	const tools = session.getAllTools();
-	const availableNames = new Set(tools.map((tool) => tool.name));
-	const activeNames = previous.activeToolNames.filter((name) => availableNames.has(name));
+	const activeNames = [...previous.activeToolNames];
 	// Pi resolves global/project +/- entries. Reload adds new defaults while retaining the
 	// session's choices, including enabled tools removed from defaults and manually disabled tools.
 	const previousDefaults = new Set(previous.defaultToolNames);
 	for (const name of session.settingsManager.getDefaultTools() ?? PI_DEFAULT_TOOL_NAMES) {
-		if (!previousDefaults.has(name) && availableNames.has(name)) activeNames.push(name);
+		if (!previousDefaults.has(name)) activeNames.push(name);
 	}
 	const initiallyActive = new Set(session.getActiveToolNames());
 	const previousAvailable = new Set(previous.availableToolNames);
@@ -78,7 +78,77 @@ function restoreReloadToolSelection(session: PiAgentSession, previous: RuntimeGe
 		)
 			activeNames.push(tool.name);
 	}
-	session.setActiveToolsByName([...new Set(activeNames)]);
+	return [...new Set(activeNames)];
+}
+
+/** Read tool deltas from Pi's projected branch, including compaction and context edits. */
+function recordedToolSelection(session: PiAgentSession): string[] | undefined {
+	const names = new Set<string>();
+	let declared = false;
+	for (const message of session.agent.state.messages) {
+		if (message.role !== "system") continue;
+		declared = true;
+		for (const tool of message.toolsRemoved ?? []) names.delete(tool.name);
+		for (const tool of message.toolsAdded ?? []) names.add(tool.name);
+	}
+	return declared ? [...names] : undefined;
+}
+
+/** Restore a generation's selection as asynchronous extension tools register. */
+function restoreRuntimeToolSelection(
+	session: PiAgentSession,
+	runtime: PiLoadExtensionsResult["runtime"],
+	previous: RuntimeGenerationState | null,
+): void {
+	const selected = previous ? reloadToolSelection(session, previous) : recordedToolSelection(session);
+	if (!selected) return;
+	session.setActiveToolsByName(selected);
+	const registered = new Set(session.getAllTools().map((tool) => tool.name));
+	const pending = new Set(selected.filter((name) => !registered.has(name)));
+	if (pending.size === 0) return;
+	let leafId = session.sessionManager.getLeafId();
+	const recordedSelection = JSON.stringify(recordedToolSelection(session));
+
+	const refreshTools = runtime.refreshTools;
+	const setActiveTools = session.setActiveToolsByName;
+	const ownsSetActiveTools = Object.hasOwn(session, "setActiveToolsByName");
+	const applySelection: PiAgentSession["setActiveToolsByName"] = (names) => {
+		const before = session.getActiveToolNames();
+		setActiveTools.call(session, names);
+		const active = new Set(session.getActiveToolNames());
+		if (before.some((name) => !active.has(name))) cleanup();
+	};
+	const refresh = () => {
+		const currentLeafId = session.sessionManager.getLeafId();
+		if (currentLeafId !== leafId) {
+			leafId = currentLeafId;
+			// Tree navigation restores its own loadout; late registrations belong to that branch.
+			if (JSON.stringify(recordedToolSelection(session)) !== recordedSelection) cleanup();
+		}
+		refreshTools();
+		if (pending.size === 0) return;
+		const available = new Set(session.getAllTools().map((tool) => tool.name));
+		const added = [...pending].filter((name) => available.has(name));
+		if (added.length === 0) return;
+		for (const name of added) pending.delete(name);
+		setActiveTools.call(session, [...session.getActiveToolNames(), ...added]);
+		if (pending.size === 0) cleanup();
+	};
+	const unsubscribe = session.subscribe((event) => {
+		// The first run records its available loadout; missing tools must not activate later.
+		if (event.type === "agent_start") cleanup();
+	});
+	const cleanup = runtime.trackEventBusSubscription(() => {
+		pending.clear();
+		unsubscribe();
+		if (runtime.refreshTools === refresh) runtime.refreshTools = refreshTools;
+		if (session.setActiveToolsByName === applySelection) {
+			if (ownsSetActiveTools) session.setActiveToolsByName = setActiveTools;
+			else Reflect.deleteProperty(session, "setActiveToolsByName");
+		}
+	});
+	runtime.refreshTools = refresh;
+	session.setActiveToolsByName = applySelection;
 }
 
 function installNextTurnAbortGuard(session: PiAgentSession): void {
@@ -256,7 +326,7 @@ export function createPiRuntimeFactory({
 					...(scopedModels ? { scopedModels } : {}),
 				});
 				installNextTurnAbortGuard(sessionResult.session);
-				if (generation) restoreReloadToolSelection(sessionResult.session, generation);
+				restoreRuntimeToolSelection(sessionResult.session, sessionResult.extensionsResult.runtime, generation);
 				return { ...sessionResult, services, diagnostics: services.diagnostics };
 			} catch (error) {
 				releasePiRuntimeServices(services);

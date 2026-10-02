@@ -115,7 +115,7 @@ export function ModelsProviderDetail(props: ModelsProviderDetailProps) {
 			{provider.authMethods.oauth !== null && (
 				<section aria-labelledby={`${detailTitleId}-oauth`} className="flex flex-col gap-2">
 					<h3 id={`${detailTitleId}-oauth`} className="text-xs font-medium text-text-muted">
-						{t("models.oauthSection")}
+						{t(provider.authMethods.oauth.isSubscription ? "models.oauthSection" : "models.accountSection")}
 					</h3>
 					{provider.credentialType === "oauth" ? (
 						<div className="flex flex-col gap-2 rounded-control border border-border-subtle px-3 py-2.5 sm:flex-row sm:items-center">

@@ -93,6 +93,7 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 	const [target, setTarget] = useState<McpTarget>(cwd ? "project" : "global");
 	const [editor, setEditor] = useState<{
 		name: string | null;
+		initialName: string | undefined;
 		server: McpStoredServer | null;
 		document: McpDocument;
 	} | null>(null);
@@ -139,11 +140,11 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 	function canWrite(owner: McpDocument | undefined) {
 		return !!owner?.revision && !owner.error && !loading && !busy && !error;
 	}
-	function openEditor(name: string | null, server: McpStoredServer | null, owner: McpDocument) {
+	function openEditor(name: string | null, server: McpStoredServer | null, owner: McpDocument, initialName?: string) {
 		setError(null);
 		setEditorConflict(false);
 		setEditorRefreshed(false);
-		setEditor({ name, server, document: owner });
+		setEditor({ name, initialName, server, document: owner });
 	}
 	async function refreshEditor() {
 		if (!editor || busy || loading) return;
@@ -210,7 +211,7 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 						))}
 					</SelectContent>
 				</Select>
-				<div className="flex gap-2">
+				<div className="flex flex-wrap justify-end gap-2">
 					<Button
 						variant="ghost"
 						size="sm"
@@ -224,6 +225,23 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 						/>
 						{t("mcp.refresh")}
 					</Button>
+					{target === "global" && !overview?.effective.some((server) => server.authProvider === "radius") && (
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={!writable}
+							onClick={() =>
+								openEditor(
+									null,
+									{ url: "https://radius.pi.dev/mcp", auth: { provider: "radius" } },
+									document!,
+									"radius",
+								)
+							}
+						>
+							{t("mcp.addRadius")}
+						</Button>
+					)}
 					<Button size="sm" disabled={!writable} onClick={() => openEditor(null, null, document!)}>
 						<Plus className="size-3.5" aria-hidden="true" />
 						{t("mcp.add")}
@@ -362,6 +380,7 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 			{editor && (
 				<McpServerEditor
 					name={editor.name}
+					initialName={editor.initialName}
 					server={editor.server}
 					path={editor.document.path}
 					scope={editor.document.scope}

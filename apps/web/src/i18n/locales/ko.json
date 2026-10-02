@@ -707,6 +707,7 @@
 		"connectedOther": "models.json",
 		"notConfigured": "미설정",
 		"oauthSection": "구독 계정 로그인",
+		"accountSection": "계정 로그인",
 		"oauthLogin": "{{name}}(으)로 로그인",
 		"oauthLoggedIn": "{{name}}(으)로 로그인됨",
 		"logout": "로그아웃",
@@ -1080,7 +1081,8 @@
 		"codemodeMode_on": "혼합 모드",
 		"codemodeMode_only": "Codemode 전용",
 		"codemodeInlineBudget": "인라인 도구 예산",
-		"codemodeInlineBudgetDescription": "Codemode 도구 설명의 예상 토큰 예산입니다. 초과하면 필요할 때 검색합니다. 0은 항상 검색을 사용합니다."
+		"codemodeInlineBudgetDescription": "Codemode 도구 설명의 예상 토큰 예산입니다. 초과하면 필요할 때 검색합니다. 0은 항상 검색을 사용합니다.",
+		"codemodeDescription": "스크립트에서 설정된 분류 및 이미지 생성 모델을 호출할 수 있습니다. 생성된 이미지와 모델 사용량은 대화에 표시됩니다."
 	},
 	"languages": {
 		"en": "English",
@@ -2050,6 +2052,11 @@
 		"exposureHint_codemode": "Pi가 서비스 요약을 읽고 필요할 때 도구와 사용 방법을 찾습니다. 서비스는 백그라운드에서 연결됩니다.",
 		"exposureHint_deferred": "Pi가 도구 검색으로 필요한 도구를 찾은 뒤 직접 호출합니다. 서비스는 백그라운드에서 연결됩니다.",
 		"exposureHint_direct": "각 요청에 도구 설명을 포함합니다. 첫 메시지를 보낼 때 서비스 연결을 잠시 기다립니다.",
-		"exposureHint_hidden": "도구를 등록하지만 모델이 호출할 수 없습니다."
+		"exposureHint_hidden": "도구를 등록하지만 모델이 호출할 수 없습니다.",
+		"oauthMetadataUrl": "OAuth 서버 메타데이터 URL",
+		"oauthMetadataUrlHint": "선택 사항입니다. 로그인 서버 자동 검색에 실패하면 서비스에서 제공하는 메타데이터 URL을 입력하세요. HTTPS 또는 루프백 주소가 필요합니다.",
+		"invalidOAuthMetadataUrl": "완전한 HTTPS 메타데이터 URL 또는 localhost, 127.0.0.1, [::1]의 HTTP URL을 입력하세요.",
+		"addRadius": "Radius 추가",
+		"radiusHint": "설정 → 모델에서 Radius에 로그인하세요. 이 MCP 서비스는 해당 로그인 정보를 사용합니다."
 	}
 }

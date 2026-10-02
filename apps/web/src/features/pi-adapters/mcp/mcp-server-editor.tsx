@@ -27,6 +27,7 @@ import { useTranslation } from "react-i18next";
 
 export function McpServerEditor({
 	name: originalName,
+	initialName,
 	server: storedServer,
 	path,
 	scope,
@@ -41,6 +42,7 @@ export function McpServerEditor({
 	onClose,
 }: {
 	name: string | null;
+	initialName: string | undefined;
 	server: McpStoredServer | null;
 	path: string;
 	scope: McpTarget;
@@ -59,7 +61,7 @@ export function McpServerEditor({
 	const inspected = mcpServerSchema.safeParse(storedServer);
 	const server = inspected.success ? inspected.data : null;
 	const advancedDetails = useRef<HTMLDetailsElement>(null);
-	const [name, setName] = useState(originalName ?? "");
+	const [name, setName] = useState(originalName ?? initialName ?? "");
 	// Empty arguments and embedded newlines need JSON to remain unambiguous.
 	const initialTransport =
 		(storedServer !== null && !inspected.success) || server?.args?.some((arg) => arg === "" || /[\r\n]/.test(arg))
@@ -160,9 +162,19 @@ export function McpServerEditor({
 			}
 			const value = mcpServerSchema.parse(extra);
 			applyConnection(value);
-			const parsed = mcpScopedServerSchema.parse({ scope, server: value });
+			const parsed = mcpScopedServerSchema.safeParse({ scope, server: value });
+			if (!parsed.success) {
+				if (
+					transport === "http" &&
+					!value.auth &&
+					parsed.error.issues.some((issue) => issue.path.join(".") === "server.oauth.authServerMetadataUrl")
+				)
+					fail("metadata-url", t("mcp.invalidOAuthMetadataUrl"));
+				else fail("advanced", `${t("mcp.invalidJson")} ${formatRequestError(parsed.error)}`);
+				return;
+			}
 			setInvalid(null);
-			onSave(parsedName.data, parsed.server);
+			onSave(parsedName.data, parsed.data.server);
 		} catch (cause) {
 			fail("advanced", `${t("mcp.invalidJson")} ${formatRequestError(cause)}`);
 		}
@@ -356,32 +368,63 @@ export function McpServerEditor({
 									<p id={`${id}-provider-hint`} className="text-xs leading-relaxed text-text-muted">
 										{t(scope === "global" ? "mcp.authProviderHint" : "mcp.authGlobalOnly")}
 									</p>
+									{parsedAdvanced?.success && parsedAdvanced.data.auth?.provider === "radius" && (
+										<p className="text-xs leading-relaxed text-text-muted">{t("mcp.radiusHint")}</p>
+									)}
 								</div>
 								{parsedAdvanced?.success && !parsedAdvanced.data.auth && (
-									<div className="flex flex-col gap-1.5">
-										<label htmlFor={`${id}-client-name`} className="text-sm font-medium">
-											{t("mcp.oauthClientName")}
-										</label>
-										<Input
-											id={`${id}-client-name`}
-											value={parsedAdvanced.data.oauth?.clientName ?? ""}
-											disabled={busy}
-											placeholder="pi"
-											aria-describedby={`${id}-client-name-hint`}
-											onChange={(event) =>
-												changeOptions((value) => {
-													const oauth = { ...value.oauth };
-													if (event.target.value.trim()) oauth.clientName = event.target.value;
-													else delete oauth.clientName;
-													if (Object.keys(oauth).length) value.oauth = oauth;
-													else delete value.oauth;
-												})
-											}
-										/>
-										<p id={`${id}-client-name-hint`} className="text-xs leading-relaxed text-text-muted">
-											{t("mcp.oauthClientNameHint")}
-										</p>
-									</div>
+									<>
+										<div className="flex flex-col gap-1.5">
+											<label htmlFor={`${id}-client-name`} className="text-sm font-medium">
+												{t("mcp.oauthClientName")}
+											</label>
+											<Input
+												id={`${id}-client-name`}
+												value={parsedAdvanced.data.oauth?.clientName ?? ""}
+												disabled={busy}
+												placeholder="pi"
+												aria-describedby={`${id}-client-name-hint`}
+												onChange={(event) =>
+													changeOptions((value) => {
+														const oauth = { ...value.oauth };
+														if (event.target.value.trim()) oauth.clientName = event.target.value;
+														else delete oauth.clientName;
+														if (Object.keys(oauth).length) value.oauth = oauth;
+														else delete value.oauth;
+													})
+												}
+											/>
+											<p id={`${id}-client-name-hint`} className="text-xs leading-relaxed text-text-muted">
+												{t("mcp.oauthClientNameHint")}
+											</p>
+										</div>
+										<div className="flex flex-col gap-1.5">
+											<label htmlFor={`${id}-metadata-url`} className="text-sm font-medium">
+												{t("mcp.oauthMetadataUrl")}
+											</label>
+											<Input
+												id={`${id}-metadata-url`}
+												value={parsedAdvanced.data.oauth?.authServerMetadataUrl ?? ""}
+												disabled={busy}
+												placeholder="https://example.com/.well-known/openid-configuration"
+												aria-invalid={invalid?.field === "metadata-url" || undefined}
+												aria-describedby={`${id}-metadata-url-hint${invalid?.field === "metadata-url" ? ` ${id}-error` : ""}`}
+												onChange={(event) =>
+													changeOptions((value) => {
+														const oauth = { ...value.oauth };
+														const metadataUrl = event.target.value.trim();
+														if (metadataUrl) oauth.authServerMetadataUrl = metadataUrl;
+														else delete oauth.authServerMetadataUrl;
+														if (Object.keys(oauth).length) value.oauth = oauth;
+														else delete value.oauth;
+													})
+												}
+											/>
+											<p id={`${id}-metadata-url-hint`} className="text-xs leading-relaxed text-text-muted">
+												{t("mcp.oauthMetadataUrlHint")}
+											</p>
+										</div>
+									</>
 								)}
 							</>
 						)}

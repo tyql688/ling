@@ -96,7 +96,6 @@ export function ModelsView(props: ModelsViewProps) {
 				catalogRefreshWarn={catalogRefreshWarn}
 				t={t}
 			/>
-			<ModelCatalogAdoptions catalogRefreshResult={catalogRefreshResult} t={t} />
 
 			{providers === null ? (
 				error ? (
@@ -227,36 +226,6 @@ function ModelCatalogRefreshNotice({
 						))}
 					</ul>
 				)}
-			</FeedbackNotice>
-		)
-	);
-}
-
-function ModelCatalogAdoptions({
-	catalogRefreshResult,
-	t,
-}: Pick<ReturnType<typeof useModelsView>, "catalogRefreshResult" | "t">) {
-	return (
-		catalogRefreshResult &&
-		catalogRefreshResult.adoptedModels.length > 0 && (
-			<FeedbackNotice tone="info">
-				<details>
-					<summary className="cursor-pointer">
-						{t("models.catalogModelsAdopted", { count: catalogRefreshResult.adoptedModels.length })}
-					</summary>
-					<ul className="mt-2 max-h-32 overflow-y-auto font-mono text-xs">
-						{catalogRefreshResult.adoptedModels.map((model) => (
-							<li key={JSON.stringify([model.provider, model.modelId])}>
-								{model.provider}/{model.modelId}
-							</li>
-						))}
-					</ul>
-					{catalogRefreshResult.backupPath !== null && (
-						<p className="mt-2 break-all text-xs">
-							{t("models.catalogModelsBackup", { path: catalogRefreshResult.backupPath })}
-						</p>
-					)}
-				</details>
 			</FeedbackNotice>
 		)
 	);

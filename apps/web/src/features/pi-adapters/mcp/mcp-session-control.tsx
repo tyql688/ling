@@ -1,6 +1,5 @@
 import { sameSessionRef, sessionKey, type SessionRef } from "@ling/contracts/session-ref";
 import { Button } from "@renderer/components/ui/button";
-import { useBuiltinFeatures } from "@renderer/features/companions/builtin-feature-state";
 import {
 	activeSessionRefAtom,
 	dismissedMcpSettingsRequestFamily,
@@ -14,13 +13,12 @@ import { useTranslation } from "react-i18next";
 
 export function McpSessionControl({ sessionRef }: { sessionRef: SessionRef }) {
 	const { t } = useTranslation();
-	const features = useBuiltinFeatures();
 	const navigation = useAppNavigation();
 	const active = useAtomValue(activeSessionRefAtom);
 	const snapshot = useAtomValue(extensionUiSnapshotFamily(sessionKey(sessionRef)));
 	const [dismissed, setDismissed] = useAtom(dismissedMcpSettingsRequestFamily(sessionKey(sessionRef)));
 	const request = snapshot?.state.mcpSettingsRequestId;
-	const visible = features.value?.enabled.mcp && sameSessionRef(active, sessionRef);
+	const visible = sameSessionRef(active, sessionRef);
 	useEffect(() => {
 		if (!visible || !request || request === dismissed) return;
 		setDismissed(request);

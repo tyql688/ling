@@ -32,10 +32,18 @@ import { GlobalInstructionsSection } from "@renderer/features/settings/global-in
 import { NumberSettingRow } from "@renderer/components/ui/number-setting-row";
 import { isWindows } from "@renderer/lib/platform";
 import { Settings2 } from "lucide-react";
-import { useMemo } from "react";
+import { atom, useAtom } from "jotai";
+import { useMemo, useState, type ReactNode } from "react";
+import type { OpenProjectInfo } from "@ling/contracts/project";
+import { PiConfigurationEditor } from "./pi-configuration-editor";
 import { usePiSettings, useProxySetting } from "./use-pi-settings";
 import { useTranslation } from "react-i18next";
 import { TextSettingRow } from "@renderer/components/ui/text-setting-row";
+
+const piSettingsLocationAtom = atom<{ scope: string; mode: "common" | "configuration" }>({
+	scope: "global",
+	mode: "common",
+});
 
 /** Proxy absence is Pi's automatic network mode; failed reads stay distinct. */
 function ProxyRow() {
@@ -69,7 +77,63 @@ function ProxyRow() {
  * entries — terminal themes, image cells, cursor — stay in the CLI). Controls persist
  * to Pi's global settings.json and refresh every open project's SettingsManager.
  */
-export function PiSettingsView() {
+export function PiSettingsView({ projects }: { projects: OpenProjectInfo[] }) {
+	const { t } = useTranslation();
+	const [{ scope, mode }, setLocation] = useAtom(piSettingsLocationAtom);
+	const setScope = (scope: string) => setLocation((current) => ({ ...current, scope }));
+	const setMode = (mode: "common" | "configuration") => setLocation((current) => ({ ...current, mode }));
+	const [dirty, setDirty] = useState(false);
+	const cwd = projects.find((project) => project.cwd === scope)?.cwd ?? null;
+	const controls = (
+		<div className="flex flex-wrap gap-2">
+			<Select
+				disabled={dirty}
+				value={cwd ?? "global"}
+				onValueChange={(value) => {
+					setScope(value);
+					if (value !== "global") setMode("configuration");
+				}}
+			>
+				<SelectTrigger className="w-full sm:w-64" aria-label={t("mcp.scope")}>
+					<SelectValue>
+						{cwd === null
+							? t("mcp.global")
+							: t("mcp.project", { name: projects.find((project) => project.cwd === cwd)?.name ?? cwd })}
+					</SelectValue>
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="global">{t("mcp.global")}</SelectItem>
+					{projects.map((project) => (
+						<SelectItem key={project.cwd} value={project.cwd}>
+							{t("mcp.project", { name: project.name })}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+			{cwd === null && (
+				<Segmented
+					disabled={dirty}
+					value={mode}
+					onChange={setMode}
+					options={[
+						{ value: "common", label: t("piConfiguration.common") },
+						{ value: "configuration", label: t("piConfiguration.complete") },
+					]}
+				/>
+			)}
+		</div>
+	);
+	return mode === "common" && cwd === null ? (
+		<PiCommonSettings controls={controls} />
+	) : (
+		<SettingsPage title={t("settings.pi")}>
+			{controls}
+			<PiConfigurationEditor key={cwd ?? "global"} cwd={cwd} onDirtyChange={setDirty} />
+		</SettingsPage>
+	);
+}
+
+function PiCommonSettings({ controls }: { controls: ReactNode }) {
 	const { t } = useTranslation();
 	const { snapshot, pending, settingsError, recoveryStatus, repairing, load, repairHttpIdleTimeout, apply } =
 		usePiSettings();
@@ -95,6 +159,7 @@ export function PiSettingsView() {
 	if (!snapshot) {
 		return (
 			<SettingsPage title={t("settings.pi")}>
+				{controls}
 				{settingsError ? (
 					<SettingsState
 						icon={Settings2}
@@ -151,6 +216,7 @@ export function PiSettingsView() {
 
 	return (
 		<SettingsPage title={t("settings.pi")}>
+			{controls}
 			<GlobalInstructionsSection />
 			{settingsError && (
 				<FeedbackNotice

@@ -208,8 +208,12 @@ export async function createHostBusinessRuntime(options: HostBusinessRuntimeOpti
 		lifetime.onStop("attachment uploads", attachments.prepareShutdown);
 		lifetime.defer("stores", "attachment uploads", attachments.dispose);
 		const activation = createAccessActivation(paths.dataHome);
-		const features = createBuiltinFeatures(paths.dataHome);
+		const features = createBuiltinFeatures(paths.dataHome, {
+			read: piWorker.getMcpActivation,
+			write: piWorker.setMcpActivation,
+		});
 		const adapterPlan = createPiAdapterPlan(activation, features);
+		await features.read();
 		const interactions = createInteractions((requests) =>
 			options.events.broadcast(interactionProcedures.onChanged.channel, requests),
 		);

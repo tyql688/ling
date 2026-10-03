@@ -36,7 +36,7 @@ First name wins. Duplicate names between Pi roots produce a collision note; Ling
 
 ## Switches and resource previews
 
-Global settings store `lingSkills.disabled` as skill names and `lingSkills.builtinEnabled` as the built-in master switch. A disabled non-project skill is absent from the system prompt and skill commands. Project-scoped skills are unaffected. Settings keeps configuration rows for disabled and built-in skills; the workspace Skills control shows the project's effective set.
+Pi's global `skills` resource filters own installed and extra-path selection; Ling writes exact `+<filePath>` or `-<filePath>` overrides. `lingSkills.disabled` contains packaged built-in names and `lingSkills.builtinEnabled` owns the packaged master switch. Unresolved legacy disabled names remain recorded until discovery can map them to canonical paths. A disabled skill is absent from the effective prompt and commands. Global per-skill controls target non-project resources; project filters remain in the project Pi settings. Settings keeps configuration rows for disabled and built-in skills; the workspace Skills control shows the project's effective set.
 
 Companion paths resolve relative to the skill directory. Ling lists `scripts/`, `references/`, and `assets/`, with at most three path components below each directory, for example `references/topic/detail.md`. The browser skips companion symlinks, reports truncated listings, previews `SKILL.md` up to 4 MiB and text companions up to 1 MiB, and identifies binary files without displaying them as text. These are UI preview limits, not Pi discovery limits or a sandbox on agent file tools.
 

@@ -29,6 +29,7 @@ import {
 } from "../resources/skills";
 import { readArchivedPiSessionMessages } from "../session/session-archive";
 import { discoverPiSessions, listPiSessions } from "../session/session-discovery";
+import { piUsageSessionDirectories } from "../session/session-storage";
 import type { PiSettings } from "../settings/settings";
 import type { PiWorkerRuntimeService } from "./pi-worker-runtime-service";
 import { createPiMcp } from "../mcp/pi-mcp";
@@ -170,6 +171,7 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 		"voice.read": (input) => voice.read(input.cwd),
 		"voice.configure": (input, signal) => voice.configure(input, signal),
 		"voice.transcribe": (input, signal) => voice.transcribe(input, signal),
+		"session.storageDirectories": async () => piUsageSessionDirectories(listOpenProjectPaths()),
 		"agent.getInfo": async () => {
 			return getAgentInfo();
 		},
@@ -382,6 +384,25 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 			await setHttpProxySetting(params.proxy);
 			return null;
 		},
+		"settings.configuration": async ({ request }) => {
+			const cwd = request.cwd === null ? null : await ensureProject(parsePiWorkerAbsolutePath(request.cwd));
+			return options.settings.configuration.read(
+				cwd,
+				cwd === null || getPiServices(cwd).settingsManager.isProjectTrusted(),
+			);
+		},
+		"settings.getMcpActivation": () => options.settings.mcpActivation.read(),
+		"settings.setMcpActivation": ({ enabled, expected }) => options.settings.mcpActivation.write(enabled, expected),
+		"settings.writeConfiguration": async ({ request }) => {
+			const cwd = request.cwd === null ? null : await ensureProject(parsePiWorkerAbsolutePath(request.cwd));
+			await options.settings.mutations.enqueueGlobalSettingsMutation(() =>
+				options.settings.configuration.write(
+					{ ...request, cwd },
+					cwd === null || getPiServices(cwd).settingsManager.isProjectTrusted(),
+				),
+			);
+			return null;
+		},
 		"settings.get": async () => {
 			return getPiSettings();
 		},
@@ -417,7 +438,7 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 			return null;
 		},
 		"skills.setBuiltinEnabled": (input) => setBuiltinSkillsEnabled(input.enabled),
-		"skills.setSkillEnabled": (input) => setSkillEnabled(input.name, input.enabled),
+		"skills.setSkillEnabled": (input) => setSkillEnabled(input.name, input.enabled, input.filePath),
 		"skills.readContent": async (input) => {
 			const params = input;
 			return readPiSkillContent(params.filePath);

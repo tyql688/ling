@@ -1,7 +1,9 @@
 /** Everything a command may do — provided by the workspace shell. */
 export interface SlashCommandContext {
-	renameSession(title: string): void;
-	compactSession(): void;
+	renameSession(title: string): Promise<void>;
+	compactSession(customInstructions?: string): Promise<void>;
+	inspectSession?(): void;
+	reloadResources?(): Promise<void>;
 }
 
 export interface SlashCommandDefinition {
@@ -10,7 +12,7 @@ export interface SlashCommandDefinition {
 	needsArg: boolean;
 	/** i18n key for the one-line description in the popover. */
 	descriptionKey: string;
-	run(context: SlashCommandContext, arg: string): void;
+	run(context: SlashCommandContext, arg: string): void | Promise<void>;
 }
 
 /**
@@ -19,6 +21,18 @@ export interface SlashCommandDefinition {
  * read this table.
  */
 export const SLASH_COMMANDS: readonly SlashCommandDefinition[] = [
+	{
+		name: "session",
+		needsArg: false,
+		descriptionKey: "sessionInspector.description",
+		run: (context) => context.inspectSession?.(),
+	},
+	{
+		name: "reload",
+		needsArg: false,
+		descriptionKey: "session.cmdReloadDesc",
+		run: (context) => context.reloadResources?.(),
+	},
 	{
 		name: "name",
 		needsArg: true,
@@ -29,7 +43,7 @@ export const SLASH_COMMANDS: readonly SlashCommandDefinition[] = [
 		name: "compact",
 		needsArg: false,
 		descriptionKey: "session.cmdCompactDesc",
-		run: (context) => context.compactSession(),
+		run: (context, arg) => context.compactSession(arg || undefined),
 	},
 ];
 

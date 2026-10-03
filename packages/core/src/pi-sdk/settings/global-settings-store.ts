@@ -2,7 +2,7 @@ import { createAtomicFileStore } from "@ling/core/store/atomic-file-store";
 import { join } from "node:path";
 
 /** settings.json byte limit (4MiB); settings should be far smaller, anything larger is rejected as suspected corruption. */
-const MAX_SETTINGS_JSON_BYTES = 4 * 1024 * 1024;
+export const MAX_SETTINGS_JSON_BYTES = 4 * 1024 * 1024;
 
 function parseGlobalSettings(source: string): Record<string, unknown> {
 	let value: unknown;
@@ -18,8 +18,12 @@ function parseGlobalSettings(source: string): Record<string, unknown> {
 }
 
 export function createPiGlobalSettingsStore(agentDir: string) {
+	return createPiSettingsFileStore(join(agentDir, "settings.json"));
+}
+
+export function createPiSettingsFileStore(path: string) {
 	return createAtomicFileStore<Record<string, unknown>>({
-		getPath: () => join(agentDir, "settings.json"),
+		getPath: () => path,
 		// Pi's SettingsManager locks the configured settings.json pathname even when it is a
 		// symlink. Use the same lock for reads and while atomically replacing the resolved
 		// target because SettingsManager writes the configured file in place.

@@ -6,7 +6,6 @@ import { SessionProgressIndicator } from "@renderer/features/chat/transcript/ses
 import { Tooltip, TooltipContent, TooltipTrigger } from "@renderer/components/ui/tooltip";
 import { cn } from "@renderer/lib/utils";
 import { Ansi } from "@renderer/components/ansi";
-import { X } from "lucide-react";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -262,15 +261,15 @@ export function ExtensionCustomPanel({
 								<button
 									type="button"
 									onClick={() => sendInput("\x1b")}
-									className="flex size-7 items-center justify-center rounded-control text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
-									aria-label={t("extensionUi.closeEnvironment")}
+									className="flex h-7 min-w-7 items-center justify-center rounded-control px-1 font-mono text-xs text-text-muted transition-colors hover:bg-surface-hover hover:text-text-primary"
+									aria-label={t("extensionUi.sendEscape")}
 									tabIndex={passive ? -1 : 0}
 								/>
 							}
 						>
-							<X className="size-4" aria-hidden="true" />
+							Esc
 						</TooltipTrigger>
-						<TooltipContent>Esc</TooltipContent>
+						<TooltipContent>{t("extensionUi.sendEscape")}</TooltipContent>
 					</Tooltip>
 				</div>
 				<ExtensionLinesBlock

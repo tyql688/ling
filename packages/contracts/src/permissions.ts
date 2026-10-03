@@ -2,8 +2,10 @@ import { z } from "zod";
 import { pathStringSchema, portableAbsolutePathSchema } from "./path-validation";
 
 export const PERMISSION_PACKAGE = "@gotgenes/pi-permission-system";
+export const permissionSourceSchema = z.enum(["bundled", "external", "none"]);
+export type PermissionSource = z.infer<typeof permissionSourceSchema>;
 
-/** Which projects run the permission system; everything else is full access. */
+/** Which projects load Ling's bundled permission package. Installed Pi packages retain their own switches. */
 export const accessActivationSchema = z.strictObject({
 	revision: z.number().int().nonnegative(),
 	defaultEnabled: z.boolean(),

@@ -344,7 +344,7 @@ export function createPiSkillCatalog({
 				if (skillsByPath.has(skill.filePath)) continue;
 				skillsByPath.set(skill.filePath, toSkillInfo(skill, cwd, activePaths.has(skill.filePath)));
 			}
-			for (const diagnostic of loaded.diagnostics) {
+			for (const diagnostic of discovered.diagnostics) {
 				const entry = toSkillDiagnostic(diagnostic);
 				diagnostics.set(`${entry.type}\0${entry.message}\0${entry.path ?? ""}`, entry);
 			}
@@ -370,32 +370,46 @@ export function createPiSkillCatalog({
 		return {
 			skills: [...skillsByPath.values()].sort((a, b) => a.name.localeCompare(b.name)),
 			diagnostics: [...diagnostics.values()],
-			extraPaths: readConfiguredSkillPaths(globalSettings),
+			extraPaths: readConfiguredSkillPaths(globalSettings).filter((path) => !/^[+!-]/.test(path)),
 			enableSkillCommands: (await getPiSettings()).enableSkillCommands,
 			globalSkillsDir: join(agentDir, "skills"),
 			builtinSkillsEnabled: config.builtinEnabled,
 		};
 	}
 
-	/** Per-skill switch for any non-project skill (user, package, extra-path, built-in).
-	 * Disabling requires a currently known name so the disabled list cannot accumulate
-	 * junk; enabling accepts any name — removing a stale entry is always safe. */
-	async function setSkillEnabled(name: string, enabled: boolean): Promise<boolean> {
-		if (!enabled) {
-			const overview = await readPiSkillsOverview();
-			if (!overview.skills.some((skill) => skill.name === name && skill.scope !== "project")) {
-				throw new Error(`Unknown non-project skill: ${name}`);
-			}
-		}
+	/** Resource identity selects one canonical Pi filter; built-in skill preferences belong to Ling. */
+	async function setSkillEnabled(name: string, enabled: boolean, filePath?: string): Promise<boolean> {
+		const overview = await readPiSkillsOverview();
+		const matches = overview.skills.filter(
+			(skill) =>
+				skill.name === name && skill.scope !== "project" && (filePath === undefined || skill.filePath === filePath),
+		);
+		if (matches.length !== 1) throw new Error("Select a unique skill resource before changing its enabled state");
+		const skill = matches[0]!;
 		return enqueueGlobalSettingsMutation(() =>
 			globalSettingsStore.transact((settings) => {
-				const config = readLingSkillsConfig(settings);
-				const disabled = new Set(config.disabled);
-				if (disabled.has(name) === !enabled) return { commit: false, result: false };
-				if (enabled) disabled.delete(name);
-				else disabled.add(name);
-				writeLingSkillsConfig(settings, { ...config, disabled: [...disabled].sort() });
-				return { commit: true, result: true };
+				const before = JSON.stringify(settings);
+				if (skill.builtin) {
+					const config = readLingSkillsConfig(settings);
+					const disabled = new Set(config.disabled);
+					if (disabled.has(name) === !enabled) return { commit: false, result: false };
+					if (enabled) disabled.delete(name);
+					else disabled.add(name);
+					writeLingSkillsConfig(settings, { ...config, disabled: [...disabled].sort() });
+				} else {
+					const paths = readConfiguredSkillPaths(settings).filter(
+						(path) => path !== `-${skill.filePath}` && path !== `+${skill.filePath}`,
+					);
+					settings.skills = [...paths, `${enabled ? "+" : "-"}${skill.filePath}`];
+					const config = readLingSkillsConfig(settings);
+					if (config.legacyDisabled.includes(name))
+						writeLingSkillsConfig(settings, {
+							...config,
+							legacyDisabled: config.legacyDisabled.filter((entry) => entry !== name),
+						});
+				}
+				const changed = JSON.stringify(settings) !== before;
+				return { commit: changed, result: changed };
 			}),
 		);
 	}

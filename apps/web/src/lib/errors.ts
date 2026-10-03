@@ -61,6 +61,8 @@ const ERROR_COPY: Partial<Record<LingErrorCode, string>> = {
 	TRANSCRIPT_CURSOR_EXPIRED: "errors.historyChanged",
 	PACKAGE_HOST_LOST: "errors.packageHostLost",
 	MCP_CONFIG_CHANGED: "mcp.configChanged",
+	PI_CONFIGURATION_CHANGED: "piConfiguration.conflict",
+	PI_PERMISSION_UNAVAILABLE: "errors.piPermissionUnavailable",
 };
 
 /** Formats transported domain errors without parsing presentation copy. */

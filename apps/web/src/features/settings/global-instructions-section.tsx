@@ -1,3 +1,5 @@
+import { ResourceReloadFeedback } from "@renderer/components/resource-reload-feedback";
+import type { PiResourceReloadSummary } from "@ling/contracts/session";
 import type { GlobalInstructionFile, GlobalInstructionKind } from "@ling/contracts/global-instructions";
 import { Markdown } from "@renderer/components/markdown";
 import { Button } from "@renderer/components/ui/button";
@@ -28,8 +30,7 @@ function fileStateFor(file: GlobalInstructionFile): FileState {
 /**
  * Manages Pi's three global prompt files (AGENTS.md / SYSTEM.md / APPEND_SYSTEM.md) under
  * `~/.pi/agent/`. These apply to every Pi session Ling embeds. Edits take effect on the
- * next session start (or after `/reload` in a running one) — the UI says so inline rather
- * than attempting an in-process prompt rebuild.
+ * resource reconciliation boundary; active runs defer application until they settle.
  */
 export function GlobalInstructionsSection() {
 	const hostGlobalInstructionsApi = useDomainApi("globalInstructions");
@@ -46,6 +47,7 @@ export function GlobalInstructionsSection() {
 	const [mode, setMode] = useState<Mode>("edit");
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [reload, setReload] = useState<PiResourceReloadSummary | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const loadedRef = useRef(false);
@@ -119,6 +121,7 @@ export function GlobalInstructionsSection() {
 				},
 			}));
 			setNotice(t("settings.globalInstructionsSaved"));
+			setReload(result.reload ?? null);
 		} catch (cause) {
 			if (mounted.current) setError(formatRequestError(cause, t));
 		} finally {
@@ -283,6 +286,7 @@ export function GlobalInstructionsSection() {
 						</div>
 
 						<p className="text-xs leading-relaxed text-text-muted">{t("settings.globalInstructionsReloadHint")}</p>
+						{reload && <ResourceReloadFeedback summary={reload} />}
 					</div>
 				</div>
 			)}

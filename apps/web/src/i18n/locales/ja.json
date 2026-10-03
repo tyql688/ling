@@ -288,7 +288,8 @@
 		"nestedArgumentsOmitted": "引数は省略されました（{{count}} バイト）",
 		"nestedIncomplete": "一部の呼び出しや引数は省略されたか、記録時点で実行中でした。",
 		"routedModel": "→ {{model}}",
-		"downloadImage": "画像をダウンロード"
+		"downloadImage": "画像をダウンロード",
+		"cmdReloadDesc": "Pi リソースを再読み込み"
 	},
 	"explorer": {
 		"title": "ファイル",
@@ -574,7 +575,8 @@
 		"hostPathEmpty": "表示できるサブフォルダーはありません。",
 		"hostPathUnavailable": "参照できません",
 		"hostPathTruncated": "項目が多いため、一部を表示していません。パスを入力して目的のフォルダーへ移動できます。",
-		"hostPathSelect": "このフォルダーを選択"
+		"hostPathSelect": "このフォルダーを選択",
+		"trustExtensionPrompt": "グローバル Pi 拡張がプロジェクトリソースの読み込み前に入力を求めています。"
 	},
 	"projectPiConfig": {
 		"title": "プロジェクトの Pi 設定",
@@ -629,7 +631,9 @@
 		"searchProviders": "プロバイダー名や ID を検索",
 		"clearSearch": "検索をクリア",
 		"noMatchingProviders": "一致するプロバイダーがありません。",
-		"providerCount": "{{count}} 件のプロバイダー"
+		"providerCount": "{{count}} 件のプロバイダー",
+		"scopedModels": "範囲内のモデル",
+		"allModels": "すべてのモデル"
 	},
 	"plugins": {
 		"title": "プラグイン",
@@ -838,8 +842,6 @@
 		"configurationMaxTokens": "最大出力",
 		"configurationSamplingParams": "サンプリング設定",
 		"configurationCompat": "リクエストの互換性",
-		"catalogModelsAdopted": "{{count}} 件のカスタムモデルを公式設定に更新しました",
-		"catalogModelsBackup": "以前の設定のバックアップ先：{{path}}",
 		"configured": "設定済み"
 	},
 	"settings": {
@@ -968,7 +970,7 @@
 		"globalInstructionsStatusPresent": "ファイルあり",
 		"globalInstructionsReveal": "ファイルを開く",
 		"globalInstructionsSaved": "保存済み · 次のセッションから適用",
-		"globalInstructionsReloadHint": "次のセッションから適用されます。実行中のセッションには /reload で反映できます。",
+		"globalInstructionsReloadHint": "保存すると Pi リソースを再読み込みします。実行中のセッションには現在の操作終了後に適用されます。",
 		"piDefaults": "既定値",
 		"defaultModel": "既定のモデル",
 		"defaultThinking": "既定の思考レベル",
@@ -1121,7 +1123,7 @@
 		"requestLabel": "Pi 拡張からのリクエスト",
 		"pendingCount": "保留中 {{count}} 件",
 		"expiresIn": "残り {{count}} 秒",
-		"closeEnvironment": "Pi 拡張の画面を閉じる",
+		"sendEscape": "拡張機能に Esc を送信",
 		"dockTitle": "拡張パネル",
 		"dockDescription": "このセッションの拡張の状態とアクティビティ",
 		"dockEmpty": "拡張のアクティビティはまだありません",
@@ -1147,7 +1149,8 @@
 		"sessionChanged": "セッションが変更されました。操作をやり直してください。",
 		"historyChanged": "会話履歴が変更されました。再読み込みしてください。",
 		"packageHostLost": "パッケージのプロセスが停止しました。プロジェクトのリソースを再読み込みして再試行してください。",
-		"hostDirectoryUnavailable": "このフォルダーを読み取れません。パスとアクセス権限を確認してください。"
+		"hostDirectoryUnavailable": "このフォルダーを読み取れません。パスとアクセス権限を確認してください。",
+		"piPermissionUnavailable": "Pi 権限プラグインを読み込めませんでした。修復または有効化してから、この会話を開き直してください。"
 	},
 	"markdown": {
 		"clipboardUnavailable": "クリップボードにアクセスできません",
@@ -1520,7 +1523,13 @@
 		"retry": "再試行",
 		"moreActions": "その他の操作",
 		"cancel": "キャンセル",
-		"loading": "読み込み中…"
+		"loading": "読み込み中…",
+		"edit": "編集",
+		"save": "保存",
+		"confirm": "確認",
+		"close": "閉じる",
+		"previousPage": "前のページ",
+		"nextPage": "次のページ"
 	},
 	"reading": {
 		"region": "閲覧エリア",
@@ -1670,7 +1679,7 @@
 	},
 	"permissions": {
 		"title": "権限設定",
-		"description": "グローバルの既定値とプロジェクトごとの設定を管理します。",
+		"description": "Ling 同梱の権限拡張を読み込むプロジェクトを選択します。インストール済みの Pi 権限パッケージは独自の設定とルールを使用します。",
 		"accessMode": "アクセス権限",
 		"choice": {
 			"full": "フルアクセス",
@@ -1696,10 +1705,12 @@
 		"opening": "開いています…",
 		"rulesDescription": "既定のアプリで開きます。ファイルがなければ空の設定を作成します。",
 		"rulesDesktopOnly": "ルールファイルは Ling デスクトップアプリで開けます。",
-		"applying": "権限設定を適用中…",
+		"applying": "アクセスモードを適用中…",
 		"precedence": "プロジェクト設定が優先されます。実行中のターンには終了後に適用します。",
 		"fullAccessNote": "フルアクセス：拒否ルールを含む権限チェックを停止します。ルールファイルは保持されます。",
-		"approvalNote": "承認：グローバルとプロジェクトのルールに従い、必要な場合のみ確認します。"
+		"approvalNote": "承認：グローバルとプロジェクトのルールに従い、必要な場合のみ確認します。",
+		"external": "Pi 権限拡張",
+		"externalDescription": "このセッションはインストール済みの Pi 権限拡張で管理されています。拡張設定で有効状態を変更できます。"
 	},
 	"questions": {
 		"title": "質問",
@@ -2058,5 +2069,80 @@
 		"invalidOAuthMetadataUrl": "完全な HTTPS メタデータ URL、または localhost、127.0.0.1、[::1] の HTTP URL を入力してください。",
 		"addRadius": "Radius を追加",
 		"radiusHint": "設定 → モデルで Radius にログインしてください。この MCP サービスはそのログイン情報を使用します。"
+	},
+	"piConfiguration": {
+		"title": "Pi 設定",
+		"description": "設定値、継承元、Pi が解決した値を表示します。変更は選択した範囲に適用されます。",
+		"search": "設定を検索",
+		"editJson": "JSON を編集",
+		"jsonHint": "JSON 値を入力します。更新しても下書きは保持されるため、保存前に他の変更を確認できます。",
+		"applying": "適用中…",
+		"inherit": "継承に戻す",
+		"source_default": "Pi の既定値",
+		"source_global": "グローバル",
+		"source_project": "プロジェクト",
+		"terminal": "ターミナル専用",
+		"globalOnly": "グローバルのみ",
+		"automatic": "自動",
+		"stored": "設定値",
+		"common": "基本",
+		"complete": "すべての設定",
+		"conflict": "設定が変更されました。更新後、現在の設定を下書きに統合し、確認してから保存してください。",
+		"mergeDraft": "現在の設定を下書きに統合"
+	},
+	"sessionInspector": {
+		"title": "セッション詳細",
+		"description": "現在の Pi セッションを確認・調整します。",
+		"overview": "概要",
+		"tools": "ツール",
+		"tree": "分岐",
+		"prompt": "システムプロンプト",
+		"flags": "拡張パラメーター",
+		"cancelled": "拡張機能が操作をキャンセルしました。",
+		"restoreText": "下書きに追加",
+		"state": "状態",
+		"busy": "実行中",
+		"idle": "待機中",
+		"context": "コンテキスト",
+		"unknown": "不明",
+		"cache": "キャッシュ更新",
+		"cache_inactive": "停止中",
+		"cache_scheduled": "予約済み",
+		"cache_refreshing": "更新中",
+		"warmCost": "更新費用",
+		"savings": "予想節約額",
+		"extensionOverride": "拡張機能がこの判断を変更しました。",
+		"exportHtml": "HTML を出力",
+		"exportJsonl": "JSONL を出力",
+		"toolsHint": "このセッションで使うツールを選びます。全体の既定値と拡張機能の公開ルールは独立して適用されます。",
+		"treeHint": "分岐の項目を選んで会話を続けます。すべての分岐はセッションに保持されます。",
+		"label": "分岐ラベル",
+		"summarize": "切り替え前に現在の分岐を要約",
+		"instructions": "要約への追加指示（任意）",
+		"navigate": "ここから続ける",
+		"truncated": "プロンプトがプレビュー上限を超えています。",
+		"flagsHint": "パラメーターは現在のセッションに適用され、リソース再読み込みでも保持されます。",
+		"noFlags": "拡張パラメーターはありません。",
+		"importJsonl": "JSONL を読み込む",
+		"importLimit": "セッションファイルの上限は 8 MiB です。",
+		"currentBranch": "現在の分岐",
+		"entries": {
+			"user": "ユーザー",
+			"assistant": "アシスタント",
+			"toolResult": "ツール結果",
+			"system": "システムプロンプト",
+			"message": "メッセージ",
+			"custom_message": "拡張メッセージ",
+			"custom": "拡張イベント",
+			"model_change": "モデル選択",
+			"thinking_level_change": "思考レベル",
+			"compaction": "コンテキスト圧縮",
+			"branch_summary": "分岐の要約",
+			"label": "ラベル",
+			"session_info": "セッション情報",
+			"tools": "ツール選択",
+			"toolCall": "ツール呼び出し"
+		},
+		"searchTools": "ツールを検索"
 	}
 }

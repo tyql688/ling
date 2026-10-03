@@ -9,18 +9,14 @@ import type { PiModelCredentials } from "./model-credentials";
 import {
 	type AddCustomModelRequest,
 	type AddCustomProviderRequest,
-	type ModelCatalogRefreshResult,
 	type UpdateCustomModelRequest,
 	type UpdateCustomProviderRequest,
 	CUSTOM_PROVIDER_APIS,
 	modelOptionsSchema,
 } from "@ling/contracts/model";
-import { writeTextFileAtomic } from "@ling/core/store/atomic-file-store";
 import { isDeepStrictEqual } from "node:util";
 import { createLogger } from "../../logger";
-import { throwIfOperationAborted } from "../../ling-error";
 import type { PiStoredCredentialMutation, PiStoredCredentialMutationObserver } from "./credential-store";
-import { readCatalogModelSource } from "./catalog-model-source";
 import {
 	type ModelsJsonProvider,
 	assertSafeRegistryKey,
@@ -106,16 +102,13 @@ export function createPiModelProviderMutations({
 	modelRuntimes,
 	config,
 	credentials,
-	agentDir,
 }: {
 	modelRuntimes: PiModelRuntimes;
 	config: PiModelsConfig;
 	credentials: PiModelCredentials;
-	agentDir: string;
 }) {
 	const { deleteStoredProfileCredentialSnapshot, getGlobalModelRuntime } = modelRuntimes;
 	const {
-		modelsConfigStore,
 		getBuiltInProviderIds,
 		mutateModelsConfigAndReload,
 		commitModelsConfigMutation,
@@ -127,78 +120,6 @@ export function createPiModelProviderMutations({
 		assertModelsConfigMutationCurrentSync,
 	} = config;
 	const { storeDirectApiKey } = credentials;
-
-	/** Updating the catalog transfers matching custom definitions back to Pi. The
-	 * provider connection/auth configuration remains user-owned, as do other IDs.
-	 * Pure modelOverrides on existing official models remain explicit user overrides;
-	 * overrides attached to an adopted custom definition are removed with it. */
-	async function adoptCatalogModelsMutation(
-		failedProviders: ReadonlySet<string>,
-		signal: AbortSignal,
-	): Promise<Pick<ModelCatalogRefreshResult, "adoptedModels" | "backupPath" | "errors">> {
-		const initial = await modelsConfigStore.read({ signal });
-		const builtIns = await getBuiltInProviderIds();
-		const providers = Object.entries(initial.providers)
-			.filter(
-				([id, entry]) =>
-					builtIns.has(id) && !failedProviders.has(id) && entry.models !== undefined && entry.models.length > 0,
-			)
-			.map(([id]) => id);
-		if (providers.length === 0) return { adoptedModels: [], backupPath: null, errors: [] };
-		const official = await readCatalogModelSource(agentDir, providers, signal);
-		const inspectedProviders = new Set(providers.filter((provider) => !official.errors.has(provider)));
-		let backupPath: string | null = null;
-		const adoptedModels = await mutateModelsConfigAndReload(
-			"adopt models from the updated catalog",
-			(config) => {
-				throwIfOperationAborted(signal);
-				const adopted: ModelCatalogRefreshResult["adoptedModels"] = [];
-				for (const [provider, entry] of Object.entries(config.providers)) {
-					if (!inspectedProviders.has(provider) || entry.models === undefined) continue;
-					const remaining = entry.models.filter((model) => {
-						if (official.runtime.getModel(provider, model.id) === undefined) return true;
-						adopted.push({ provider, modelId: model.id });
-						if (entry.modelOverrides !== undefined) delete entry.modelOverrides[model.id];
-						return false;
-					});
-					if (remaining.length === entry.models.length) continue;
-					if (remaining.length > 0) entry.models = remaining;
-					else delete entry.models;
-					if (entry.modelOverrides !== undefined && Object.keys(entry.modelOverrides).length === 0)
-						delete entry.modelOverrides;
-					if (Object.keys(entry).length === 0) delete config.providers[provider];
-					else if (
-						remaining.length === 0 &&
-						!entry.baseUrl &&
-						!entry.headers &&
-						!entry.compat &&
-						!entry.modelOverrides &&
-						!entry.apiKey &&
-						!entry.oauth &&
-						entry.authHeader === undefined
-					) {
-						// Pi needs an operational override even when only a display name or
-						// unknown metadata remains. Empty compatibility changes no behavior.
-						entry.compat = {};
-					}
-				}
-				return adopted;
-			},
-			async (source, targetPath) => {
-				throwIfOperationAborted(signal);
-				// Retain one exact snapshot, bounded by the models.json read limit. A
-				// failed backup prevents the automatic replacement from being published.
-				backupPath = `${targetPath}.before-catalog-update.bak`;
-				await writeTextFileAtomic(backupPath, source);
-				throwIfOperationAborted(signal);
-			},
-		);
-		return {
-			adoptedModels,
-			backupPath,
-			errors: [...official.errors].map(([provider, error]) => ({ provider, message: error.message })),
-		};
-	}
 
 	async function addCustomProviderMutation(request: AddCustomProviderRequest): Promise<void> {
 		const id = request.id.trim();
@@ -476,7 +397,6 @@ export function createPiModelProviderMutations({
 		log.info(`updated custom model ${request.provider}/${request.modelId}`);
 	}
 	return {
-		adoptCatalogModelsMutation,
 		addCustomProviderMutation,
 		addCustomModelMutation,
 		removeCustomModelMutation,

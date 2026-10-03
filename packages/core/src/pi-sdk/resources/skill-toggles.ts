@@ -1,4 +1,5 @@
-import { loadSkills } from "@earendil-works/pi-coding-agent";
+import { createPiGlobalSettingsStore } from "../settings/global-settings-store";
+import { type DefaultPackageManager, loadSkills } from "@earendil-works/pi-coding-agent";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { PiResourceLoader, PiSettingsManager } from "../types";
 
@@ -12,21 +13,20 @@ const LING_SKILLS_SETTINGS_KEY = "lingSkills";
 interface LingSkillsConfig {
 	/** Master switch for the packaged built-in skills: false unloads all of them. */
 	builtinEnabled: boolean;
-	/** Names Ling unloads entirely — applies to every non-project-scoped skill
-	 * (user, package, extra-path, built-in). A disabled skill is absent from the
-	 * system prompt, not merely inert. */
+	/** Disabled packaged built-in skill names. */
 	disabled: string[];
+	legacyDisabled: string[];
 }
 
 /** Parses the `lingSkills` settings key. Absent means all enabled; a malformed
  * value is a settings-file corruption and must surface, matching the `skills` array. */
 export function readLingSkillsConfig(settings: Record<string, unknown>): LingSkillsConfig {
 	const value = settings[LING_SKILLS_SETTINGS_KEY];
-	if (value === undefined) return { builtinEnabled: true, disabled: [] };
+	if (value === undefined) return { builtinEnabled: true, disabled: [], legacyDisabled: [] };
 	if (typeof value !== "object" || value === null || Array.isArray(value)) {
 		throw new Error("Pi settings 'lingSkills' must be an object");
 	}
-	const record = value as { builtinEnabled?: unknown; disabled?: unknown };
+	const record = value as { builtinEnabled?: unknown; disabled?: unknown; legacyDisabled?: unknown };
 	if (record.builtinEnabled !== undefined && typeof record.builtinEnabled !== "boolean") {
 		throw new Error("Pi settings 'lingSkills.builtinEnabled' must be a boolean");
 	}
@@ -36,14 +36,29 @@ export function readLingSkillsConfig(settings: Record<string, unknown>): LingSki
 	) {
 		throw new Error("Pi settings 'lingSkills.disabled' must be an array of skill names");
 	}
-	return { builtinEnabled: record.builtinEnabled ?? true, disabled: (record.disabled as string[] | undefined) ?? [] };
+	if (
+		record.legacyDisabled !== undefined &&
+		(!Array.isArray(record.legacyDisabled) || record.legacyDisabled.some((name) => typeof name !== "string"))
+	)
+		throw new Error("Pi settings lingSkills.legacyDisabled must contain names");
+	return {
+		builtinEnabled: record.builtinEnabled ?? true,
+		disabled: (record.disabled as string[] | undefined) ?? [],
+		legacyDisabled: (record.legacyDisabled as string[] | undefined) ?? (record.disabled as string[] | undefined) ?? [],
+	};
 }
 
 /** Writes the switches back, normalizing the shipped default (all enabled) to an
  * absent key so untouched installs keep a clean settings.json. */
 export function writeLingSkillsConfig(settings: Record<string, unknown>, config: LingSkillsConfig): void {
-	if (config.builtinEnabled && config.disabled.length === 0) delete settings[LING_SKILLS_SETTINGS_KEY];
-	else settings[LING_SKILLS_SETTINGS_KEY] = { builtinEnabled: config.builtinEnabled, disabled: config.disabled };
+	if (config.builtinEnabled && config.disabled.length === 0 && config.legacyDisabled.length === 0)
+		delete settings[LING_SKILLS_SETTINGS_KEY];
+	else
+		settings[LING_SKILLS_SETTINGS_KEY] = {
+			builtinEnabled: config.builtinEnabled,
+			disabled: config.disabled,
+			legacyDisabled: config.legacyDisabled,
+		};
 }
 
 /** Host resolves the shipped resource directory and passes it to the Pi worker.
@@ -89,19 +104,65 @@ export function createLingSkillResources() {
 	 * mistakes project .agents, extra-path and package skills for temporary/global ones.
 	 * Reading through getSkills preserves the SDK's final scope and live extendResources.
 	 */
-	function createLingSkillToggles(
+	async function createLingSkillToggles(
 		settingsManager: PiSettingsManager,
 		agentDir: string,
-	): (loader: PiResourceLoader) => void {
-		const config = readLingSkillsConfig(settingsManager.getGlobalSettings() as unknown as Record<string, unknown>);
+		cwd: string,
+		inventory: Awaited<ReturnType<DefaultPackageManager["resolve"]>>["skills"],
+	): Promise<(loader: PiResourceLoader) => void> {
+		const inventoryDiagnostics: PiSkillsResult["diagnostics"] = [];
+		const discovered = inventory
+			.filter((resource) => resource.metadata.scope !== "project" || settingsManager.isProjectTrusted())
+			.flatMap((resource) => {
+				const loaded = loadSkills({ cwd, agentDir, skillPaths: [resource.path], includeDefaults: false });
+				inventoryDiagnostics.push(...loaded.diagnostics);
+				return loaded.skills.map((skill) => ({
+					...skill,
+					sourceInfo: { ...skill.sourceInfo, ...resource.metadata, path: skill.filePath },
+				}));
+			});
+		const store = createPiGlobalSettingsStore(agentDir);
+		let config = readLingSkillsConfig(settingsManager.getGlobalSettings() as Record<string, unknown>);
+		if (config.legacyDisabled.length) {
+			await store.transact((settings) => {
+				const before = JSON.stringify(settings);
+				const latest = readLingSkillsConfig(settings);
+				const matches = discovered.filter(
+					(skill) => skill.sourceInfo.scope !== "project" && latest.legacyDisabled.includes(skill.name),
+				);
+				const matched = new Set(matches.map((skill) => skill.name));
+				const builtins = new Set(loadBuiltinSkills(agentDir).skills.map((skill) => skill.name));
+				const paths = settings.skills === undefined ? [] : settings.skills;
+				if (!Array.isArray(paths) || paths.some((path) => typeof path !== "string"))
+					throw new Error("Pi settings skills must contain paths");
+				if (matches.length) settings.skills = [...new Set([...paths, ...matches.map((skill) => `-${skill.filePath}`)])];
+				config = {
+					...latest,
+					disabled: latest.disabled.filter((name) => builtins.has(name)),
+					legacyDisabled: latest.legacyDisabled.filter((name) => !matched.has(name) && !builtins.has(name)),
+				};
+				writeLingSkillsConfig(settings, config);
+				return { commit: JSON.stringify(settings) !== before, result: undefined };
+			});
+			await settingsManager.reload();
+		}
 		const disabled = new Set(config.disabled);
+		const unresolved = new Set(config.legacyDisabled);
 		const builtin = config.builtinEnabled ? loadBuiltinSkills(agentDir) : { skills: [], diagnostics: [] };
+
 		return (loader) => {
 			const read = loader.getSkills.bind(loader);
-			discoveredSkills.set(loader, read);
+			discoveredSkills.set(loader, () => {
+				const base = read();
+				const unique = new Map([...discovered, ...base.skills].map((skill) => [skill.filePath, skill]));
+				const diagnostics = new Map(
+					[...base.diagnostics, ...inventoryDiagnostics].map((entry) => [`${entry.path}:${entry.message}`, entry]),
+				);
+				return { skills: [...unique.values()], diagnostics: [...diagnostics.values()] };
+			});
 			loader.getSkills = () => {
 				const base = read();
-				const kept = base.skills.filter((skill) => skill.sourceInfo.scope === "project" || !disabled.has(skill.name));
+				const kept = base.skills.filter((skill) => skill.sourceInfo.scope === "project" || !unresolved.has(skill.name));
 				const shadowed = new Set(base.skills.map((skill) => skill.name));
 				return {
 					skills: [

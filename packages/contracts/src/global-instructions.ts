@@ -1,3 +1,4 @@
+import type { PiResourceReloadSummary } from "./session";
 /** The three global prompt files Pi loads from `~/.pi/agent/` at session startup.
  *
  * - `agents` → `AGENTS.md`: appended instructions layered on top of the default system prompt.
@@ -21,6 +22,7 @@ export const GLOBAL_INSTRUCTION_FILE_NAMES: Readonly<Record<GlobalInstructionKin
 export interface GlobalInstructionFile {
 	kind: GlobalInstructionKind;
 	content: string | null;
+	reload?: PiResourceReloadSummary;
 }
 
 /** Save request. An empty/whitespace-only `content` deletes the file so the directory

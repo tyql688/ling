@@ -248,8 +248,6 @@ export const settingsSchema: z.ZodType<PiSettingsSnapshot> = z.strictObject({
 	defaultModel: fieldSchema.nullable(),
 	defaultThinkingLevel: z.enum(THINKING_LEVELS).nullable(),
 	compactionEnabled: z.boolean(),
-	// getPiSettings() normalizes raw settings.json values into this range on read;
-	// only the write path rejects out-of-range input.
 	compactionReserveTokens: z.number().int().min(PI_COMPACTION_TOKEN_MIN).max(PI_COMPACTION_TOKEN_MAX),
 	compactionKeepRecentTokens: z.number().int().min(PI_COMPACTION_TOKEN_MIN).max(PI_COMPACTION_TOKEN_MAX),
 	compactionModelOverrides: piCompactionModelOverridesSchema,

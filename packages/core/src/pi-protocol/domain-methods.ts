@@ -1,3 +1,4 @@
+import { USAGE_SESSION_DIRECTORY_LIMIT } from "@ling/contracts/usage";
 import {
 	mcpReadRequestSchema,
 	mcpWriteRequestSchema,
@@ -5,6 +6,11 @@ import {
 	mcpOverviewSchema,
 } from "@ling/contracts/mcp";
 import { domainMethod } from "./method";
+import {
+	piConfigurationReadSchema,
+	piConfigurationWriteSchema,
+	piConfigurationSnapshotSchema,
+} from "@ling/contracts/pi-configuration";
 import {
 	voiceProjectSchema,
 	voiceConfigureRequestSchema,
@@ -67,6 +73,25 @@ const fingerprintSchema = z.strictObject({
 	modifiedAtMs: z.number().nonnegative().max(Number.MAX_SAFE_INTEGER),
 });
 export const piDomainMethods = {
+	"settings.configuration": domainMethod(
+		piMethod(
+			z.strictObject({ request: piConfigurationReadSchema }),
+			(value: unknown) => piConfigurationSnapshotSchema.parse(value),
+			recoverableQuery({ timeoutMs: IO_REQUEST_TIMEOUT_MS }),
+		),
+		"readConfiguration",
+		["request"],
+		{},
+	),
+	"settings.writeConfiguration": domainMethod(
+		piVoidMethod(
+			z.strictObject({ request: piConfigurationWriteSchema }),
+			command({ timeoutMs: IO_REQUEST_TIMEOUT_MS }),
+		),
+		"writeConfiguration",
+		["request"],
+		{},
+	),
 	"mcp.read": domainMethod(
 		piMethod(
 			mcpReadRequestSchema,
@@ -126,6 +151,16 @@ export const piDomainMethods = {
 			recoverableQuery(),
 		),
 		"getAgentInfo",
+		[],
+		{},
+	),
+	"session.storageDirectories": domainMethod(
+		piMethod(
+			z.strictObject({}),
+			(value: unknown) => z.array(projectPathSchema).max(USAGE_SESSION_DIRECTORY_LIMIT).parse(value),
+			recoverableQuery(),
+		),
+		"getSessionStorageDirectories",
 		[],
 		{},
 	),
@@ -384,6 +419,22 @@ export const piDomainMethods = {
 		["cwd"],
 		{},
 	),
+	"settings.getMcpActivation": domainMethod(
+		piMethod(z.strictObject({}), (value: unknown) => z.boolean().parse(value), recoverableQuery()),
+		"getMcpActivation",
+		[],
+		{},
+	),
+	"settings.setMcpActivation": domainMethod(
+		piMethod(
+			z.strictObject({ enabled: z.boolean(), expected: z.boolean().optional() }),
+			(value: unknown) => z.boolean().parse(value),
+			command(),
+		),
+		"setMcpActivation",
+		["enabled", "expected"],
+		{},
+	),
 	"settings.getProxy": domainMethod(
 		piMethod(
 			z.strictObject({}),
@@ -491,12 +542,16 @@ export const piDomainMethods = {
 	),
 	"skills.setSkillEnabled": domainMethod(
 		piMethod(
-			z.strictObject({ name: z.string().min(1).max(64), enabled: z.boolean() }),
+			z.strictObject({
+				name: z.string().min(1).max(64),
+				enabled: z.boolean(),
+				filePath: z.string().max(32768).optional(),
+			}),
 			(value: unknown) => z.boolean().parse(value),
 			command(),
 		),
 		"setSkillEnabled",
-		["name", "enabled"],
+		["name", "enabled", "filePath"],
 		{},
 	),
 	"skills.readContent": domainMethod(

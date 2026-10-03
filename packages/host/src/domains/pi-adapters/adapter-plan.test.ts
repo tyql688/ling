@@ -1,15 +1,32 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { createPiAdapterPlan } from "./adapter-plan";
 import { resolvePiPackageEntry } from "./package-entry";
+import * as packageEntries from "./package-entry";
 import { createAccessActivation } from "./permission-system/activation";
 import { createBuiltinFeatures } from "../companions/builtin-features";
 
 const roots: string[] = [];
 afterEach(async () => {
+	vi.restoreAllMocks();
 	await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+it("retains the requested protection when the bundled permission package cannot be resolved", async () => {
+	const home = await temporaryDirectory("missing-permission-package");
+	roots.push(home);
+	const activation = createAccessActivation(home);
+	await activation.write({ expectedRevision: 0, defaultEnabled: true }, new AbortController().signal);
+	const resolveEntry = packageEntries.resolvePiPackageEntry;
+	vi.spyOn(packageEntries, "resolvePiPackageEntry").mockImplementation((name, entry) =>
+		name === "@gotgenes/pi-permission-system"
+			? Promise.reject(new Error("Package unavailable"))
+			: resolveEntry(name, entry),
+	);
+	const plan = createPiAdapterPlan(activation, createBuiltinFeatures(home));
+	expect((await plan.read(join(home, "project"))).permissions).toEqual({ entry: null, enabled: true });
 });
 
 it("resolves both bundled packages, including one with a restrictive exports map", async () => {

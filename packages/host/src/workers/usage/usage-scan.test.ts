@@ -1,8 +1,9 @@
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
-import { appendFile, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, rm, stat, symlink, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createUsageScanner, type UsageScanner } from "@ling/host/workers/usage/usage-scan";
+import { getUsageStats } from "./usage-stats";
 
 function entry(id: string, timestamp: number): string {
 	return JSON.stringify({ type: "message", id, message: { role: "user", timestamp } }) + "\n";
@@ -21,6 +22,31 @@ async function withScanners(run: (dir: string, first: UsageScanner, second: Usag
 }
 
 describe("usage scanner ownership", () => {
+	it("counts custom and retained directories once across overlapping roots and filesystem aliases", async () => {
+		await withScanners(async (dir, scanner) => {
+			const defaults = join(dir, "default");
+			const custom = join(dir, "custom");
+			const alias = join(dir, "alias");
+			await Promise.all([mkdir(defaults), mkdir(custom)]);
+			await symlink(custom, alias, process.platform === "win32" ? "junction" : "dir");
+			await writeFile(join(defaults, "first.jsonl"), entry("first", Date.now()));
+			await writeFile(
+				join(custom, "second.jsonl"),
+				entry("second", Date.now()) +
+					JSON.stringify({
+						type: "usage",
+						id: "warm",
+						timestamp: new Date().toISOString(),
+						provider: "fixture",
+						model: "fixture",
+						usage: { totalTokens: 42, input: 42, output: 0, cacheRead: 0, cacheWrite: 0 },
+					}) +
+					"\n",
+			);
+			const result = await getUsageStats("all", [defaults, custom, alias, dir], scanner);
+			expect(result).toMatchObject({ totalTokens: 42, sessionCount: 2, userMessageCount: 2, skippedFileCount: 0 });
+		});
+	});
 	it("counts cache-warming usage with its model identity alongside older assistant and summary entries", async () => {
 		await withScanners(async (dir, scanner) => {
 			const usage = { input: 10, output: 1, cacheRead: 100, cacheWrite: 0, totalTokens: 111, cost: { total: 0.002 } };
@@ -50,7 +76,7 @@ describe("usage scanner ownership", () => {
 					.map((value) => JSON.stringify(value))
 					.join("\n") + "\n",
 			);
-			const records = (await scanner.scanFiles(dir, 0)).files[0]?.records;
+			const records = (await scanner.scanFiles([dir], 0)).files[0]?.records;
 			expect(records).toHaveLength(3);
 			expect(records?.[2]).toMatchObject({
 				role: "usage",
@@ -61,7 +87,7 @@ describe("usage scanner ownership", () => {
 				usage: { totalTokens: 111, cost: 0.002 },
 			});
 			await writeFile(join(dir, "fork.jsonl"), JSON.stringify(warming) + "\n");
-			const scans = await scanner.scanFiles(dir, 0);
+			const scans = await scanner.scanFiles([dir], 0);
 			expect(
 				scans.files.flatMap((file) => file.records).filter((record) => record.dedupeKey === "warm:100"),
 			).toHaveLength(2);
@@ -70,17 +96,17 @@ describe("usage scanner ownership", () => {
 	it("shares concurrent work and cached records only within the owning scanner", async () => {
 		await withScanners(async (dir, first, second) => {
 			await writeFile(join(dir, "session.jsonl"), entry("first", 100));
-			const pending = first.scanFiles(dir, 0);
-			expect(first.scanFiles(dir, 0)).toBe(pending);
+			const pending = first.scanFiles([dir], 0);
+			expect(first.scanFiles([dir], 0)).toBe(pending);
 			const initial = await pending;
-			const warm = await first.scanFiles(dir, 0);
-			const independent = await second.scanFiles(dir, 0);
+			const warm = await first.scanFiles([dir], 0);
+			const independent = await second.scanFiles([dir], 0);
 			expect(warm.files[0]?.records).toBe(initial.files[0]?.records);
 			expect(independent).toEqual(initial);
 			expect(independent.files[0]?.records).not.toBe(initial.files[0]?.records);
 			await first.dispose();
-			await expect(first.scanFiles(dir, 0)).rejects.toMatchObject({ code: "REQUEST_CANCELLED" });
-			expect(await second.scanFiles(dir, 0)).toEqual(initial);
+			await expect(first.scanFiles([dir], 0)).rejects.toMatchObject({ code: "REQUEST_CANCELLED" });
+			expect(await second.scanFiles([dir], 0)).toEqual(initial);
 		});
 	});
 
@@ -88,15 +114,15 @@ describe("usage scanner ownership", () => {
 		await withScanners(async (dir, scanner) => {
 			const file = join(dir, "session.jsonl");
 			await writeFile(file, entry("before", 100));
-			const initial = await scanner.scanFiles(dir, 0);
+			const initial = await scanner.scanFiles([dir], 0);
 			const metadata = await stat(file);
 			await writeFile(file, entry("after!", 100));
 			await utimes(file, metadata.atime, metadata.mtime);
-			const rewritten = await scanner.scanFiles(dir, 0);
+			const rewritten = await scanner.scanFiles([dir], 0);
 			expect(rewritten.files[0]?.records[0]?.dedupeKey).toBe("after!:100");
 			expect(rewritten.files[0]?.records).not.toBe(initial.files[0]?.records);
 			await appendFile(file, entry("appended", 200));
-			expect((await scanner.scanFiles(dir, 0)).files[0]?.records).toHaveLength(2);
+			expect((await scanner.scanFiles([dir], 0)).files[0]?.records).toHaveLength(2);
 		});
 	});
 
@@ -105,12 +131,12 @@ describe("usage scanner ownership", () => {
 			await writeFile(join(dir, "valid.jsonl"), entry("valid", 100));
 			const broken = join(dir, "broken.jsonl");
 			await writeFile(broken, entry("prefix", 100) + "{unfinished\n");
-			const partial = await scanner.scanFiles(dir, 0);
+			const partial = await scanner.scanFiles([dir], 0);
 			expect(partial.skippedFileCount).toBe(1);
 			expect(partial.files).toHaveLength(1);
 			expect(partial.files[0]?.records[0]?.dedupeKey).toBe("valid:100");
 			await writeFile(broken, entry("repaired", 100));
-			const complete = await scanner.scanFiles(dir, 0);
+			const complete = await scanner.scanFiles([dir], 0);
 			expect(complete.skippedFileCount).toBe(0);
 			expect(complete.files).toHaveLength(2);
 		});
@@ -119,34 +145,34 @@ describe("usage scanner ownership", () => {
 	it("does not reuse a narrower cached window for a wider range", async () => {
 		await withScanners(async (dir, scanner) => {
 			await writeFile(join(dir, "session.jsonl"), entry("old", 100) + entry("recent", 300));
-			await scanner.scanFiles(dir, 0);
-			expect((await scanner.scanFiles(dir, 200)).files[0]?.records).toHaveLength(1);
-			const [wide, narrow] = await Promise.all([scanner.scanFiles(dir, 0), scanner.scanFiles(dir, 200)]);
+			await scanner.scanFiles([dir], 0);
+			expect((await scanner.scanFiles([dir], 200)).files[0]?.records).toHaveLength(1);
+			const [wide, narrow] = await Promise.all([scanner.scanFiles([dir], 0), scanner.scanFiles([dir], 200)]);
 			expect(wide.files[0]?.records).toHaveLength(2);
 			expect(narrow.files[0]?.records).toHaveLength(1);
-			expect((await scanner.scanFiles(dir, 0)).files[0]?.records).toHaveLength(2);
+			expect((await scanner.scanFiles([dir], 0)).files[0]?.records).toHaveLength(2);
 		});
 	});
 
 	it("drains cancelled scans, refuses later admission and keeps disposal idempotent", async () => {
 		await withScanners(async (dir, scanner) => {
 			await writeFile(join(dir, "session.jsonl"), entry("pending", 100).repeat(20_000));
-			const pending = scanner.scanFiles(dir, 0);
+			const pending = scanner.scanFiles([dir], 0);
 			const rejected = expect(pending).rejects.toMatchObject({ code: "REQUEST_CANCELLED" });
 			const disposal = scanner.dispose();
 			expect(scanner.dispose()).toBe(disposal);
 			await disposal;
 			await rejected;
-			await expect(scanner.scanFiles(dir, 0)).rejects.toMatchObject({ code: "REQUEST_CANCELLED" });
+			await expect(scanner.scanFiles([dir], 0)).rejects.toMatchObject({ code: "REQUEST_CANCELLED" });
 		});
 	});
 
 	it("treats a missing sessions directory as fresh installation but propagates an invalid directory", async () => {
 		await withScanners(async (dir, scanner) => {
-			expect(await scanner.scanFiles(join(dir, "missing"), 0)).toEqual({ files: [], skippedFileCount: 0 });
+			expect(await scanner.scanFiles([join(dir, "missing")], 0)).toEqual({ files: [], skippedFileCount: 0 });
 			const file = join(dir, "file.jsonl");
 			await writeFile(file, entry("record", 100));
-			await expect(scanner.scanFiles(file, 0)).rejects.toMatchObject({ code: "ENOTDIR" });
+			await expect(scanner.scanFiles([file], 0)).rejects.toMatchObject({ code: "ENOTDIR" });
 		});
 	});
 });

@@ -112,6 +112,10 @@ export function createSessionDomain({
 	const { coordinateMetadataCleanup } = metadataCleanup;
 
 	const handlers: HostHandlers = {
+		[sessionProcedures.import.channel]: (_event, request) => sessions.manager.commands.importSession(request),
+		[sessionProcedures.inspect.channel]: (_event, request) => sessions.manager.commands.inspectSession(request),
+		[sessionProcedures.control.channel]: (_event, request) => sessions.manager.commands.controlSession(request),
+		[sessionProcedures.export.channel]: (_event, request) => sessions.manager.commands.exportSession(request),
 		...createSessionCompanionHandlers({
 			sessionOperations,
 			commands: sessions.manager.commands,
@@ -146,11 +150,7 @@ export function createSessionDomain({
 
 		[sessionProcedures.list.channel]: async (): Promise<SessionSummary[]> => {
 			await projectsRestored;
-			try {
-				return await listSessionsWithCatalog(listOpenProjectPaths());
-			} catch (error) {
-				throw new Error("Ling could not list sessions", { cause: error });
-			}
+			return listSessionsWithCatalog(listOpenProjectPaths());
 		},
 
 		[sessionProcedures.catalogStatus.channel]: async (_event): Promise<SessionCatalogStatus> => {

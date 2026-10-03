@@ -116,3 +116,30 @@ it("surfaces corrupt old and new settings instead of enabling features by defaul
 	await writeFile(join(f.home, "plugin-state", "builtin-features.json"), "{}");
 	await expect(f.owner.read()).rejects.toThrow();
 });
+
+it("migrates legacy MCP activation once and observes canonical Pi changes with revision fencing", async () => {
+	const f = await fixture();
+	await f.owner.write({ id: "mcp", enabled: true, expectedRevision: 0 }, f.signal);
+	let canonical = false;
+	let writes = 0;
+	const owner = createBuiltinFeatures(f.home, {
+		read: async () => canonical,
+		write: async (enabled, expected) => {
+			if (expected !== undefined && expected !== canonical) throw new Error("changed");
+			writes++;
+			const changed = canonical !== enabled;
+			canonical = enabled;
+			return changed;
+		},
+	});
+	expect((await owner.read()).enabled.mcp).toBe(true);
+	expect(writes).toBe(1);
+	canonical = false;
+	const external = await owner.read();
+	expect(external.enabled.mcp).toBe(false);
+	expect(writes).toBe(1);
+	await expect(owner.write({ id: "mcp", enabled: true, expectedRevision: 1 }, f.signal)).rejects.toThrow("changed");
+	await owner.write({ id: "mcp", enabled: true, expectedRevision: external.revision }, f.signal);
+	expect(canonical).toBe(true);
+	expect((await owner.readHost()).enabled.mcp).toBe(true);
+});

@@ -288,7 +288,8 @@
 		"nestedArgumentsOmitted": "参数已省略（{{count}} 字节）",
 		"nestedIncomplete": "部分调用或参数已省略，或在记录结果时尚未结束。",
 		"routedModel": "→ {{model}}",
-		"downloadImage": "下载图片"
+		"downloadImage": "下载图片",
+		"cmdReloadDesc": "重载 Pi 资源"
 	},
 	"explorer": {
 		"title": "文件",
@@ -573,7 +574,8 @@
 		"hostPathEmpty": "没有可显示的子文件夹。",
 		"hostPathUnavailable": "无法浏览",
 		"hostPathTruncated": "此目录中的项目过多，部分内容未显示。可以输入路径前往目标文件夹。",
-		"hostPathSelect": "选择此文件夹"
+		"hostPathSelect": "选择此文件夹",
+		"trustExtensionPrompt": "全局 Pi 扩展正在请求输入，以决定是否加载项目资源。"
 	},
 	"projectPiConfig": {
 		"title": "项目 Pi 配置",
@@ -628,7 +630,9 @@
 		"searchProviders": "搜索提供商名称或 ID",
 		"clearSearch": "清空搜索",
 		"noMatchingProviders": "没有匹配的提供商。",
-		"providerCount": "{{count}} 个提供商"
+		"providerCount": "{{count}} 个提供商",
+		"scopedModels": "范围内模型",
+		"allModels": "所有模型"
 	},
 	"plugins": {
 		"title": "插件",
@@ -833,8 +837,6 @@
 		"configurationMaxTokens": "最大输出",
 		"configurationSamplingParams": "采样参数",
 		"configurationCompat": "请求兼容设置",
-		"catalogModelsAdopted": "已将 {{count}} 个自定义模型替换为官方目录配置",
-		"catalogModelsBackup": "替换前的配置已备份至：{{path}}",
 		"configured": "已配置"
 	},
 	"settings": {
@@ -963,7 +965,7 @@
 		"globalInstructionsStatusPresent": "文件已存在",
 		"globalInstructionsReveal": "打开文件",
 		"globalInstructionsSaved": "已保存——新会话生效",
-		"globalInstructionsReloadHint": "改动在下个会话生效，或在运行中的会话执行 /reload。",
+		"globalInstructionsReloadHint": "保存后会重载 Pi 资源；运行中的会话会在当前操作结束后应用。",
 		"piDefaults": "默认值",
 		"defaultModel": "默认模型",
 		"defaultThinking": "默认思考等级",
@@ -1116,7 +1118,7 @@
 		"requestLabel": "Pi 扩展请求",
 		"pendingCount": "还有 {{count}} 个",
 		"expiresIn": "剩余 {{count}} 秒",
-		"closeEnvironment": "关闭 Pi 扩展界面",
+		"sendEscape": "向扩展发送 Esc",
 		"dockTitle": "扩展栏",
 		"dockDescription": "本会话的扩展状态与活动",
 		"dockEmpty": "暂无扩展活动",
@@ -1142,7 +1144,8 @@
 		"sessionChanged": "会话已发生变化，请重试当前操作。",
 		"historyChanged": "对话历史已发生变化，请重新加载后继续。",
 		"packageHostLost": "插件进程已停止，请重新加载项目资源后重试。",
-		"hostDirectoryUnavailable": "无法读取此文件夹。请检查路径和访问权限。"
+		"hostDirectoryUnavailable": "无法读取此文件夹。请检查路径和访问权限。",
+		"piPermissionUnavailable": "Pi 权限插件未能加载。请修复或启用该插件，再重新打开会话。"
 	},
 	"markdown": {
 		"clipboardUnavailable": "无法访问剪贴板",
@@ -1513,7 +1516,13 @@
 		"retry": "重试",
 		"moreActions": "更多操作",
 		"cancel": "取消",
-		"loading": "正在加载…"
+		"loading": "正在加载…",
+		"edit": "编辑",
+		"save": "保存",
+		"confirm": "确认",
+		"close": "关闭",
+		"previousPage": "上一页",
+		"nextPage": "下一页"
 	},
 	"reading": {
 		"region": "阅读区域",
@@ -1663,7 +1672,7 @@
 	},
 	"permissions": {
 		"title": "权限配置",
-		"description": "管理全局默认，也可以为每个项目单独设置。",
+		"description": "选择在哪些项目加载 Ling 内置权限扩展。用户安装的 Pi 权限包保留自己的启用配置和规则。",
 		"accessMode": "访问权限",
 		"choice": {
 			"full": "完全访问",
@@ -1689,10 +1698,12 @@
 		"opening": "正在打开…",
 		"rulesDescription": "使用系统默认应用打开；文件不存在时创建空配置。",
 		"rulesDesktopOnly": "请在 Ling 桌面版中打开规则文件。",
-		"applying": "正在应用权限设置…",
+		"applying": "权限模式生效中…",
 		"precedence": "项目设置优先于全局默认；正在运行的会话将在本轮结束后使用新模式。",
 		"fullAccessNote": "完全访问：暂停这套权限系统的拦截，包括配置中的拒绝规则。规则文件会保留。",
-		"approvalNote": "审批：沿用已有的全局和项目设置，只在配置要求确认时询问。"
+		"approvalNote": "审批：沿用已有的全局和项目设置，只在配置要求确认时询问。",
+		"external": "Pi 权限扩展",
+		"externalDescription": "此会话由用户安装的 Pi 权限扩展管理，请在扩展配置中控制启用状态。"
 	},
 	"questions": {
 		"title": "提问",
@@ -2051,5 +2062,80 @@
 		"invalidOAuthMetadataUrl": "请输入完整的 HTTPS 元数据地址，或使用 localhost、127.0.0.1、[::1] 的 HTTP 地址。",
 		"addRadius": "添加 Radius",
 		"radiusHint": "请在设置 → 模型中登录 Radius，此 MCP 服务会使用该登录信息。"
+	},
+	"piConfiguration": {
+		"title": "Pi 配置",
+		"description": "查看配置原值、继承关系和 Pi 解析后的值。修改只作用于所选范围。",
+		"search": "搜索配置",
+		"editJson": "编辑 JSON",
+		"jsonHint": "输入 JSON 值。刷新会保留草稿，保存前请检查其他位置的修改。",
+		"applying": "正在应用…",
+		"inherit": "恢复继承",
+		"source_default": "Pi 默认",
+		"source_global": "全局",
+		"source_project": "项目",
+		"terminal": "终端专用",
+		"globalOnly": "仅全局",
+		"automatic": "自动",
+		"stored": "配置原值",
+		"common": "常用",
+		"complete": "完整配置",
+		"conflict": "配置已发生变化。刷新后可将当前配置合并到草稿，请核对后再保存。",
+		"mergeDraft": "合并当前配置到草稿"
+	},
+	"sessionInspector": {
+		"title": "会话详情",
+		"description": "查看和调整当前 Pi 会话。",
+		"overview": "概览",
+		"tools": "工具",
+		"tree": "分支",
+		"prompt": "系统提示词",
+		"flags": "扩展参数",
+		"cancelled": "扩展取消了此次操作。",
+		"restoreText": "添加到草稿",
+		"state": "状态",
+		"busy": "运行中",
+		"idle": "空闲",
+		"context": "上下文",
+		"unknown": "未知",
+		"cache": "缓存预热",
+		"cache_inactive": "未运行",
+		"cache_scheduled": "已安排",
+		"cache_refreshing": "刷新中",
+		"warmCost": "刷新费用",
+		"savings": "预计节省",
+		"extensionOverride": "扩展调整了此次决策。",
+		"exportHtml": "导出 HTML",
+		"exportJsonl": "导出 JSONL",
+		"toolsHint": "选择当前会话使用的工具。全局默认值和扩展的工具暴露规则独立生效。",
+		"treeHint": "选择分支节点继续对话。所有分支仍保存在当前会话中。",
+		"label": "分支标签",
+		"summarize": "切换前总结当前分支",
+		"instructions": "可选的总结要求",
+		"navigate": "从这里继续",
+		"truncated": "提示词超过了预览上限。",
+		"flagsHint": "参数作用于当前运行的会话，重载资源时会保留。",
+		"noFlags": "此会话没有扩展参数。",
+		"importJsonl": "导入 JSONL",
+		"importLimit": "会话文件不能超过 8 MiB。",
+		"currentBranch": "当前分支",
+		"entries": {
+			"user": "用户",
+			"assistant": "助手",
+			"toolResult": "工具结果",
+			"system": "系统提示词",
+			"message": "消息",
+			"custom_message": "扩展消息",
+			"custom": "扩展事件",
+			"model_change": "模型选择",
+			"thinking_level_change": "思考等级",
+			"compaction": "上下文压缩",
+			"branch_summary": "分支摘要",
+			"label": "标签",
+			"session_info": "会话信息",
+			"tools": "工具选择",
+			"toolCall": "工具调用"
+		},
+		"searchTools": "搜索工具"
 	}
 }

@@ -59,7 +59,7 @@ interface PendingProjectOpen {
 
 type ProjectCloseDrain = (cwd: string) => Promise<void>;
 
-type ProjectTrustResolver = (cwd: string) => Promise<boolean>;
+type ProjectTrustResolver = PiProjectResourceContext["projectTrustResolver"];
 
 function invalidateServiceExtensionRuntime(services: PiAgentSessionServices, message: string): void {
 	services.resourceLoader.getExtensions().runtime.invalidate(message);
@@ -862,7 +862,7 @@ async function reloadProjectSettingsNow(
 							agentDir: services.agentDir,
 							settingsManager: services.settingsManager,
 							plan: await owner.readAdapterPlan(services.cwd),
-							loadBundled: false,
+							sessionRuntime: false,
 						});
 						if (isCurrentOpen(slot, generation, services)) owner.bundledAdapters.set(services, adapters.bundledEntries);
 					}

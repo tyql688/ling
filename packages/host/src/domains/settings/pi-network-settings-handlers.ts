@@ -4,10 +4,14 @@ import { piSettingsProcedures } from "@ling/contracts/pi-settings-procedures";
 import { piResourceReloadError, type ResourceReloadCoordinator } from "@ling/host/domains/resources/resource-reload";
 import type { PiWorkerClient } from "@ling/host/workers/pi/pi-worker-client";
 import type { HostDomain, HostHandlers } from "../../transport/host-domain";
+import { PI_TERMINAL_CONFIGURATION_KEYS } from "@ling/contracts/pi-configuration";
+import { isDeepStrictEqual } from "node:util";
 
 /** Command catalogs and active tool sets belong to each session's resource generation. */
 function isResourceAffectingSettingsUpdate(update: { type: string }): boolean {
-	return update.type === "enableSkillCommands" || update.type === "defaultTools";
+	return ["enableSkillCommands", "defaultTools", "shellPath", "shellCommandPrefix", "imageAutoResize"].includes(
+		update.type,
+	);
 }
 
 export function createPiSettingsDomain({
@@ -35,7 +39,7 @@ export function createPiSettingsDomain({
 	}
 
 	/** Value-only settings are read lazily through the shared SettingsManager instances
-	 * (delivery modes, compaction/retry, shell paths) or consumed only when a new session
+	 * (delivery modes, compaction/retry) or consumed only when a new session
 	 * is constructed (default model/thinking). Refreshing those instances in place reaches
 	 * every live session without the full project/session generation rebuild, which costs
 	 * seconds per open project and made each settings toggle visibly slow. */
@@ -45,6 +49,67 @@ export function createPiSettingsDomain({
 	}
 
 	const handlers: HostHandlers = {
+		[piSettingsProcedures.configuration.channel]: async (_event, request) => {
+			if (request.cwd !== null) piWorker.resolveProject(request.cwd);
+			return piWorker.readConfiguration(request);
+		},
+		[piSettingsProcedures.writeConfiguration.channel]: async (_event, request) => {
+			if (request.cwd !== null) piWorker.resolveProject(request.cwd);
+			const before = await piWorker.readConfiguration({ cwd: request.cwd });
+			const valueOnly = new Set<string>([
+				...PI_TERMINAL_CONFIGURATION_KEYS,
+				"defaultModel",
+				"defaultProvider",
+				"defaultThinkingLevel",
+				"modelThinkingLevels",
+				"thinkingBudgets",
+				"transport",
+				"steeringMode",
+				"followUpMode",
+				"compaction",
+				"branchSummary",
+				"retry",
+				"httpIdleTimeoutMs",
+				"websocketConnectTimeoutMs",
+				"cacheWarming",
+				"sessionDir",
+				"httpProxy",
+				"npmCommand",
+				"enableAnalytics",
+				"enableInstallTelemetry",
+				"defaultProjectTrust",
+			]);
+			const changed = [...new Set([...Object.keys(before.configured), ...Object.keys(request.settings)])].filter(
+				(key) => !isDeepStrictEqual(before.configured[key], request.settings[key]),
+			);
+			let reload = null;
+			try {
+				if (changed.some((key) => !valueOnly.has(key))) {
+					const outcome = await mutateThenReloadPiResources(
+						"Pi configuration could not be saved and applied",
+						async () => {
+							await piWorker.writeConfiguration(request);
+							return request.cwd === null ? undefined : [request.cwd];
+						},
+					);
+					if (outcome.mutation.failed) {
+						const failure = piResourceReloadError(outcome.reload);
+						if (failure)
+							throw new AggregateError(
+								[outcome.mutation.error, failure],
+								"Pi configuration could not be saved and applied",
+							);
+						throw outcome.mutation.error;
+					}
+					reload = outcome.reload;
+				} else {
+					await mutateAndRefreshPiSettings(() => piWorker.writeConfiguration(request));
+				}
+				return { configuration: await piWorker.readConfiguration({ cwd: request.cwd }), reload };
+			} finally {
+				events.broadcast(piSettingsProcedures.onChanged.channel, null);
+			}
+		},
 		[networkProcedures.getProxy.channel]: async () => piWorker.getProxy(),
 
 		[networkProcedures.setProxy.channel]: async (_event, value) => {

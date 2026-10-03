@@ -12,6 +12,7 @@ import { type PiAgentSession, type PiAgentSessionRuntime, piBranchProjectionSour
 import { runtimeDiagnostics } from "./runtime-factory";
 import { projectPiBranchMessages, summarizePiBranchMessages } from "./session-message-projector";
 import { readSessionOrigin } from "./session-origin";
+import { getPiPermissionSource } from "../extensions/pi-adapters";
 
 /** Revision 1 adds initialized stock-renderer themes and nullable branch origins.
  * Bump when Ling's projection semantics change without a Pi or app version bump;
@@ -108,6 +109,7 @@ export function projectPiRuntimeStateSnapshot(
 	queue: SessionQueue,
 ): SessionRuntimeStateSnapshot {
 	return {
+		permissionSource: getPiPermissionSource(runtime.session.resourceLoader.getExtensions()),
 		busy,
 		queue,
 		diagnostics: [...runtimeDiagnostics(runtime), ...sessionDiagnostics],

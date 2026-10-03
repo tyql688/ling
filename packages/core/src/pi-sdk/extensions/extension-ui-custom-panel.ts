@@ -12,7 +12,7 @@ import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 import { attemptCleanup, throwAggregateFailures } from "@ling/core/ling-error";
 import { createLogger } from "../../logger";
 import type { PiTheme } from "../types";
-import { createLingKeybindings } from "./extension-ui-keybindings";
+import { createPiPanelKeybindings } from "./extension-ui-keybindings";
 import { createOffscreenWidgetTui } from "./extension-ui-offscreen-tui";
 import {
 	EXTENSION_UI_RENDER_ROWS,
@@ -364,7 +364,7 @@ export function createPiExtensionCustomPanels({
 						getRows: () => terminalRows,
 					}),
 					getPiExtensionThemeProxy(ref),
-					createLingKeybindings(),
+					createPiPanelKeybindings(),
 					done,
 				);
 			} catch (error) {

@@ -143,7 +143,7 @@ export function createSkillDomain({
 
 		[skillsProcedures.setSkillEnabled.channel]: async (_event, value) => {
 			await projectsRestored;
-			return mutateSkillToggle(() => piWorker.setSkillEnabled(value.name, value.enabled));
+			return mutateSkillToggle(() => piWorker.setSkillEnabled(value.name, value.enabled, value.filePath));
 		},
 
 		[skillsProcedures.checkUpdates.channel]: async () => {

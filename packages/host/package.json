@@ -11,6 +11,7 @@
 	},
 	"dependencies": {
 		"@earendil-works/pi-coding-agent": "1.0.0",
+		"@earendil-works/pi-tui": "1.0.0",
 		"@earendil-works/pi-voice": "0.1.0",
 		"@gotgenes/pi-permission-system": "37.0.0",
 		"@juicesharp/rpiv-todo": "2.12.0",

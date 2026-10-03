@@ -2,17 +2,8 @@ import {
 	type PiSettingsRecoveryStatus,
 	type PiSettingsSnapshot,
 	type PiSettingsUpdate,
-	PI_COMPACTION_TOKEN_MAX,
-	PI_COMPACTION_TOKEN_MIN,
-	PI_RETRY_MAX_DELAY_MS_MAX,
 	piCompactionModelOverridesSchema,
-	PI_RETRY_BASE_DELAY_MS_MAX,
-	PI_RETRY_BASE_DELAY_MS_MIN,
-	PI_RETRY_MAX_RETRIES_MAX,
-	PI_RETRY_MAX_RETRIES_MIN,
 	PI_SETTINGS_NPM_COMMAND_MAX_CHARS,
-	PI_SETTINGS_SHELL_PREFIX_MAX_CHARS,
-	PI_CODEMODE_INLINE_BUDGET_MAX,
 	PI_DEFAULT_TOOL_NAMES,
 } from "@ling/contracts/pi-settings";
 import { z } from "zod";
@@ -24,6 +15,8 @@ import type { PiSettingsManager } from "../types";
 import { createPiGlobalSettingsStore } from "./global-settings-store";
 import { createPiHttpProxy } from "./http-proxy";
 import { createPiSettingsMutations } from "./settings-mutation";
+import { createPiConfiguration } from "./configuration";
+import { createPiMcpActivation } from "./mcp-activation";
 
 const log = createLogger("pi-settings");
 function isValidPiHttpIdleTimeout(value: unknown): boolean {
@@ -34,18 +27,6 @@ function isValidPiHttpIdleTimeout(value: unknown): boolean {
 	if (trimmed.length === 0 || trimmed.toLowerCase() === "disabled") return true;
 	const parsed = Number(trimmed);
 	return Number.isFinite(parsed) && parsed >= 0;
-}
-
-/** settings.json is shared with the pi CLI and hand edits; Pi's getters return whatever is
- * stored. Normalize on read so one bad value cannot brick the whole settings view — the
- * strict range check applies only when Ling writes. */
-function clampSetting(value: number, min: number, max: number): number {
-	const rounded = Number.isFinite(value) ? Math.round(value) : min;
-	return Math.min(max, Math.max(min, rounded));
-}
-
-function normalizeCompactionTokens(value: number): number {
-	return clampSetting(value, PI_COMPACTION_TOKEN_MIN, PI_COMPACTION_TOKEN_MAX);
 }
 
 function assertNoSettingsErrors(settings: PiSettingsManager, action: string): void {
@@ -74,15 +55,9 @@ function formatNpmCommand(command: string[] | undefined): string | null {
 	return formatted;
 }
 
-/** getShellCommandPrefix returns the raw stored value; a hand-edited non-string must not
- * brick the settings view. Over-long prefixes are truncated rather than dropped. */
-function normalizeShellCommandPrefix(value: unknown): string | null {
-	if (typeof value !== "string" || value.length === 0) return null;
-	return value.slice(0, PI_SETTINGS_SHELL_PREFIX_MAX_CHARS);
-}
-
 export function createPiSettings(agentDir: string) {
 	const globalSettingsStore = createPiGlobalSettingsStore(agentDir);
+	const configuration = createPiConfiguration(agentDir, globalSettingsStore);
 	const mutations = createPiSettingsMutations();
 	const { enqueueGlobalSettingsMutation } = mutations;
 	const network = createPiHttpProxy({ agentDir, globalSettingsStore, mutations });
@@ -151,21 +126,17 @@ export function createPiSettings(agentDir: string) {
 				defaultModel: settings.getDefaultModel() ?? null,
 				defaultThinkingLevel: settings.getDefaultThinkingLevel() ?? null,
 				compactionEnabled: settings.getCompactionEnabled(),
-				compactionReserveTokens: normalizeCompactionTokens(settings.getCompactionReserveTokens()),
-				compactionKeepRecentTokens: normalizeCompactionTokens(settings.getCompactionKeepRecentTokens()),
+				compactionReserveTokens: settings.getCompactionReserveTokens(),
+				compactionKeepRecentTokens: settings.getCompactionKeepRecentTokens(),
 				compactionModelOverrides,
 				cacheWarming: settings.getCacheWarmingMode(),
 				retryEnabled: settings.getRetryEnabled(),
-				retryMaxRetries: clampSetting(retrySettings.maxRetries, PI_RETRY_MAX_RETRIES_MIN, PI_RETRY_MAX_RETRIES_MAX),
-				retryBaseDelayMs: clampSetting(
-					retrySettings.baseDelayMs,
-					PI_RETRY_BASE_DELAY_MS_MIN,
-					PI_RETRY_BASE_DELAY_MS_MAX,
-				),
-				retryMaxAgentDelayMs: clampSetting(retrySettings.maxAgentDelayMs, 0, PI_RETRY_MAX_DELAY_MS_MAX),
+				retryMaxRetries: retrySettings.maxRetries,
+				retryBaseDelayMs: retrySettings.baseDelayMs,
+				retryMaxAgentDelayMs: retrySettings.maxAgentDelayMs,
 				blockImages: settings.getBlockImages(),
 				imageAutoResize: settings.getImageAutoResize(),
-				shellCommandPrefix: normalizeShellCommandPrefix(settings.getShellCommandPrefix()),
+				shellCommandPrefix: settings.getShellCommandPrefix() ?? null,
 				defaultProjectTrust: settings.getDefaultProjectTrust(),
 				steeringMode: settings.getSteeringMode(),
 				followUpMode: settings.getFollowUpMode(),
@@ -183,7 +154,7 @@ export function createPiSettings(agentDir: string) {
 						typeof codemode?.inlineBudget === "number" &&
 						Number.isFinite(codemode.inlineBudget) &&
 						codemode.inlineBudget >= 0
-							? clampSetting(codemode.inlineBudget, 0, PI_CODEMODE_INLINE_BUDGET_MAX)
+							? codemode.inlineBudget
 							: 3000,
 				},
 			};
@@ -252,7 +223,26 @@ export function createPiSettings(agentDir: string) {
 			// Pi's SettingsManager exposes getDefaultTools but no setter, so write the canonical key.
 			await globalSettingsStore.update((settings) => {
 				if (update.tools === null) delete settings.defaultTools;
-				else settings.defaultTools = [...update.tools];
+				else if (
+					Array.isArray(settings.defaultTools) &&
+					settings.defaultTools.every((entry) => typeof entry === "string") &&
+					settings.defaultTools.some((entry) => entry.startsWith("+") || entry.startsWith("-"))
+				) {
+					const current = SettingsManager.inMemory({ defaultTools: settings.defaultTools }).getDefaultTools() ?? [
+						...PI_DEFAULT_TOOL_NAMES,
+					];
+					const requested = new Set(update.tools);
+					const changed = new Set([
+						...current.filter((name) => !requested.has(name)),
+						...update.tools.filter((name) => !current.includes(name)),
+					]);
+					settings.defaultTools = [
+						...settings.defaultTools.filter(
+							(entry) => !(entry.startsWith("+") || entry.startsWith("-")) || !changed.has(entry.slice(1)),
+						),
+						...[...changed].map((name) => `${requested.has(name) ? "+" : "-"}${name}`),
+					];
+				} else settings.defaultTools = [...update.tools];
 			});
 			log.info(`updated defaultTools (${update.tools === null ? "default" : update.tools.length})`);
 			return;
@@ -348,6 +338,8 @@ export function createPiSettings(agentDir: string) {
 		);
 	}
 	return {
+		configuration,
+		mcpActivation: createPiMcpActivation(agentDir, globalSettingsStore, mutations),
 		getPiDeviceId,
 		getPiSettingsRecoveryStatus,
 		repairPiHttpIdleTimeout,

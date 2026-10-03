@@ -1,3 +1,4 @@
+import { projectTrustPromptSchema } from "@ling/contracts/project-trust-ui";
 import { z } from "zod";
 import { companionToolCallSchema, companionToolResultSchema, piAdapterPlanSchema } from "@ling/contracts/companions";
 import { fieldSchema, idSchema, textSchema as outputTextSchema, reviewFileSchema } from "./runtime-payload-schemas";
@@ -128,9 +129,9 @@ export const piCallbacks = {
 		result: (value: unknown) => piAdapterPlanSchema.parse(value),
 	},
 	"project.promptTrust": {
-		input: z.strictObject({ cwd: controlPathSchema }),
+		input: z.strictObject({ cwd: controlPathSchema, prompt: projectTrustPromptSchema.optional() }),
 		result: (value: unknown) => {
-			return z.enum(["trust", "session", "deny"]).nullable().parse(value);
+			return z.string().max(65_536).nullable().parse(value);
 		},
 	},
 };

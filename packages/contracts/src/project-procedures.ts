@@ -19,7 +19,6 @@ import type {
 	ProjectRevealEntryRequest,
 	ProjectRevealFileReferenceRequest,
 	ProjectStoreStatus,
-	ProjectTrustChoice,
 	ProjectTrustRequest,
 	ProjectWriteFileRequest,
 	ProjectWriteFileResult,
@@ -35,7 +34,7 @@ export function createProjectProcedures(paths: ProcedurePaths = portableProcedur
 		projectPathSchema: paths.absolute("Project path"),
 		trustResponseSchema: z.strictObject({
 			requestId: dialogRequestIdSchema,
-			choice: z.enum(["trust", "session", "deny"]).nullable(),
+			choice: z.string().max(65_536).nullable(),
 		}),
 	};
 	return {
@@ -153,7 +152,7 @@ export function createProjectProcedures(paths: ProcedurePaths = portableProcedur
 		pendingTrustRequests: request("project:trust:pending", noArguments, returns<ProjectTrustRequest[]>()),
 		respondTrust: request(
 			"project:trust:respond",
-			argumentsOf<[requestId: string, choice: ProjectTrustChoice | null]>((args) => {
+			argumentsOf<[requestId: string, choice: string | null]>((args) => {
 				const parsed = schemas.trustResponseSchema.parse({ requestId: args[0], choice: args[1] });
 				return [parsed.requestId, parsed.choice];
 			}),

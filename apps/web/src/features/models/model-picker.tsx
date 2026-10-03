@@ -70,14 +70,20 @@ function ModelPickerContent({
 }) {
 	const { t } = useTranslation();
 	const [modelQuery, setModelQuery] = useState("");
+	const hasScope = options.some((option) => option.inScope !== undefined);
+	const [scoped, setScoped] = useState(hasScope);
+	const visibleOptions = useMemo(
+		() => (scoped ? options.filter((option) => option.inScope !== false) : options),
+		[options, scoped],
+	);
 	const [providerQuery, setProviderQuery] = useState("");
 	const [provider, setProvider] = useState<ProviderOption | null>(null);
 	const [providerPage, setProviderPage] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const ime = useImeGuard();
 	const allMatches = useMemo(
-		() => filterModelPickerOptions(options, modelQuery, { selected, defaultModel }),
-		[options, modelQuery, selected, defaultModel],
+		() => filterModelPickerOptions(visibleOptions, modelQuery, { selected, defaultModel }),
+		[visibleOptions, modelQuery, selected, defaultModel],
 	);
 	const matches = provider === null ? allMatches : allMatches.filter((option) => option.provider === provider.id);
 	const catalog = useMemo(() => {
@@ -341,7 +347,20 @@ function ModelPickerContent({
 						)}
 					</Command.List>
 				</div>
-				<div className="flex h-6 shrink-0 items-center justify-between gap-2 border-t border-border-subtle px-1.5 text-xs text-text-muted">
+				<div className="flex min-h-8 shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border-subtle px-1.5 text-xs text-text-muted">
+					{hasScope && (
+						<Button
+							size="sm"
+							variant="ghost"
+							aria-pressed={scoped}
+							onClick={() => {
+								setScoped((value) => !value);
+								setActiveKey("");
+							}}
+						>
+							{t(scoped ? "modelPicker.scopedModels" : "modelPicker.allModels")}
+						</Button>
+					)}
 					<span role="status" className="min-w-0 truncate">
 						{providerPage
 							? t("modelPicker.providerCount", { count: providerMatches.length })

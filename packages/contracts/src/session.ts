@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PermissionSource } from "./permissions";
 import type { SessionMessageDelta } from "./session-message-delta";
 import type * as requestSchemas from "./session-requests";
 import type { ToolExecutionProgress } from "./session-tool-progress";
@@ -150,6 +151,8 @@ export type SetSessionArchivedRequest = z.infer<RequestSchemasShape["setSessionA
 export type SetSessionPinnedRequest = z.infer<RequestSchemasShape["setSessionPinnedRequestSchema"]>;
 
 export interface ModelInfo {
+	/** Present when Pi has an enabledModels selection; other available models remain selectable. */
+	inScope?: boolean;
 	provider: string;
 	providerName: string;
 	id: string;
@@ -297,6 +300,8 @@ export interface CancelSessionOperationResponse {
 }
 
 export interface SessionSnapshot {
+	/** Actual loaded extension generation, including a reload that is still deferred. */
+	permissionSource?: PermissionSource;
 	/** Live output only; cleared with the runtime generation and never persisted as history. */
 	toolExecutions: readonly ToolExecutionProgress[];
 	protocolVersion: 1;

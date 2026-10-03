@@ -37,13 +37,13 @@ export function createPiAdapterPlan(activation: AccessActivationStore, features:
 				permissions,
 				voice,
 				permissionsEnabled(cwd),
-				features.read(),
+				features.readHost(),
 			]);
 			return {
 				features: state.enabled,
 				todo: state.enabled.todo ? todoEntry : null,
 				voice: state.enabled.voice ? voiceEntry : null,
-				permissions: permissionEntry ? { entry: permissionEntry, enabled: state.enabled.permissions && enabled } : null,
+				permissions: { entry: permissionEntry, enabled: state.enabled.permissions && enabled },
 			};
 		},
 	};

@@ -1,4 +1,5 @@
 import type { ToolExecutionProgress } from "@ling/contracts/session-tool-progress";
+import type { PermissionSource } from "@ling/contracts/permissions";
 import type {
 	ApprovalRequest,
 	AutoRetryStatus,
@@ -57,6 +58,7 @@ export function emptySessionTranscriptState(epoch = 0): SessionTranscriptState {
 
 /** One record owns all state for a runtime view. Field selectors preserve narrow subscriptions. */
 export interface SessionView {
+	permissionSource: PermissionSource | null;
 	dismissedVoiceSettingsRequest: string | null;
 	dismissedMcpSettingsRequest: string | null;
 	messages: SessionMessage[];
@@ -74,6 +76,7 @@ export interface SessionView {
 
 export function emptySessionView(epoch = 0): SessionView {
 	return {
+		permissionSource: null,
 		dismissedVoiceSettingsRequest: null,
 		dismissedMcpSettingsRequest: null,
 		messages: [],
@@ -121,6 +124,7 @@ export const dismissedMcpSettingsRequestFamily = sessionField("dismissedMcpSetti
 export const dismissedVoiceSettingsRequestFamily = sessionField("dismissedVoiceSettingsRequest");
 export const sessionToolExecutionsFamily = sessionField("toolExecutions");
 export const sessionBusyFamily = sessionField("busy");
+export const sessionPermissionSourceFamily = sessionField("permissionSource");
 export const sessionSummarizationRetryFamily = sessionField("summarizationRetry");
 export const sessionAutoRetryFamily = sessionField("autoRetry");
 export const sessionQueueFamily = sessionField("queue");

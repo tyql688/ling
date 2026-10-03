@@ -1,5 +1,5 @@
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import type { ProjectTrustChoice } from "@ling/contracts/project";
+import { Input } from "@renderer/components/ui/input";
 import { Button } from "@renderer/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@renderer/components/ui/dialog";
 import { FeedbackNotice } from "@renderer/components/ui/feedback";
@@ -30,7 +30,7 @@ export function ProjectTrustDialog() {
 	const responseError = active !== null && failedRequestId === active.requestId;
 
 	const respond = useCallback(
-		async (choice: ProjectTrustChoice | null) => {
+		async (choice: string | null) => {
 			if (!active || responding) return;
 			setRespondingRequestId(active.requestId);
 			setFailedRequestId(null);
@@ -57,8 +57,14 @@ export function ProjectTrustDialog() {
 				<DialogContent size="compact">
 					<div className="flex flex-col gap-4">
 						<DialogHeader>
-							<DialogTitle>{t("project.trustTitle")}</DialogTitle>
-							<DialogDescription>{t("project.trustDescription")}</DialogDescription>
+							<DialogTitle>{active.prompt?.title ?? t("project.trustTitle")}</DialogTitle>
+							<DialogDescription>
+								{active.prompt?.kind === "confirm"
+									? active.prompt.message
+									: active.prompt
+										? t("project.trustExtensionPrompt")
+										: t("project.trustDescription")}
+							</DialogDescription>
 						</DialogHeader>
 						<p className="break-all rounded-control bg-surface-raised p-3 font-mono text-xs text-text-primary">
 							{tildify(active.cwd)}
@@ -68,17 +74,65 @@ export function ProjectTrustDialog() {
 								{t("project.trustResponseFailed")}
 							</FeedbackNotice>
 						)}
-						<div className="flex flex-col gap-2">
-							<Button disabled={responding} onClick={() => void respond("trust")}>
-								{t("project.trustAlways")}
-							</Button>
-							<Button disabled={responding} variant="outline" onClick={() => void respond("session")}>
-								{t("project.trustSession")}
-							</Button>
-							<Button disabled={responding} variant="outline" onClick={() => void respond("deny")}>
-								{t("project.trustDeny")}
-							</Button>
-						</div>
+						{active.prompt ? (
+							<div className="flex flex-col gap-2">
+								{active.prompt.kind === "select" &&
+									active.prompt.options.map((option) => (
+										<Button key={option} disabled={responding} onClick={() => void respond(option)}>
+											{option}
+										</Button>
+									))}
+								{active.prompt.kind === "input" && (
+									<form
+										key={active.requestId}
+										className="flex flex-col gap-2"
+										onSubmit={(event) => {
+											event.preventDefault();
+											const value = new FormData(event.currentTarget).get("answer");
+											if (typeof value === "string") void respond(value);
+										}}
+									>
+										<Input
+											name="answer"
+											aria-label={active.prompt.title}
+											placeholder={active.prompt.placeholder}
+											disabled={responding}
+											maxLength={65536}
+										/>
+										<Button type="submit" disabled={responding}>
+											{t("common.confirm")}
+										</Button>
+									</form>
+								)}
+								{active.prompt.kind === "confirm" && (
+									<>
+										<Button disabled={responding} onClick={() => void respond("yes")}>
+											{t("common.confirm")}
+										</Button>
+										<Button disabled={responding} variant="outline" onClick={() => void respond("no")}>
+											{t("common.cancel")}
+										</Button>
+									</>
+								)}
+								{active.prompt.kind === "notify" && (
+									<Button disabled={responding} onClick={() => void respond(null)}>
+										{t("common.close")}
+									</Button>
+								)}
+							</div>
+						) : (
+							<div className="flex flex-col gap-2">
+								<Button disabled={responding} onClick={() => void respond("trust")}>
+									{t("project.trustAlways")}
+								</Button>
+								<Button disabled={responding} variant="outline" onClick={() => void respond("session")}>
+									{t("project.trustSession")}
+								</Button>
+								<Button disabled={responding} variant="outline" onClick={() => void respond("deny")}>
+									{t("project.trustDeny")}
+								</Button>
+							</div>
+						)}
 					</div>
 				</DialogContent>
 			)}

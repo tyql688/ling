@@ -1,3 +1,4 @@
+import { createPiRuntimeInspection } from "./runtime-inspection";
 import type { PiResourceReloadMode } from "@ling/contracts/session";
 import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
 import type { SessionRef } from "@ling/contracts/session-ref";
@@ -204,6 +205,15 @@ export function createPiSessionRuntimeHandle(
 		emitTranscriptProjectionChanged,
 	});
 	const runtimeHandle = {
+		...createPiRuntimeInspection({
+			runtime: () => ownedRuntime,
+			operations: ownedOperations,
+			sessionActions: ownedSessionActions,
+			isBusy,
+			changed: emitSnapshotChanged,
+			importSession: (path) =>
+				ownedReplacement.replace("switch", null, () => ownedRuntime.importFromJsonl(path, ownedRuntime.cwd)),
+		}),
 		...createRuntimeCompanionServices({
 			session: () => ownedRuntime.session,
 			operations: ownedOperations,
@@ -248,6 +258,8 @@ export function createPiSessionRuntimeHandle(
 		refreshFromDisk,
 		async refreshSettings() {
 			const session = ownedRuntime.session;
+			session.agent.steeringMode = session.settingsManager.getSteeringMode();
+			session.agent.followUpMode = session.settingsManager.getFollowUpMode();
 			const mode = session.settingsManager.getCacheWarmingMode();
 			if (mode === appliedCacheWarmingMode) return;
 			// The SDK setter also cancels scheduled/in-flight warming when the mode changes.

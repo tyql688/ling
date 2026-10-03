@@ -19,23 +19,38 @@ import type { PiExtensionUiContext, PiInlineExtension, PiLoadExtensionsResult, P
 import { restoreToolFiltersOnShutdown } from "./pi-tool-filter-restore";
 import { supportsPiVoice } from "../voice/pi-voice-modules";
 import { createLogger } from "../../logger";
+import { isRecord } from "@ling/contracts/records";
+import { createLingError } from "../../ling-error";
 
 const log = createLogger("pi-adapters");
 
 const PERMISSION_BUNDLED_SOURCE = "ling:permission-system";
+const permissionSources = new WeakMap<PiLoadExtensionsResult["extensions"][number], "bundled" | "external">();
+
+function permissionUnavailable(message: string) {
+	return createLingError({ code: "PI_PERMISSION_UNAVAILABLE", category: "compatibility", retryable: false, message });
+}
+
+/** Identity is verified from package metadata while resolving each resource generation. */
+export function getPiPermissionSource(result: PiLoadExtensionsResult): "bundled" | "external" | "none" {
+	for (const extension of result.extensions) {
+		const source = permissionSources.get(extension);
+		if (source) return source;
+	}
+	return "none";
+}
 
 /**
  * Decides which bundled Pi packages join a project's extension inventory.
- * A package the user installed through Pi always wins over the bundled copy, and a project
- * without the permission system loads neither copy of it.
+ * A package the user installed through Pi always wins over the bundled copy. Ling
+ * may independently enable the bundled permission package.
  */
 export async function preparePiAdapters(options: {
 	cwd: string;
 	agentDir: string;
 	settingsManager: PiSettingsManager;
 	plan: PiAdapterPlan;
-	/** Control catalogs retain bundled paths without executing session-only packages. */
-	loadBundled?: boolean;
+	sessionRuntime: boolean;
 	openVoiceSettings?: (ui: PiExtensionUiContext) => void;
 	mcpUi?: McpUi;
 }) {
@@ -44,7 +59,7 @@ export async function preparePiAdapters(options: {
 		cwd: options.cwd,
 		agentDir: options.agentDir,
 		settingsManager,
-		builtinExtensions: ["codemode", "tool-search", ...(plan.features.mcp ? ["mcp"] : [])],
+		builtinExtensions: ["codemode", "tool-search", "mcp"],
 	}).resolve();
 	const trusted = settingsManager.isProjectTrusted();
 	const visible = inventory.extensions.filter((resource) => resource.metadata.scope !== "project" || trusted);
@@ -81,13 +96,15 @@ export async function preparePiAdapters(options: {
 	if (plan.todo && !installed(TODO_PACKAGE)) bundled.set(plan.todo, TODO_BUNDLED_SOURCE);
 	if (plan.voice && !visible.some((resource) => isPiVoiceSource(identityOf(resource))))
 		bundled.set(plan.voice, VOICE_BUNDLED_SOURCE);
-	if (plan.permissions?.enabled && !installed(PERMISSION_PACKAGE))
-		bundled.set(plan.permissions.entry, PERMISSION_BUNDLED_SOURCE);
+	if (plan.permissions?.enabled && !installed(PERMISSION_PACKAGE)) {
+		if (!plan.permissions.entry && options.sessionRuntime)
+			throw permissionUnavailable(
+				"The permission system is enabled but its package is unavailable. Repair or install the Pi permission package before opening this project.",
+			);
+		if (plan.permissions.entry) bundled.set(plan.permissions.entry, PERMISSION_BUNDLED_SOURCE);
+	}
 
-	// Control catalogs keep installed provider/resource contributions; activation gates session execution.
-	const suppressed =
-		options.loadBundled !== false && plan.permissions && !plan.permissions.enabled ? `npm:${PERMISSION_PACKAGE}` : null;
-	const resources = visible.filter((resource) => resource.enabled && identityOf(resource) !== suppressed);
+	const resources = visible.filter((resource) => resource.enabled);
 	const voicePaths = new Set<string>();
 	if (plan.features.voice && options.openVoiceSettings) {
 		const candidates = [
@@ -102,51 +119,37 @@ export async function preparePiAdapters(options: {
 			}
 		}
 	}
-	const factories: PiInlineExtension[] = [
-		{ name: "codemode", builtin: true, replaceable: true, factory: createCodemodeExtension() },
-		{ name: "tool-search", builtin: true, replaceable: true, factory: createToolSearchExtension() },
-	];
-	if (plan.features.mcp) {
-		factories.push({
-			name: "mcp",
-			builtin: true,
-			replaceable: true,
-			factory: async (pi) => {
-				let configuration: Awaited<ReturnType<typeof readPiMcpConfiguration>> | undefined;
-				// Pi awaits session-start listeners in registration order, including after replacement.
-				pi.on("session_start", async () => {
-					configuration = await readPiMcpConfiguration(
-						options.agentDir,
-						settingsManager.isProjectTrusted() ? options.cwd : null,
-					);
-				});
-				await createMcpExtension({
-					loadConfig: () => {
-						if (!configuration) throw new Error("MCP configuration has not loaded for this session.");
-						return configuration.loaded;
-					},
-				})(pi);
-			},
-		});
-	}
 	const revocable = new Set([
 		...resources.filter((resource) => identityOf(resource) === `npm:${PERMISSION_PACKAGE}`).map((r) => r.path),
-		...(plan.permissions ? [plan.permissions.entry] : []),
+		...(plan.permissions?.entry ? [plan.permissions.entry] : []),
 	]);
 	return {
-		factories,
-		paths: [
-			...new Set([
-				...resources
-					.filter((resource) => options.loadBundled !== false || resource.metadata.source !== "builtin")
-					.map((resource) => resource.path),
-				...(options.loadBundled === false ? [] : bundled.keys()),
-			]),
-		],
+		skillInventory: inventory.skills,
 		bundledPaths: new Set(bundled.keys()),
 		bundledEntries: new Map([...bundled].map(([path, source]) => [source, path])),
 		overrides(base: PiLoadExtensionsResult): PiLoadExtensionsResult {
 			for (const extension of base.extensions) {
+				if (identities.get(extension.path) === `npm:${PERMISSION_PACKAGE}`)
+					permissionSources.set(extension, "external");
+				else if (bundled.get(extension.path) === PERMISSION_BUNDLED_SOURCE) permissionSources.set(extension, "bundled");
+				if (permissionSources.has(extension)) {
+					const gates = extension.handlers.get("tool_call");
+					if (!gates?.length)
+						throw permissionUnavailable("The Pi permission package did not register a tool-call gate.");
+					extension.handlers.set(
+						"tool_call",
+						gates.map((gate) => (event, ctx) => {
+							// Host background commands use the permission package's complete Bash gate stack.
+							// The original event and every other extension retain the registered tool's identity.
+							return gate(
+								isRecord(event) && event.type === "tool_call" && event.toolName === "background_start"
+									? { ...event, toolName: "bash" }
+									: event,
+								ctx,
+							);
+						}),
+					);
+				}
 				if (extension.path === MCP_BUILTIN_SOURCE && options.mcpUi) adaptMcpExtension(extension, options.mcpUi);
 				if (revocable.has(extension.path)) restoreToolFiltersOnShutdown(extension, base.runtime);
 				if (voicePaths.has(extension.path) && options.openVoiceSettings) {
@@ -163,6 +166,10 @@ export async function preparePiAdapters(options: {
 					extension.handlers.delete("session_start");
 				}
 			}
+			if (options.sessionRuntime && plan.permissions?.enabled && getPiPermissionSource(base) === "none")
+				throw permissionUnavailable(
+					"The permission system is enabled but no active Pi permission extension was loaded. Enable or repair the Pi permission package before opening this project.",
+				);
 			return base;
 		},
 		decorate(base: PiLoadExtensionsResult) {
@@ -181,4 +188,39 @@ export async function preparePiAdapters(options: {
 			}
 		},
 	};
+}
+
+/** Native built-ins participate in Pi resource filtering and extension replacement. */
+export function createPiBuiltinExtensionFactories(options: {
+	cwd: string;
+	agentDir: string;
+	settingsManager: PiSettingsManager;
+}): PiInlineExtension[] {
+	const { settingsManager } = options;
+	const factories: PiInlineExtension[] = [
+		{ name: "codemode", builtin: true, replaceable: true, factory: createCodemodeExtension() },
+		{ name: "tool-search", builtin: true, replaceable: true, factory: createToolSearchExtension() },
+	];
+	factories.push({
+		name: "mcp",
+		builtin: true,
+		replaceable: true,
+		factory: async (pi) => {
+			let configuration: Awaited<ReturnType<typeof readPiMcpConfiguration>> | undefined;
+			// Pi awaits session-start listeners in registration order, including after replacement.
+			pi.on("session_start", async () => {
+				configuration = await readPiMcpConfiguration(
+					options.agentDir,
+					settingsManager.isProjectTrusted() ? options.cwd : null,
+				);
+			});
+			await createMcpExtension({
+				loadConfig: () => {
+					if (!configuration) throw new Error("MCP configuration has not loaded for this session.");
+					return configuration.loaded;
+				},
+			})(pi);
+		},
+	});
+	return factories;
 }

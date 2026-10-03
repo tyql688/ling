@@ -1,4 +1,13 @@
 import {
+	SESSION_TRANSFER_MAX_BYTES,
+	sessionInspectionQuerySchema,
+	sessionInspectionSchema,
+	sessionControlSchema,
+	sessionControlResultSchema,
+	sessionExportFormatSchema,
+	sessionExportResultSchema,
+} from "@ling/contracts/session-inspection";
+import {
 	type ExtensionAutocompleteSuggestions,
 	EXTENSION_UI_INPUT_MAX_CHARS,
 } from "@ling/contracts/session-extension-ui";
@@ -33,6 +42,39 @@ const dimension = z.number().int().positive().max(10_000);
 const imagesSchema = z.array(imageSchema).max(SESSION_IMAGE_MAX_ITEMS);
 const fileReferencesSchema = z.array(fileReferenceSchema).max(256);
 export const piRuntimeMethods = {
+	"runtime.importSession": runtimeMethod(
+		piMethod(
+			z.strictObject({ content: z.string().max(SESSION_TRANSFER_MAX_BYTES) }),
+			(value: unknown) => sessionControlResultSchema.parse(value),
+			command({ timeoutMs: LIFECYCLE_REQUEST_TIMEOUT_MS }),
+		),
+		["content"],
+		{ busy: true, acceptReplacement: true },
+	),
+	"runtime.inspectSession": runtimeMethod(
+		piMethod(sessionInspectionQuerySchema, (value: unknown) => sessionInspectionSchema.parse(value), runtimeQuery()),
+		["offset"],
+		{},
+	),
+	"runtime.controlSession": runtimeMethod(
+		piMethod(
+			z.strictObject({ action: sessionControlSchema }),
+			(value: unknown) => sessionControlResultSchema.parse(value),
+			command({ timeoutMs: LONG_REQUEST_TIMEOUT_MS }),
+		),
+		["action"],
+		{ busy: true },
+	),
+	"runtime.exportSession": runtimeMethod(
+		piMethod(
+			z.strictObject({ format: sessionExportFormatSchema }),
+			(value: unknown) => sessionExportResultSchema.parse(value),
+			runtimeQuery(),
+		),
+		["format"],
+		{},
+	),
+
 	"runtime.deliverReply": runtimeMethod(
 		piVoidMethod(
 			z.strictObject({ requestId: identifierSchema, text: textSchema }),

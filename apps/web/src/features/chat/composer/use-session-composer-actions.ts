@@ -52,6 +52,14 @@ export function useSessionComposerActions({
 }: SessionComposerActionOptions) {
 	const { t } = useTranslation();
 	const { pendingAction, beginAction, finishAction, invalidateActions } = core;
+	const currentOwner = useRef<string | null>(draftKey);
+	currentOwner.current = draftKey;
+	useEffect(() => {
+		currentOwner.current = draftKey;
+		return () => {
+			currentOwner.current = null;
+		};
+	}, [draftKey]);
 
 	// switching sessions invalidates an in-flight composer action.
 	useEffect(() => invalidateActions(), [draftKey, invalidateActions]);
@@ -90,7 +98,19 @@ export function useSessionComposerActions({
 		}
 	};
 
-	const runCommand = (command: SlashCommandDefinition, arg: string) => command.run(commands, arg);
+	const runCommand = async (command: SlashCommandDefinition, arg: string) => {
+		const revision = beginAction("send");
+		if (revision === null) return;
+		const submitted = snapshotDraft();
+		try {
+			await command.run(commands, arg);
+			if (currentOwner.current === draftKey && snapshotDraft().text === submitted.text) setText("");
+		} catch (cause) {
+			if (currentOwner.current === draftKey) onCommandError(formatRequestError(cause, t));
+		} finally {
+			finishAction(revision);
+		}
+	};
 
 	const submitIntent = (mode: SendMode) => {
 		const commandLine = text.match(SLASH_COMMAND_LINE);
@@ -103,8 +123,7 @@ export function useSessionComposerActions({
 				onCommandError(t("session.cmdNeedsArg", { name: command.name }));
 				return;
 			}
-			runCommand(command, arg);
-			setText("");
+			void runCommand(command, arg);
 			return;
 		}
 		core.requestSubmit(mode);

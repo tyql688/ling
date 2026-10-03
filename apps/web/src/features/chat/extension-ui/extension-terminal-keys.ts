@@ -14,6 +14,10 @@ const SPECIAL_KEY_DATA: Readonly<Record<string, string>> = {
 	ArrowDown: "\x1b[B",
 	ArrowRight: "\x1b[C",
 	ArrowLeft: "\x1b[D",
+	F1: "\x1bOP",
+	F2: "\x1bOQ",
+	F3: "\x1bOR",
+	F4: "\x1bOS",
 };
 
 /** Arrow keys → CSI final byte (composes `\x1b[A` etc.). */
@@ -32,6 +36,14 @@ const FUNCTION_KEY_CODE: Readonly<Record<string, string>> = {
 	PageDown: "6",
 	Home: "7",
 	End: "8",
+	F5: "15",
+	F6: "17",
+	F7: "18",
+	F8: "19",
+	F9: "20",
+	F10: "21",
+	F11: "23",
+	F12: "24",
 };
 
 /** Ctrl+symbol → C0 control character (e.g. Ctrl+[ = ESC). */
@@ -71,6 +83,7 @@ function modifiedArrowSequence(key: string, modifier: number): string | null {
 }
 
 function modifiedFunctionSequence(key: string, modifier: number): string | null {
+	if (/^F[1-4]$/.test(key)) return `\x1b[1;${modifier}${String.fromCharCode(79 + Number(key.slice(1)))}`;
 	const code = Object.hasOwn(FUNCTION_KEY_CODE, key) ? FUNCTION_KEY_CODE[key] : undefined;
 	return code ? `\x1b[${code};${modifier}~` : null;
 }
@@ -87,6 +100,7 @@ function modifiedFunctionSequence(key: string, modifier: number): string | null 
 export function isExtensionShortcutKey(event: ExtensionKeyboardEvent): boolean {
 	if (event.ctrlKey || event.altKey) return true;
 	if (event.key === "Escape") return true;
+	if (/^F(?:[1-9]|1[0-2])$/.test(event.key)) return true;
 	return event.shiftKey && event.key === "Tab";
 }
 
@@ -122,5 +136,6 @@ export function extensionKeyData(event: ExtensionKeyboardEvent): string | null {
 		if (modified) return modified;
 	}
 	const special = Object.hasOwn(SPECIAL_KEY_DATA, event.key) ? SPECIAL_KEY_DATA[event.key] : undefined;
-	return special ?? (event.key.length === 1 ? event.key : null);
+	const functionCode = Object.hasOwn(FUNCTION_KEY_CODE, event.key) ? FUNCTION_KEY_CODE[event.key] : undefined;
+	return special ?? (functionCode ? `\x1b[${functionCode}~` : event.key.length === 1 ? event.key : null);
 }

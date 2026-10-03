@@ -28,7 +28,7 @@ interface UsageWorker {
 }
 
 interface UsageHostClient {
-	getStats(rangeDays: UsageRangeDays, agentDir: string): Promise<UsageStatsSnapshot>;
+	getStats(rangeDays: UsageRangeDays, sessionDirectories: string[]): Promise<UsageStatsSnapshot>;
 	dispose(): Promise<void>;
 }
 
@@ -120,7 +120,7 @@ export function createUsageHostClient(): UsageHostClient {
 		return host;
 	};
 	return {
-		async getStats(rangeDays, agentDir) {
+		async getStats(rangeDays, sessionDirectories) {
 			const host = ensureHost();
 			clearIdleTimer();
 			const deadlineAt = Date.now() + USAGE_HOST_REQUEST_TIMEOUT_MS;
@@ -129,7 +129,7 @@ export function createUsageHostClient(): UsageHostClient {
 				protocolVersion: USAGE_HOST_PROTOCOL_VERSION,
 				method: "getStats",
 				rangeDays,
-				agentDir,
+				sessionDirectories,
 				deadlineAt,
 			});
 			try {

@@ -1,12 +1,18 @@
 import { ABSOLUTE_PATH_MAX_CHARS } from "@ling/contracts/path-bounds";
-import { usageRangeDaysSchema, type UsageRangeDays, type UsageStatsSnapshot } from "@ling/contracts/usage";
+import {
+	usageRangeDaysSchema,
+	USAGE_SESSION_DIRECTORY_LIMIT,
+	type UsageRangeDays,
+	type UsageStatsSnapshot,
+} from "@ling/contracts/usage";
 import { assertJsonFrameSize } from "@ling/core/json-frame";
 import { isAbsolute } from "node:path";
 import { z } from "zod";
 
-export const USAGE_HOST_PROTOCOL_VERSION = 2 as const;
+export const USAGE_HOST_PROTOCOL_VERSION = 3 as const;
 
-const USAGE_HOST_REQUEST_MAX_BYTES = 8 * 1024;
+/** Bound the directory inventory independently from the scan result and per-path limits. */
+const USAGE_HOST_REQUEST_MAX_BYTES = 1024 * 1024;
 export const USAGE_HOST_RESPONSE_MAX_BYTES = 16 * 1024 * 1024;
 const USAGE_MODEL_ID_MAX_CHARS = 4_096;
 const USAGE_MODEL_KEY_MAX_CHARS = 8_192;
@@ -16,10 +22,10 @@ const USAGE_MODEL_MAX_ITEMS = 10_000;
 
 export interface UsageHostRequest {
 	kind: "request";
-	protocolVersion: 2;
+	protocolVersion: typeof USAGE_HOST_PROTOCOL_VERSION;
 	method: "getStats";
 	rangeDays: UsageRangeDays;
-	agentDir: string;
+	sessionDirectories: string[];
 	deadlineAt: number;
 }
 
@@ -32,13 +38,13 @@ export interface UsageHostErrorDto {
 export type UsageHostResponse =
 	| {
 			kind: "result";
-			protocolVersion: 2;
+			protocolVersion: typeof USAGE_HOST_PROTOCOL_VERSION;
 			method: "getStats";
 			result: UsageStatsSnapshot;
 	  }
 	| {
 			kind: "error";
-			protocolVersion: 2;
+			protocolVersion: typeof USAGE_HOST_PROTOCOL_VERSION;
 			method: "getStats";
 			error: UsageHostErrorDto;
 	  };
@@ -48,11 +54,16 @@ const requestSchema: z.ZodType<UsageHostRequest> = z.strictObject({
 	protocolVersion: z.literal(USAGE_HOST_PROTOCOL_VERSION),
 	method: z.literal("getStats"),
 	rangeDays: usageRangeDaysSchema,
-	agentDir: z
-		.string()
+	sessionDirectories: z
+		.array(
+			z
+				.string()
+				.min(1)
+				.max(ABSOLUTE_PATH_MAX_CHARS)
+				.refine((value) => isAbsolute(value), "Usage session directory must be absolute"),
+		)
 		.min(1)
-		.max(ABSOLUTE_PATH_MAX_CHARS)
-		.refine((value) => isAbsolute(value), "Usage host agentDir must be absolute"),
+		.max(USAGE_SESSION_DIRECTORY_LIMIT),
 	deadlineAt: z.number().int().positive(),
 });
 

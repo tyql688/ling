@@ -1,5 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { DefaultPackageManager, DefaultResourceLoader, SettingsManager } from "@earendil-works/pi-coding-agent";
 import { expect, it, vi } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { createPiSettings } from "./settings";
@@ -181,5 +182,123 @@ it("updates and resets exact model budgets without erasing canonical settings or
 	} finally {
 		await owner.dispose();
 		await rm(agentDir, { recursive: true, force: true });
+	}
+});
+
+it("preserves raw project expressions and unknown fields while rejecting stale configuration writes", async () => {
+	const root = await temporaryDirectory("scoped-pi-settings");
+	const agentDir = join(root, "agent");
+	const cwd = join(root, "project");
+	await mkdir(agentDir);
+	await mkdir(join(cwd, ".pi"), { recursive: true });
+	const owner = createPiSettings(agentDir);
+	try {
+		await writeFile(
+			join(agentDir, "settings.json"),
+			JSON.stringify({
+				defaultTools: ["read", "bash"],
+				cacheWarming: "off",
+				compaction: { reserveTokens: 400000 },
+				providerExtension: { enabled: true },
+			}),
+		);
+		await writeFile(
+			join(cwd, ".pi", "settings.json"),
+			JSON.stringify({
+				defaultTools: ["+find", "-bash"],
+				compaction: { keepRecentTokens: 123456 },
+				providerExtension: { secretName: "fixture" },
+			}),
+		);
+		const initial = await owner.configuration.read(cwd, true);
+		expect(initial.configured.defaultTools).toEqual(["+find", "-bash"]);
+		expect(initial.resolved.defaultTools).toEqual(["read", "find"]);
+		expect(initial.resolved.compaction).toMatchObject({ reserveTokens: 400000, keepRecentTokens: 123456 });
+		const settings = { ...initial.configured, steeringMode: "all" };
+		await owner.configuration.write({ cwd, revision: initial.revision, settings }, true);
+		await expect(owner.configuration.write({ cwd, revision: initial.revision, settings: {} }, true)).rejects.toThrow(
+			"changed",
+		);
+		const current = await owner.configuration.read(cwd, true);
+		expect(current.configured.providerExtension).toEqual({ secretName: "fixture" });
+		const reset = { ...current.configured };
+		delete reset.defaultTools;
+		await owner.configuration.write({ cwd, revision: current.revision, settings: reset }, true);
+		expect((await owner.configuration.read(cwd, true)).resolved.defaultTools).toEqual(["read", "bash"]);
+		await expect(owner.configuration.write({ cwd, revision: current.revision, settings: {} }, false)).rejects.toThrow(
+			"Trust",
+		);
+		expect((await owner.configuration.read(cwd, false)).resolved.providerExtension).toEqual({ enabled: true });
+	} finally {
+		await owner.dispose();
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+it("edits only the MCP override and resolves Pi's ordered built-in filters", async () => {
+	const agentDir = await temporaryDirectory("pi-mcp-activation");
+	const owner = createPiSettings(agentDir);
+	const path = join(agentDir, "settings.json");
+	try {
+		await writeFile(
+			path,
+			JSON.stringify({ extensions: ["-builtin:*", "+builtin:mcp"], extensionOwned: { retained: true } }),
+		);
+		expect(await owner.mcpActivation.read()).toBe(true);
+		expect(await owner.mcpActivation.write(false, true)).toBe(true);
+		expect(await owner.mcpActivation.read()).toBe(false);
+		await expect(owner.mcpActivation.write(true, true)).rejects.toThrow("changed");
+		expect(JSON.parse(await readFile(path, "utf8"))).toEqual({
+			extensions: ["-builtin:*", "-builtin:mcp"],
+			extensionOwned: { retained: true },
+		});
+		expect(await owner.mcpActivation.write(false, false)).toBe(false);
+		expect(await owner.mcpActivation.write(true, false)).toBe(true);
+		expect(await owner.mcpActivation.read()).toBe(true);
+	} finally {
+		await owner.dispose();
+		await rm(agentDir, { recursive: true, force: true });
+	}
+});
+
+it("migrates skill names to canonical paths and preserves unmatched choices without repeated writes", async () => {
+	const root = await temporaryDirectory("pi-skill-migration");
+	const agentDir = join(root, "agent");
+	const cwd = join(root, "project");
+	const skill = join(agentDir, "skills", "probe", "SKILL.md");
+	const settingsPath = join(agentDir, "settings.json");
+	await mkdir(join(agentDir, "skills", "probe"), { recursive: true });
+	await mkdir(cwd);
+	await writeFile(skill, "---\nname: probe\ndescription: Migration fixture\n---\nFixture.");
+	await writeFile(settingsPath, JSON.stringify({ lingSkills: { disabled: ["probe", "missing"] }, custom: 7 }));
+	const settings = SettingsManager.create(cwd, agentDir, { projectTrusted: true });
+	const skills = createLingSkillResources();
+	const loader = new DefaultResourceLoader({ cwd, agentDir, settingsManager: settings, noExtensions: true });
+	try {
+		const prepare = async () =>
+			skills.createLingSkillToggles(
+				settings,
+				agentDir,
+				cwd,
+				(await new DefaultPackageManager({ cwd, agentDir, settingsManager: settings }).resolve()).skills,
+			);
+		const install = await prepare();
+		await loader.reload();
+		install(loader);
+		expect(loader.getSkills().skills.some((entry) => entry.name === "probe")).toBe(false);
+		expect(skills.readDiscoveredSkills(loader).skills.some((entry) => entry.filePath === skill)).toBe(true);
+		const saved = JSON.parse(await readFile(settingsPath, "utf8"));
+		expect(saved).toMatchObject({
+			skills: [`-${skill}`],
+			custom: 7,
+			lingSkills: { disabled: [], legacyDisabled: ["missing"] },
+		});
+		const compact = JSON.stringify(saved);
+		await writeFile(settingsPath, compact);
+		await prepare();
+		expect(await readFile(settingsPath, "utf8")).toBe(compact);
+	} finally {
+		loader.getExtensions().runtime.invalidate("Fixture complete");
+		await rm(root, { recursive: true, force: true });
 	}
 });

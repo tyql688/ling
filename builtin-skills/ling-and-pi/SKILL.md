@@ -19,11 +19,12 @@ Resolve the current project and the actual Pi agent directory before editing. `<
 
 | Concern | Location or Ling behavior |
 | --- | --- |
-| Global Pi settings | `<agent-dir>/settings.json`; Ling's Pi Settings controls edit this scope |
+| Global Pi settings | `<agent-dir>/settings.json`; Pi Settings → Global edits this scope |
 | Project Pi settings | `<project>/.pi/settings.json`; trusted project values override global values, including nested settings |
-| Project Pi Config panel | A read-only view of that project's settings; edit the file with normal file tools |
+| Project Pi Config panel | The same scoped configuration editor as Pi Settings; inspect configured, inherited and effective values, edit trusted projects or reset overrides |
 | MCP configuration | `ling_mcp` or Settings → MCP services; see the MCP reference for official global/project configuration |
 | Global instructions | `<agent-dir>/AGENTS.md`, `SYSTEM.md`, and `APPEND_SYSTEM.md`; Ling provides editors for these files |
+| Session Details | `/session` or the composer button: active tools, branch navigation and labels, system prompt, runtime extension flags, context/cache status and HTML/JSONL import/export |
 | Credentials and models | Pi's `auth.json` and `models.json` under `<agent-dir>`; use Ling's credential/model controls when available and never print secrets |
 | Session history | Pi files under `<agent-dir>/sessions`; locate the actual session rather than reconstructing its filename or editing a live log |
 | Ling app state | Separate app data; `LING_USER_DATA_DIR` moves it without moving Pi data or `~/.ling/skins` |
@@ -40,3 +41,5 @@ A different CLI executable or agent directory can explain different behavior. Up
 5. Verify the effective value or behavior in the affected project. Defaults and a session's current model/thinking selection are different states; changing a default need not change an existing conversation. Route missing skills or extension errors to their owning management skill.
 
 Report the file or control changed, its scope, and what confirms the result. If interface control is unavailable, complete the authorized file work and state the specific reload or live check still needed. Keep failures visible and redact credential values from diagnostic output.
+
+The Complete Pi Settings view exposes native keys and extension-owned fields. Keep unsaved edits during a conflict, refresh the authoritative configuration and review the merged draft before saving. `/compact` forwards custom instructions; `/reload` reports deferred or failed resource application. Model catalog refresh preserves explicit custom definitions. Use the complete model list when the scoped list does not contain the requested model.

@@ -2,7 +2,6 @@ import type { McpCommand, McpOverview } from "@ling/contracts/mcp";
 import { sessionKey, type SessionRef } from "@ling/contracts/session-ref";
 import { Button } from "@renderer/components/ui/button";
 import { SettingsRow, SettingsSection } from "@renderer/components/ui/settings-list";
-import { useBuiltinFeatures } from "@renderer/features/companions/builtin-feature-state";
 import { extensionUiSnapshotFamily, sessionBusyFamily } from "@renderer/features/sessions/state/session";
 import { useAppNavigation } from "@renderer/lib/app-navigation";
 import { useAppFeedback } from "@renderer/lib/feedback-context";
@@ -24,7 +23,6 @@ export function McpLiveSession({
 }) {
 	const { t } = useTranslation();
 	const api = useDomainApi("mcp");
-	const features = useBuiltinFeatures();
 	const navigation = useAppNavigation();
 	const feedback = useAppFeedback();
 	const snapshot = useAtomValue(extensionUiSnapshotFamily(sessionKey(sessionRef)));
@@ -32,7 +30,7 @@ export function McpLiveSession({
 	const [pending, setPending] = useState(false);
 	const running = useRef(false);
 	const status = snapshot?.state.mcpStatus;
-	const blocked = !snapshot || busy || pending || configuring || features.busy || !features.value?.enabled.mcp;
+	const blocked = !snapshot || busy || pending || configuring;
 	async function execute(command: McpCommand) {
 		if (!snapshot || blocked || running.current) return;
 		running.current = true;
@@ -47,8 +45,6 @@ export function McpLiveSession({
 			setPending(false);
 		}
 	}
-	if (!features.value?.enabled.mcp)
-		return <p className="text-xs leading-relaxed text-text-muted">{t("mcp.runtimeOff")}</p>;
 	return (
 		<SettingsSection title={t("mcp.live")} description={t("mcp.statusHint")}>
 			<div className="flex flex-col gap-3 px-5 py-4">

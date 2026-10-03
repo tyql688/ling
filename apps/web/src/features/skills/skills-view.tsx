@@ -367,7 +367,9 @@ export function SkillsView() {
 						onSelect={openDetail}
 						toggle={{
 							onToggle: (skill, enabled) =>
-								runPathMutation(() => hostSkillsApi.setSkillEnabled({ name: skill.name, enabled })),
+								runPathMutation(() =>
+									hostSkillsApi.setSkillEnabled({ name: skill.name, enabled, filePath: skill.filePath }),
+								),
 							busy: controlsBusy,
 						}}
 					/>

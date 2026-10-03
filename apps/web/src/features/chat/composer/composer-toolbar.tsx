@@ -31,7 +31,10 @@ import {
 } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import type { ModelPickerOption } from "@renderer/features/models/model-picker-options";
-import { AccessModeControl } from "@renderer/features/pi-adapters/permission-system/access-mode-control";
+import {
+	AccessModeControl,
+	SessionAccessModeControl,
+} from "@renderer/features/pi-adapters/permission-system/access-mode-control";
 import { TodoProgress } from "@renderer/features/pi-adapters/todo/todo-progress";
 import { BackgroundTasksProgress } from "@renderer/features/background-tasks/background-tasks-progress";
 import type { SessionRef } from "@ling/contracts/session-ref";
@@ -56,6 +59,7 @@ interface ComposerToolbarProps {
 	onAttachFiles: (files: FileList) => void;
 	usageOpen: boolean;
 	onOpenUsage: () => void;
+	onOpenInspector: () => void;
 	onModelSelect: (provider: string, modelId: string) => void;
 	onThinkingLevelChange: (level: ThinkingLevel) => void;
 	onFollowUpBehaviorChange: (behavior: FollowUpBehavior) => void;
@@ -75,7 +79,7 @@ export function ComposerFeatureControls({
 }) {
 	return (
 		<>
-			<AccessModeControl cwd={projectPath} />
+			{sessionRef ? <SessionAccessModeControl sessionRef={sessionRef} /> : <AccessModeControl cwd={projectPath} />}
 			{sessionRef && <McpSessionControl sessionRef={sessionRef} />}
 			{sessionRef && <TodoProgress sessionRef={sessionRef} />}
 			{sessionRef && <BackgroundTasksProgress sessionRef={sessionRef} />}
@@ -364,6 +368,7 @@ export function ComposerToolbar({
 	onAttachFiles,
 	usageOpen,
 	onOpenUsage,
+	onOpenInspector,
 	onModelSelect,
 	onThinkingLevelChange,
 	onFollowUpBehaviorChange,
@@ -450,6 +455,9 @@ export function ComposerToolbar({
 								: t("session.usageOpen")}
 						</TooltipContent>
 					</Tooltip>
+					<Button size="sm" variant="ghost" onClick={onOpenInspector}>
+						{t("sessionInspector.title")}
+					</Button>
 					<PrimaryAction
 						busy={busy}
 						queuedEdit={queuedEdit}

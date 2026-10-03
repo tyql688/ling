@@ -1,3 +1,4 @@
+import type { ProjectTrustPrompt } from "./project-trust-ui";
 import type { z } from "zod";
 import type { DatasetStoreStatus } from "./dataset-status";
 import type { PiDiagnostic } from "./pi-diagnostic";
@@ -207,6 +208,7 @@ export type ProjectRemovalOutcome =
 export interface ProjectTrustRequest {
 	requestId: string;
 	cwd: string;
+	prompt?: ProjectTrustPrompt;
 }
 
 export type ProjectTrustChoice = "trust" | "session" | "deny";

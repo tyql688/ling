@@ -1,3 +1,14 @@
+import { z } from "zod";
+import {
+	SESSION_TRANSFER_MAX_BYTES,
+	sessionInspectionBindingSchema,
+	sessionInspectionQuerySchema,
+	sessionControlSchema,
+	type sessionControlResultSchema,
+	sessionExportFormatSchema,
+	type sessionExportResultSchema,
+	type SessionInspection,
+} from "./session-inspection";
 import { argumentsOf, event, noArguments, request, returns } from "./procedure";
 import type { SessionRef } from "./session-ref";
 import { sessionRefSchema } from "./session-ref";
@@ -71,7 +82,33 @@ export function createSessionProcedures(paths: ProcedurePaths = portableProcedur
 		sessionRefSchema: nativeRef,
 		viewedSessionRefSchema,
 	};
+	const inspectionRead = sessionInspectionBindingSchema.extend(sessionInspectionQuerySchema.shape);
+	const inspectionControl = sessionInspectionBindingSchema.extend({ action: sessionControlSchema });
+	const inspectionImport = sessionInspectionBindingSchema.extend({
+		content: z.string().max(SESSION_TRANSFER_MAX_BYTES),
+	});
+	const inspectionExport = sessionInspectionBindingSchema.extend({ format: sessionExportFormatSchema });
 	return {
+		import: request(
+			"session:import",
+			argumentsOf((args) => [inspectionImport.parse(args[0])] as const),
+			returns<z.infer<typeof sessionControlResultSchema>>(),
+		),
+		inspect: request(
+			"session:inspect",
+			argumentsOf((args) => [inspectionRead.parse(args[0])] as const),
+			returns<SessionInspection>(),
+		),
+		control: request(
+			"session:control",
+			argumentsOf((args) => [inspectionControl.parse(args[0])] as const),
+			returns<z.infer<typeof sessionControlResultSchema>>(),
+		),
+		export: request(
+			"session:export",
+			argumentsOf((args) => [inspectionExport.parse(args[0])] as const),
+			returns<z.infer<typeof sessionExportResultSchema>>(),
+		),
 		create: request(
 			"session:create",
 			argumentsOf<[request: CreateSessionRequest]>((args) => [schemas.createSessionRequestSchema.parse(args[0])]),

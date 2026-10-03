@@ -80,7 +80,6 @@ export function createPiModels({
 	const { removeProjectProviderAuthMutation, removeProviderAuthMutation, setProviderApiKeyMutation } = credentials;
 	const {
 		addCustomModelMutation,
-		adoptCatalogModelsMutation,
 		addCustomProviderMutation,
 		removeCustomModelMutation,
 		removeCustomProviderMutation,
@@ -466,17 +465,12 @@ export function createPiModels({
 				force: true,
 				signal: controller.signal,
 			});
-			const adoption =
-				result.aborted || controller.signal.aborted
-					? { adoptedModels: [], backupPath: null, errors: [] }
-					: await adoptCatalogModelsMutation(new Set(result.errors.keys()), controller.signal);
 			return {
 				aborted: result.aborted || controller.signal.aborted,
 				timedOut,
-				...adoption,
-				errors: [...result.errors]
-					.map(([provider, error]) => ({ provider, message: error.message }))
-					.concat(adoption.errors),
+				adoptedModels: [],
+				backupPath: null,
+				errors: [...result.errors].map(([provider, error]) => ({ provider, message: error.message })),
 			};
 		});
 		const settlement = operation.then(

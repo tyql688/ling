@@ -1,7 +1,7 @@
 import { requestCancelled } from "@ling/core/ling-error";
 import { createLogger } from "@ling/core/logger";
 import { createReadStream, type Dirent } from "node:fs";
-import { opendir, stat } from "node:fs/promises";
+import { opendir, realpath, stat } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { createInterface } from "node:readline";
 import { parsePiSessionEntryTimestamp } from "@ling/core/transcript/session-entry-identity";
@@ -161,19 +161,31 @@ const MAX_USAGE_SCAN_DIRECTORIES = 50_000;
 /** Visited directory and retained file paths share an aggregate character budget (roughly 16 MiB UTF-16). */
 const MAX_USAGE_SCAN_PATH_CHARS = 8 * 1024 * 1024;
 
-async function collectJsonlFiles(
-	dir: string,
-	signal: AbortSignal,
-	collection: CollectedUsageFiles = { files: [], directoryCount: 0, pathChars: 0, truncated: false },
-): Promise<CollectedUsageFiles> {
+async function collectJsonlFiles(directories: readonly string[], signal: AbortSignal): Promise<CollectedUsageFiles> {
 	signal.throwIfAborted();
-	if (collection.truncated) return collection;
-	if (collection.pathChars + dir.length > MAX_USAGE_SCAN_PATH_CHARS) {
-		collection.truncated = true;
-		return collection;
+	const collection: CollectedUsageFiles = { files: [], directoryCount: 0, pathChars: 0, truncated: false };
+	const pendingDirectories: string[] = [];
+	const queued = new Set<string>();
+	function enqueue(path: string): void {
+		if (queued.has(path) || collection.truncated) return;
+		if (queued.size >= MAX_USAGE_SCAN_DIRECTORIES || collection.pathChars + path.length > MAX_USAGE_SCAN_PATH_CHARS) {
+			collection.truncated = true;
+			return;
+		}
+		queued.add(path);
+		collection.pathChars += path.length;
+		pendingDirectories.push(path);
 	}
-	collection.pathChars += dir.length;
-	const pendingDirectories = [dir];
+	for (const directory of directories) {
+		signal.throwIfAborted();
+		try {
+			enqueue(await realpath(directory));
+		} catch (error) {
+			// A configured directory can legitimately be absent before the first saved conversation.
+			if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+		}
+		if (collection.truncated) break;
+	}
 	while (pendingDirectories.length > 0 && !collection.truncated) {
 		signal.throwIfAborted();
 		if (collection.directoryCount >= MAX_USAGE_SCAN_DIRECTORIES) {
@@ -200,15 +212,7 @@ async function collectJsonlFiles(
 			}
 			const full = join(currentDirectory, entry.name);
 			if (entry.isDirectory()) {
-				if (
-					collection.directoryCount + pendingDirectories.length >= MAX_USAGE_SCAN_DIRECTORIES ||
-					collection.pathChars + full.length > MAX_USAGE_SCAN_PATH_CHARS
-				) {
-					collection.truncated = true;
-					break;
-				}
-				collection.pathChars += full.length;
-				pendingDirectories.push(full);
+				enqueue(full);
 			} else if (entry.isFile() && extname(entry.name) === ".jsonl") {
 				if (collection.pathChars + full.length > MAX_USAGE_SCAN_PATH_CHARS) {
 					collection.truncated = true;
@@ -223,7 +227,6 @@ async function collectJsonlFiles(
 }
 
 interface CachedUsageFile {
-	sessionsDir: string;
 	fingerprint: string;
 	cutoffMs: number;
 	records: UsageRecord[];
@@ -292,7 +295,7 @@ function cachedRecordsWeight(records: UsageRecord[]): number {
 }
 
 export interface UsageScanner {
-	scanFiles(sessionsDir: string, cutoffMs: number): Promise<UsageFileScanResult>;
+	scanFiles(sessionDirectories: readonly string[], cutoffMs: number): Promise<UsageFileScanResult>;
 	/** Stops admission, cancels reads and waits for file descriptors before releasing cached records. */
 	dispose(): Promise<void>;
 }
@@ -389,16 +392,12 @@ export function createUsageScanner(): UsageScanner {
 		return { records, weightBytes: recordsWeight };
 	}
 
-	async function loadFileRecords(filePath: string, sessionsDir: string, cutoffMs: number): Promise<UsageFileRecords> {
+	async function loadFileRecords(filePath: string, cutoffMs: number): Promise<UsageFileRecords> {
 		signal.throwIfAborted();
 		const fingerprintBefore = await fileFingerprint(filePath);
 		signal.throwIfAborted();
 		const cached = usageFileCache.get(filePath);
-		if (
-			cached?.sessionsDir === sessionsDir &&
-			cached.fingerprint === fingerprintBefore &&
-			cached.cutoffMs <= cutoffMs
-		) {
+		if (cached !== undefined && cached.fingerprint === fingerprintBefore && cached.cutoffMs <= cutoffMs) {
 			const records =
 				cached.cutoffMs === cutoffMs
 					? cached.records
@@ -417,7 +416,7 @@ export function createUsageScanner(): UsageScanner {
 			signal.throwIfAborted();
 			if (usageFileScans.get(filePath) === scanToken) {
 				if (fingerprintAfter === fingerprintBefore) {
-					setCachedUsageFile(filePath, { sessionsDir, fingerprint: fingerprintAfter, cutoffMs, records });
+					setCachedUsageFile(filePath, { fingerprint: fingerprintAfter, cutoffMs, records });
 				} else {
 					// The writer changed the file while the stream was open. Use the safe partial
 					// result for this request, but invalidate only the cache version this scan saw;
@@ -436,13 +435,16 @@ export function createUsageScanner(): UsageScanner {
 		}
 	}
 
-	async function loadUsageFileRecords(sessionsDir: string, cutoffMs: number): Promise<UsageFileScanResult> {
-		const collection = await collectJsonlFiles(sessionsDir, signal);
+	async function loadUsageFileRecords(
+		sessionDirectories: readonly string[],
+		cutoffMs: number,
+	): Promise<UsageFileScanResult> {
+		const collection = await collectJsonlFiles(sessionDirectories, signal);
 		signal.throwIfAborted();
 		const files = collection.files;
 		const liveFiles = new Set(files);
 		for (const [filePath, cached] of usageFileCache) {
-			if (cached.sessionsDir !== sessionsDir || !liveFiles.has(filePath)) deleteCachedUsageFile(filePath, cached);
+			if (!liveFiles.has(filePath)) deleteCachedUsageFile(filePath, cached);
 		}
 
 		const loaded: UsageFileRecords[] = [];
@@ -451,7 +453,7 @@ export function createUsageScanner(): UsageScanner {
 		let loadedWeightBytes = 0;
 		for (const [index, filePath] of files.entries()) {
 			try {
-				const file = await loadFileRecords(filePath, sessionsDir, cutoffMs);
+				const file = await loadFileRecords(filePath, cutoffMs);
 				if (
 					loadedRecordCount + file.records.length > MAX_USAGE_SCAN_RECORDS ||
 					loadedWeightBytes + file.weightBytes > MAX_USAGE_SCAN_WEIGHT_BYTES
@@ -475,12 +477,12 @@ export function createUsageScanner(): UsageScanner {
 		return { files: loaded, skippedFileCount };
 	}
 
-	function scanFiles(sessionsDir: string, cutoffMs: number): Promise<UsageFileScanResult> {
+	function scanFiles(sessionDirectories: readonly string[], cutoffMs: number): Promise<UsageFileScanResult> {
 		if (signal.aborted) return Promise.reject(signal.reason);
-		const key = `${sessionsDir}\0${cutoffMs}`;
+		const key = JSON.stringify([[...new Set(sessionDirectories)].sort(), cutoffMs]);
 		const existing = usageScansInFlight.get(key);
 		if (existing) return existing;
-		const scan = loadUsageFileRecords(sessionsDir, cutoffMs).finally(() => {
+		const scan = loadUsageFileRecords(sessionDirectories, cutoffMs).finally(() => {
 			if (usageScansInFlight.get(key) === scan) usageScansInFlight.delete(key);
 		});
 		usageScansInFlight.set(key, scan);

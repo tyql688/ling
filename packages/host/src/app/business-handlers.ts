@@ -109,7 +109,6 @@ export async function createHostBusinessDomains(options: HostBusinessHandlersOpt
 			createMcpDomain({
 				settings: options.mcpSettings,
 				assertProject: options.assertProject,
-				features: options.features,
 				runCommand: options.sessions.manager.commands.runMcpCommand,
 				claimSession: options.clients.claimSession,
 			}),
@@ -158,7 +157,7 @@ export async function createHostBusinessDomains(options: HostBusinessHandlersOpt
 			createAppSettingsDomain({ settingsStore: settings, onChanged: options.shellActivity.refreshPreferences }),
 		);
 		domains.add("Pi settings", "handlers", () => createPiSettingsDomain({ piWorker, resources, events }));
-		domains.add("global instructions", "handlers", () => createGlobalInstructionsDomain({ piWorker }));
+		domains.add("global instructions", "handlers", () => createGlobalInstructionsDomain({ piWorker, resources }));
 		domains.add("models", "handlers", () => createModelDomain({ piWorker, resources, projectOperations, events }));
 		const terminals = domains.add("terminal host", "workers", () =>
 			createTerminalDomain({ projectOperations, events, projectsRestored, settings }),
@@ -171,7 +170,13 @@ export async function createHostBusinessDomains(options: HostBusinessHandlersOpt
 				isTrusted: async (cwd) => (await piWorker.projectPiConfig(cwd)).trusted,
 			}),
 		);
-		domains.add("usage host", "workers", () => createUsageDomain({ piWorker }));
+		domains.add("usage host", "workers", () =>
+			createUsageDomain({
+				piWorker,
+				retainedSessionFiles: async () =>
+					(await options.sessions.catalog.snapshot()).map((entry) => entry.sessionFilePath),
+			}),
+		);
 		const closeProjectTerminals = async ({ cwd }: { cwd: string }) => {
 			const results = await Promise.allSettled([terminals.closeProject(cwd), editor.closeProject(cwd)]);
 			const failures = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []));

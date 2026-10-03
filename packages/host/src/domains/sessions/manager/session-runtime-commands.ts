@@ -1,3 +1,4 @@
+import type { SessionInspectionBinding, SessionControl } from "@ling/contracts/session-inspection";
 import type {
 	ExtensionUiEditorTextRequest,
 	ApplyExtensionAutocompleteRequest,
@@ -115,6 +116,7 @@ function projectSessionSnapshot(
 		summarizationRetry: interaction.summarizationRetry,
 		autoRetry: interaction.autoRetry,
 		diagnostics: snapshot.diagnostics,
+		...(snapshot.permissionSource ? { permissionSource: snapshot.permissionSource } : {}),
 		queue: interaction.queue.project(snapshot.queue),
 	};
 }
@@ -601,6 +603,25 @@ export function createSessionRuntimeCommands({
 		editQueuedMessage,
 		promoteQueuedMessage,
 		abortSession,
+		inspectSession(request: SessionInspectionBinding & { offset: number }) {
+			return requireRuntimeRequestInteraction(request).session.inspectSession(request.offset);
+		},
+		async controlSession(
+			request: SessionInspectionBinding & {
+				action: SessionControl;
+			},
+		) {
+			const interaction = requireRuntimeRequestInteraction(request);
+			const result = await interaction.session.controlSession(request.action);
+			void interaction.fileSync.acceptCurrentState();
+			return result;
+		},
+		importSession(request: SessionInspectionBinding & { content: string }) {
+			return requireRuntimeRequestInteraction(request).session.importSession(request.content);
+		},
+		exportSession(request: SessionInspectionBinding & { format: "html" | "jsonl" }) {
+			return requireRuntimeRequestInteraction(request).session.exportSession(request.format);
+		},
 		getModelState,
 		setSessionModel,
 		setSessionThinkingLevel,

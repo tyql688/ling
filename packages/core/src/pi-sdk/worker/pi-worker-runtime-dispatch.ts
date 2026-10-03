@@ -13,6 +13,10 @@ interface PiWorkerRuntimeDispatchOptions {
 }
 type RuntimeCallMethod = Exclude<keyof typeof piRuntimeMethods, "runtime.getSnapshot" | "runtime.getStateSnapshot">;
 const handlers: PiMethodHandlers<Pick<typeof piRuntimeMethods, RuntimeCallMethod>, PiWorkerRuntimeDispatchOptions> = {
+	"runtime.importSession": (args, { runtime }) => runtime.importSession(args.content),
+	"runtime.inspectSession": (args, { runtime }) => runtime.inspectSession(args.offset),
+	"runtime.controlSession": (args, { runtime }) => runtime.controlSession(args.action),
+	"runtime.exportSession": (args, { runtime }) => runtime.exportSession(args.format),
 	"runtime.deliverReply": async (args, { runtime }) => {
 		await runtime.deliverReply(args.requestId, args.text);
 		return null;

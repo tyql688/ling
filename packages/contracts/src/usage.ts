@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Bound the combined inventory of configured project directories and retained session locations. */
+export const USAGE_SESSION_DIRECTORY_LIMIT = 10_000;
+
 /** Available report windows: two short-term views, a month, a quarter, or the complete history. */
 export const usageRangeDaysSchema = z.union([
 	z.literal(7),

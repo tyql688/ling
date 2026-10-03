@@ -1,4 +1,5 @@
 export interface ModelPickerOption {
+	inScope?: boolean;
 	provider: string;
 	providerName: string;
 	id: string;

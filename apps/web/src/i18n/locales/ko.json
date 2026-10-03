@@ -288,7 +288,8 @@
 		"nestedArgumentsOmitted": "인수 생략 ({{count}}바이트)",
 		"nestedIncomplete": "일부 호출이나 인수가 생략되었거나 결과 기록 시 실행 중이었습니다.",
 		"routedModel": "→ {{model}}",
-		"downloadImage": "이미지 다운로드"
+		"downloadImage": "이미지 다운로드",
+		"cmdReloadDesc": "Pi 리소스 다시 불러오기"
 	},
 	"explorer": {
 		"title": "파일",
@@ -574,7 +575,8 @@
 		"hostPathEmpty": "표시할 하위 폴더가 없습니다.",
 		"hostPathUnavailable": "탐색 불가",
 		"hostPathTruncated": "항목이 많아 일부가 표시되지 않습니다. 경로를 입력하여 원하는 폴더로 이동할 수 있습니다.",
-		"hostPathSelect": "이 폴더 선택"
+		"hostPathSelect": "이 폴더 선택",
+		"trustExtensionPrompt": "전역 Pi 확장이 프로젝트 리소스를 불러오기 전에 입력을 요청합니다."
 	},
 	"projectPiConfig": {
 		"title": "프로젝트 Pi 설정",
@@ -629,7 +631,9 @@
 		"searchProviders": "제공업체 이름 또는 ID 검색",
 		"clearSearch": "검색 지우기",
 		"noMatchingProviders": "일치하는 제공업체가 없습니다.",
-		"providerCount": "제공업체 {{count}}개"
+		"providerCount": "제공업체 {{count}}개",
+		"scopedModels": "범위 내 모델",
+		"allModels": "모든 모델"
 	},
 	"plugins": {
 		"title": "플러그인",
@@ -838,8 +842,6 @@
 		"configurationMaxTokens": "최대 출력",
 		"configurationSamplingParams": "샘플링 매개변수",
 		"configurationCompat": "요청 호환성",
-		"catalogModelsAdopted": "사용자 지정 모델 {{count}}개를 공식 설정으로 업데이트했습니다",
-		"catalogModelsBackup": "이전 설정 백업 위치: {{path}}",
 		"configured": "설정됨"
 	},
 	"settings": {
@@ -968,7 +970,7 @@
 		"globalInstructionsStatusPresent": "파일 있음",
 		"globalInstructionsReveal": "파일 열기",
 		"globalInstructionsSaved": "저장됨 · 다음 세션부터 적용",
-		"globalInstructionsReloadHint": "다음 세션부터 적용됩니다. 진행 중인 세션에는 /reload로 반영할 수 있습니다.",
+		"globalInstructionsReloadHint": "저장하면 Pi 리소스를 다시 불러옵니다. 실행 중인 세션에는 현재 작업이 끝난 후 적용됩니다.",
 		"piDefaults": "기본값",
 		"defaultModel": "기본 모델",
 		"defaultThinking": "기본 추론 수준",
@@ -1121,7 +1123,7 @@
 		"requestLabel": "Pi 확장 요청",
 		"pendingCount": "대기 중 {{count}}개",
 		"expiresIn": "{{count}}초 남음",
-		"closeEnvironment": "Pi 확장 화면 닫기",
+		"sendEscape": "확장에 Esc 보내기",
 		"dockTitle": "확장 패널",
 		"dockDescription": "이 세션의 확장 상태와 활동",
 		"dockEmpty": "아직 확장 활동이 없습니다",
@@ -1147,7 +1149,8 @@
 		"sessionChanged": "세션이 변경되었습니다. 작업을 다시 시도하세요.",
 		"historyChanged": "대화 기록이 변경되었습니다. 다시 불러오세요.",
 		"packageHostLost": "패키지 프로세스가 중지되었습니다. 프로젝트 리소스를 새로고침한 뒤 다시 시도하세요.",
-		"hostDirectoryUnavailable": "이 폴더를 읽을 수 없습니다. 경로와 접근 권한을 확인하세요."
+		"hostDirectoryUnavailable": "이 폴더를 읽을 수 없습니다. 경로와 접근 권한을 확인하세요.",
+		"piPermissionUnavailable": "Pi 권한 플러그인을 불러오지 못했습니다. 플러그인을 복구하거나 활성화한 후 이 대화를 다시 여세요."
 	},
 	"markdown": {
 		"clipboardUnavailable": "클립보드에 접근할 수 없습니다",
@@ -1520,7 +1523,13 @@
 		"retry": "다시 시도",
 		"moreActions": "추가 작업",
 		"cancel": "취소",
-		"loading": "불러오는 중…"
+		"loading": "불러오는 중…",
+		"edit": "편집",
+		"save": "저장",
+		"confirm": "확인",
+		"close": "닫기",
+		"previousPage": "이전 페이지",
+		"nextPage": "다음 페이지"
 	},
 	"reading": {
 		"region": "읽기 영역",
@@ -1670,7 +1679,7 @@
 	},
 	"permissions": {
 		"title": "권한 설정",
-		"description": "전역 기본값과 프로젝트별 설정을 관리합니다.",
+		"description": "Ling 내장 권한 확장을 불러올 프로젝트를 선택합니다. 설치된 Pi 권한 패키지는 자체 활성화 설정과 규칙을 유지합니다.",
 		"accessMode": "접근 권한",
 		"choice": {
 			"full": "전체 접근",
@@ -1696,10 +1705,12 @@
 		"opening": "여는 중…",
 		"rulesDescription": "기본 앱으로 엽니다. 파일이 없으면 빈 설정을 만듭니다.",
 		"rulesDesktopOnly": "규칙 파일은 Ling 데스크톱 앱에서 열 수 있습니다.",
-		"applying": "권한 설정 적용 중…",
+		"applying": "접근 모드 적용 중…",
 		"precedence": "프로젝트 설정이 우선합니다. 진행 중인 턴은 종료 후 적용됩니다.",
 		"fullAccessNote": "전체 접근: 거부 규칙을 포함한 권한 검사를 중지합니다. 규칙 파일은 유지됩니다.",
-		"approvalNote": "승인: 전역 및 프로젝트 규칙에 따라 필요한 경우에만 확인합니다."
+		"approvalNote": "승인: 전역 및 프로젝트 규칙에 따라 필요한 경우에만 확인합니다.",
+		"external": "Pi 권한 확장",
+		"externalDescription": "설치된 Pi 권한 확장이 이 세션을 관리합니다. 확장 설정에서 활성화 상태를 관리하세요."
 	},
 	"questions": {
 		"title": "질문",
@@ -2058,5 +2069,80 @@
 		"invalidOAuthMetadataUrl": "완전한 HTTPS 메타데이터 URL 또는 localhost, 127.0.0.1, [::1]의 HTTP URL을 입력하세요.",
 		"addRadius": "Radius 추가",
 		"radiusHint": "설정 → 모델에서 Radius에 로그인하세요. 이 MCP 서비스는 해당 로그인 정보를 사용합니다."
+	},
+	"piConfiguration": {
+		"title": "Pi 설정",
+		"description": "설정 원본, 상속 관계, Pi가 해석한 값을 확인합니다. 변경은 선택한 범위에 적용됩니다.",
+		"search": "설정 검색",
+		"editJson": "JSON 편집",
+		"jsonHint": "JSON 값을 입력하세요. 새로 고쳐도 초안은 유지되므로 저장 전에 다른 변경 사항을 검토할 수 있습니다.",
+		"applying": "적용 중…",
+		"inherit": "상속 복원",
+		"source_default": "Pi 기본값",
+		"source_global": "전역",
+		"source_project": "프로젝트",
+		"terminal": "터미널 전용",
+		"globalOnly": "전역 전용",
+		"automatic": "자동",
+		"stored": "설정 원본",
+		"common": "기본",
+		"complete": "모든 설정",
+		"conflict": "설정이 변경되었습니다. 새로 고친 후 현재 설정을 초안에 병합하고 검토한 다음 저장하세요.",
+		"mergeDraft": "현재 설정을 초안에 병합"
+	},
+	"sessionInspector": {
+		"title": "세션 상세",
+		"description": "현재 Pi 세션을 확인하고 조정합니다.",
+		"overview": "개요",
+		"tools": "도구",
+		"tree": "분기",
+		"prompt": "시스템 프롬프트",
+		"flags": "확장 매개변수",
+		"cancelled": "확장이 작업을 취소했습니다.",
+		"restoreText": "초안에 추가",
+		"state": "상태",
+		"busy": "실행 중",
+		"idle": "대기 중",
+		"context": "컨텍스트",
+		"unknown": "알 수 없음",
+		"cache": "캐시 준비",
+		"cache_inactive": "비활성",
+		"cache_scheduled": "예약됨",
+		"cache_refreshing": "새로 고치는 중",
+		"warmCost": "갱신 비용",
+		"savings": "예상 절감액",
+		"extensionOverride": "확장이 이 결정을 조정했습니다.",
+		"exportHtml": "HTML 내보내기",
+		"exportJsonl": "JSONL 내보내기",
+		"toolsHint": "현재 세션에서 사용할 도구를 선택합니다. 전역 기본값과 확장의 도구 노출 규칙은 별도로 적용됩니다.",
+		"treeHint": "분기 항목을 선택해 대화를 이어갑니다. 모든 분기는 세션에 유지됩니다.",
+		"label": "분기 이름",
+		"summarize": "전환 전에 현재 분기 요약",
+		"instructions": "추가 요약 지침 (선택)",
+		"navigate": "여기서 계속",
+		"truncated": "프롬프트가 미리 보기 한도를 초과했습니다.",
+		"flagsHint": "매개변수는 현재 세션에 적용되며 리소스를 새로 불러와도 유지됩니다.",
+		"noFlags": "확장 매개변수가 없습니다.",
+		"importJsonl": "JSONL 가져오기",
+		"importLimit": "세션 파일은 8 MiB 이하여야 합니다.",
+		"currentBranch": "현재 분기",
+		"entries": {
+			"user": "사용자",
+			"assistant": "어시스턴트",
+			"toolResult": "도구 결과",
+			"system": "시스템 프롬프트",
+			"message": "메시지",
+			"custom_message": "확장 메시지",
+			"custom": "확장 이벤트",
+			"model_change": "모델 선택",
+			"thinking_level_change": "사고 수준",
+			"compaction": "컨텍스트 압축",
+			"branch_summary": "분기 요약",
+			"label": "레이블",
+			"session_info": "세션 정보",
+			"tools": "도구 선택",
+			"toolCall": "도구 호출"
+		},
+		"searchTools": "도구 검색"
 	}
 }

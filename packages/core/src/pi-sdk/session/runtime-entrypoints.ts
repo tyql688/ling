@@ -17,6 +17,7 @@ import type { PiAgentSessionRuntime } from "../types";
 import { createPiSessionRuntimeHandle, type PiSessionRuntimeHandle } from "./runtime";
 import { readSessionFileSchemaVersion, sessionSchemaSkewDiagnostic } from "./session-schema";
 import { recordManualForkOrigin } from "./session-origin";
+import { piSessionDirectory } from "./session-storage";
 
 const log = createLogger("pi-runtime-entrypoints");
 
@@ -94,7 +95,7 @@ export function createPiSessionRuntimes({
 		} = {},
 	): Promise<PiSessionRuntimeHandle> {
 		const canonicalCwd = getOpenProjectCwd(cwd);
-		const sessionManager = SessionManager.create(canonicalCwd);
+		const sessionManager = SessionManager.create(canonicalCwd, await piSessionDirectory(canonicalCwd));
 		const ref = {
 			cwd: canonicalCwd,
 			sessionId: sessionManager.getSessionId(),

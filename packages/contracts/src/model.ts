@@ -401,9 +401,9 @@ export interface ModelCatalogRefreshResult {
 	aborted: boolean;
 	timedOut: boolean;
 	errors: { provider: string; message: string }[];
-	/** Custom definitions replaced by matching entries from the official catalog. */
+	/** Protocol 5 compatibility field; catalog refresh returns an empty list. */
 	adoptedModels: { provider: string; modelId: string }[];
-	/** Snapshot before the latest adoption; null when no definitions changed. */
+	/** Protocol 5 compatibility field; catalog refresh returns null. */
 	backupPath: string | null;
 }
 

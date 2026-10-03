@@ -188,14 +188,13 @@ export function useWorkspaceSessionActions(options: {
 		[createSession, setNewConversationCwd, hostSessionApi, isRetainedSession, setDrafts, reportSessionError],
 	);
 
-	const handleCompact = useCallback(async () => {
-		if (!activeSessionRef) return;
-		try {
-			await hostSessionApi.compact({ ref: activeSessionRef });
-		} catch (error) {
-			showCommandError(error);
-		}
-	}, [hostSessionApi, activeSessionRef, showCommandError]);
+	const handleCompact = useCallback(
+		async (customInstructions?: string) => {
+			if (!activeSessionRef) return;
+			await hostSessionApi.compact({ ref: activeSessionRef, ...(customInstructions ? { customInstructions } : {}) });
+		},
+		[hostSessionApi, activeSessionRef],
+	);
 
 	const startQueuedEdit = useCallback(
 		(kind: "steering" | "followUp", index: number, expectedRevision: number, message: SessionQueuedMessage) => {

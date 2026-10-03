@@ -9,13 +9,19 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { join, resolve } from "node:path";
 import { throwIfOperationAborted } from "../../ling-error";
-import { preparePiAdapters } from "../extensions/pi-adapters";
+import { preparePiAdapters, createPiBuiltinExtensionFactories } from "../extensions/pi-adapters";
 import { createPiTodoReconciliation } from "../extensions/pi-todo-reconciliation";
 import type { McpUi } from "../mcp/mcp-extension";
 import { assertPiModelsJsonWithinReadBound } from "../models/model-config-file";
 import type { PiModelRuntimes } from "../models/model-runtime";
 import type { LingSkillResources } from "../resources/skill-toggles";
-import type { PiAgentSessionServices, PiExtensionUiContext, PiInlineExtension, PiSettingsManager } from "../types";
+import type {
+	PiAgentSessionServices,
+	PiExtensionUiContext,
+	PiInlineExtension,
+	PiSettingsManager,
+	PiLoadExtensionsResult,
+} from "../types";
 
 /** Dependencies for creating catalog and session resource graphs under the same trust and adapter policy. */
 export interface PiProjectResourceContext {
@@ -24,7 +30,7 @@ export interface PiProjectResourceContext {
 	openVoiceSettings: ((ui: PiExtensionUiContext) => void) | undefined;
 	mcpUi: McpUi | undefined;
 	builtinExtensions(features: BuiltinFeatureFlags): PiInlineExtension[];
-	projectTrustResolver(cwd: string): Promise<boolean>;
+	projectTrustResolver(cwd: string, extensions: PiLoadExtensionsResult): Promise<boolean>;
 	createLingSkillToggles: LingSkillResources["createLingSkillToggles"];
 	createProviderScopeClassifyingOverride: PiModelRuntimes["createProviderScopeClassifyingOverride"];
 	bundledAdapters: WeakMap<PiAgentSessionServices, ReadonlyMap<string, string>>;
@@ -74,18 +80,13 @@ export async function createBoundedAgentSessionServices(
 	throwIfOperationAborted(signal);
 	const resourceLoaderOptions = options.resourceLoaderOptions;
 	const { includeBuiltinExtensions, ...serviceOptions } = options;
-	// Resolve Ling's existing trust decision before routing any project path through Pi's explicit-path loader.
-	options.settingsManager.setProjectTrusted(await owner.projectTrustResolver(options.cwd));
-	await options.settingsManager.reload();
-	const trusted = options.settingsManager.isProjectTrusted();
 	const createServices = async (modelRuntimeSignal?: AbortSignal) => {
 		if (!owner.loadCatalogResources && !includeBuiltinExtensions) {
-			// A session worker needs canonical cwd, trusted settings and a project lifecycle owner.
+			// A session worker needs canonical cwd and a project lifecycle owner.
 			// Its actual runtime loads the complete extension/provider graph below. The control
 			// worker remains the catalog owner, so this shell must not execute every extension twice.
 			return createAgentSessionServices({
 				...serviceOptions,
-				resourceLoaderReloadOptions: { resolveProjectTrust: async () => trusted },
 				resourceLoaderOptions: {
 					noExtensions: true,
 					noSkills: true,
@@ -97,30 +98,54 @@ export async function createBoundedAgentSessionServices(
 			});
 		}
 		const plan = await owner.readAdapterPlan(options.cwd);
-		const adapters = await preparePiAdapters({
-			cwd: options.cwd,
-			agentDir: options.agentDir,
-			settingsManager: options.settingsManager,
-			plan,
-			loadBundled: includeBuiltinExtensions === true,
-			...(owner.openVoiceSettings ? { openVoiceSettings: owner.openVoiceSettings } : {}),
-			...(owner.mcpUi ? { mcpUi: owner.mcpUi } : {}),
-		});
-		throwIfOperationAborted(signal);
-		const installSkillToggles = owner.createLingSkillToggles(options.settingsManager, options.agentDir);
-		const classify = owner.createProviderScopeClassifyingOverride(
-			options.agentDir,
-			options.modelRuntime,
-			resourceLoaderOptions?.extensionsOverride,
-			adapters.bundledPaths,
-		);
+		const additionalExtensionPaths: string[] = [];
+		let prepared:
+			| {
+					adapters: Awaited<ReturnType<typeof preparePiAdapters>>;
+					classify: ReturnType<PiModelRuntimes["createProviderScopeClassifyingOverride"]>;
+					installSkills: (loader: PiAgentSessionServices["resourceLoader"]) => void;
+			  }
+			| undefined;
 		const services = await createAgentSessionServices({
 			...serviceOptions,
-			resourceLoaderReloadOptions: { resolveProjectTrust: async () => trusted },
+			resourceLoaderReloadOptions: {
+				resolveProjectTrust: async ({ extensionsResult }) => {
+					const trusted = await owner.projectTrustResolver(options.cwd, extensionsResult);
+					options.settingsManager.setProjectTrusted(trusted);
+					await options.settingsManager.reload();
+					const adapters = await preparePiAdapters({
+						cwd: options.cwd,
+						agentDir: options.agentDir,
+						settingsManager: options.settingsManager,
+						plan,
+						sessionRuntime: includeBuiltinExtensions === true,
+						...(owner.openVoiceSettings ? { openVoiceSettings: owner.openVoiceSettings } : {}),
+						...(owner.mcpUi ? { mcpUi: owner.mcpUi } : {}),
+					});
+					throwIfOperationAborted(signal);
+					if (includeBuiltinExtensions) additionalExtensionPaths.push(...adapters.bundledPaths);
+					prepared = {
+						adapters,
+						classify: owner.createProviderScopeClassifyingOverride(
+							options.agentDir,
+							options.modelRuntime,
+							resourceLoaderOptions?.extensionsOverride,
+							adapters.bundledPaths,
+						),
+						installSkills: await owner.createLingSkillToggles(
+							options.settingsManager,
+							options.agentDir,
+							options.cwd,
+							adapters.skillInventory,
+						),
+					};
+					return trusted;
+				},
+			},
 			resourceLoaderOptions: {
 				...resourceLoaderOptions,
 				extensionFactories: [
-					...(includeBuiltinExtensions ? adapters.factories : []),
+					...(includeBuiltinExtensions ? createPiBuiltinExtensionFactories(options) : []),
 					...(includeBuiltinExtensions ? owner.builtinExtensions(plan.features) : []),
 					...(includeBuiltinExtensions
 						? [
@@ -134,16 +159,21 @@ export async function createBoundedAgentSessionServices(
 					...(includeBuiltinExtensions && plan.features.todo ? [createPiTodoReconciliation()] : []),
 					...(resourceLoaderOptions?.extensionFactories ?? []),
 				],
-				noExtensions: true,
-				additionalExtensionPaths: adapters.paths,
-				extensionsOverride: (base: Parameters<typeof classify>[0]) => classify(adapters.overrides(base)),
+				noExtensions: false,
+				additionalExtensionPaths,
+				extensionsOverride: (base: PiLoadExtensionsResult) => {
+					if (!prepared) throw new Error("Pi resources resolved before project trust");
+					return prepared.classify(prepared.adapters.overrides(base));
+				},
 			},
 			...(modelRuntimeSignal ? { modelRuntimeSignal } : {}),
 		});
 		try {
+			if (!prepared) throw new Error("Pi resource preparation did not complete");
+			const { adapters, installSkills } = prepared;
 			adapters.decorate(services.resourceLoader.getExtensions());
 			owner.bundledAdapters.set(services, adapters.bundledEntries);
-			installSkillToggles(services.resourceLoader);
+			installSkills(services.resourceLoader);
 		} catch (error) {
 			services.resourceLoader.getExtensions().runtime.invalidate("Ling Pi extension setup failed");
 			throw error;

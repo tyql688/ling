@@ -12,7 +12,6 @@ import {
 	type UsageBreakdown,
 	type UsageRecord,
 } from "@ling/host/workers/usage/usage-scan";
-import { join } from "node:path";
 
 /**
  * Aggregated token-usage statistics over Pi's session files, computed read-only. Covers
@@ -269,12 +268,11 @@ function createUsageAccumulator(now: Date, rangeDays: UsageRangeDays): UsageAccu
 
 export async function getUsageStats(
 	rangeDays: UsageRangeDays,
-	agentDir: string,
+	sessionDirectories: readonly string[],
 	scanner: UsageScanner,
 ): Promise<UsageStatsSnapshot> {
 	const now = new Date();
-	const sessionsDir = join(agentDir, "sessions");
-	const scan = await scanner.scanFiles(sessionsDir, rangeDays === "all" ? 0 : heatmapCutoffMs(now));
+	const scan = await scanner.scanFiles(sessionDirectories, rangeDays === "all" ? 0 : heatmapCutoffMs(now));
 	const accumulator = createUsageAccumulator(now, rangeDays);
 	for (const file of scan.files) {
 		accumulator.beginFile(file.filePath);

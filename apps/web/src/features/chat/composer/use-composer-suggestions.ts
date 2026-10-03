@@ -7,7 +7,7 @@ import { useCallback, useMemo, useRef, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { ComposerEditorHandle } from "./composer-editor";
 import { slashTokenAt, spliceCompletionToken } from "./composer-completion-tokens";
-import { SLASH_COMMANDS, type SlashCommandContext } from "./slash-commands";
+import { SLASH_COMMANDS } from "./slash-commands";
 import { searchCompletions } from "./completion-search";
 import { useComposerCompletions } from "./use-composer-completions";
 import type { useComposerAttachments } from "./use-composer-attachments";
@@ -20,7 +20,6 @@ interface ComposerSuggestionOptions {
 	text: string;
 	setInputText: (value: string) => boolean;
 	editorRef: RefObject<ComposerEditorHandle | null>;
-	commands: SlashCommandContext;
 	onCommandError: (message: string) => void;
 	createProjectFileReference: ReturnType<typeof useComposerAttachments>["createProjectFileReference"];
 }
@@ -33,7 +32,6 @@ export function useComposerSuggestions({
 	text,
 	setInputText,
 	editorRef,
-	commands,
 	onCommandError,
 	createProjectFileReference,
 }: ComposerSuggestionOptions) {
@@ -223,19 +221,10 @@ export function useComposerSuggestions({
 		if (!item) return;
 		if (slashToken === null) return;
 		if (item.command) {
-			if (item.command.needsArg) {
-				const next = spliceCompletionToken(text, slashToken, `/${item.command.name} `);
-				setText(next.text);
-				setCursorOffset(next.cursorOffset);
-				focusEditorAt(next.cursorOffset);
-			} else {
-				// Running a command consumes the whole draft (matching submit-path semantics);
-				// leaving text behind would silently send it as the next bare message.
-				setText("");
-				setCursorOffset(0);
-				focusEditorAt(0);
-				item.command.run(commands, "");
-			}
+			const next = spliceCompletionToken(text, slashToken, `/${item.command.name} `);
+			setText(next.text);
+			setCursorOffset(next.cursorOffset);
+			focusEditorAt(next.cursorOffset);
 			return;
 		}
 		// SDK command/skill/template: complete the command text; Enter then sends it as a

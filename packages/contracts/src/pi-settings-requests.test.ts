@@ -5,7 +5,7 @@ import { createPiSettingsUpdateSchema } from "./pi-settings-requests";
 const schema = createPiSettingsUpdateSchema();
 
 describe("Pi settings write policy", () => {
-	it("applies each retry field's own range instead of accepting the combined range", () => {
+	it("accepts Pi retry values without imposing presentation presets", () => {
 		expect(
 			schema.safeParse({ type: "retryTuning", field: "maxRetries", value: PI_RETRY_MAX_RETRIES_MAX }).success,
 		).toBe(true);
@@ -16,8 +16,8 @@ describe("Pi settings write policy", () => {
 			schema.safeParse({ type: "retryTuning", field: "maxRetries", value: PI_RETRY_MAX_RETRIES_MAX + 1 }).success,
 		).toBe(false);
 		expect(schema.safeParse({ type: "retryTuning", field: "maxAgentDelayMs", value: 0 }).success).toBe(true);
-		expect(schema.safeParse({ type: "retryTuning", field: "baseDelayMs", value: 0 }).success).toBe(false);
-		expect(schema.safeParse({ type: "retryTuning", field: "maxRetries", value: 60_000 }).success).toBe(false);
+		expect(schema.safeParse({ type: "retryTuning", field: "baseDelayMs", value: 0 }).success).toBe(true);
+		expect(schema.safeParse({ type: "retryTuning", field: "maxRetries", value: 60_000 }).success).toBe(true);
 		expect(
 			schema.safeParse({ type: "retryTuning", field: "baseDelayMs", value: PI_RETRY_BASE_DELAY_MS_MIN - 1 }).success,
 		).toBe(false);

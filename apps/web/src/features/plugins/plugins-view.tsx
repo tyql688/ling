@@ -1,3 +1,4 @@
+import { Segmented } from "@renderer/components/ui/segmented";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { useDomainApi } from "@renderer/lib/host-api-context";
 import type { ConfiguredPackage, PluginResourceKind } from "@ling/contracts/plugin";
@@ -90,6 +91,7 @@ export function PluginsView() {
 		retryLoad,
 	} = usePlugins();
 	const installId = useId();
+	const [installScope, setInstallScope] = useState<"global" | "project">("global");
 	const [source, setSource] = useState("");
 	const [expandedPackages, setExpandedPackages] = useState<ReadonlySet<string>>(() => new Set());
 	const [pendingRemove, setPendingRemove] = useState<{ source: string; scope: "global" | "project" } | null>(null);
@@ -109,7 +111,7 @@ export function PluginsView() {
 						event.preventDefault();
 						const value = source.trim();
 						if (!value || busy || loading || projectCwd === null) return;
-						void install(value).then((succeeded) => {
+						void install(value, installScope).then((succeeded) => {
 							if (succeeded) setSource((current) => (current.trim() === value ? "" : current));
 						});
 					}}
@@ -122,6 +124,16 @@ export function PluginsView() {
 							{t("plugins.installHint")}
 						</p>
 					</div>
+					<Segmented
+						value={installScope}
+						onChange={setInstallScope}
+						disabled={busy || loading}
+						ariaLabel={t("mcp.scope")}
+						options={[
+							{ value: "global", label: t("plugins.scope.global") },
+							{ value: "project", label: t("plugins.scope.project") },
+						]}
+					/>
 					<div className="flex items-center gap-2">
 						<Input
 							id={installId}

@@ -61,6 +61,7 @@ export function reduceSessionView(view: SessionView, input: SessionViewInput): S
 				messages: projection.messages,
 				transcript: { ...projection.state, transcriptCacheKey: snapshot.transcriptCacheKey },
 				busy: snapshot.busy,
+				permissionSource: snapshot.permissionSource ?? null,
 				toolExecutions: snapshot.toolExecutions,
 				summarizationRetry: snapshot.summarizationRetry,
 				autoRetry: snapshot.autoRetry,

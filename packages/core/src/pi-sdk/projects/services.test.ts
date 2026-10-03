@@ -6,6 +6,9 @@ import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { createPiModelRuntimes } from "../models/model-runtime";
 import { createPiModelProjection } from "../models/model-projection";
 import { createPiRuntimeFactory } from "../session/runtime-factory";
+import { createPiRuntimeInspection } from "../session/runtime-inspection";
+import { createPiRuntimeOperationCoordinator } from "../session/runtime-operations";
+import { sessionControlResultSchema, sessionInspectionSchema } from "@ling/contracts/session-inspection";
 import { createLingSkillResources } from "../resources/skill-toggles";
 import { createPiTurnLifecycle } from "../session/turn-lifecycle";
 import { createPiMcp } from "../mcp/pi-mcp";
@@ -183,6 +186,7 @@ export default function(pi) {
 					);
 					await mkdir(join(cwd, ".pi"), { recursive: true });
 					const factory = createPiRuntimeFactory({ projects, modelProjection: createPiModelProjection(modelRuntimes) });
+					let inspectionChecked = false;
 					for (const selection of [
 						{
 							global: { defaultTools: ["read", "+codemode"] },
@@ -235,6 +239,61 @@ export default function(pi) {
 							expect(runtime.session.getActiveToolNames().sort()).toEqual(
 								[...selection.expected, "generate_image"].sort(),
 							);
+							if (!inspectionChecked) {
+								inspectionChecked = true;
+								await runtime.session.bindExtensions({});
+								const operations = createPiRuntimeOperationCoordinator({
+									assertCanStart() {},
+									getActiveReload: () => null,
+									assertCanRunSynchronously() {},
+									onReleased() {},
+								});
+								const inspection = createPiRuntimeInspection({
+									runtime: () => runtime,
+									operations,
+									isBusy: () => false,
+									changed() {},
+									importSession: async (path) => {
+										const imported = SessionManager.open(path);
+										expect(imported.getSessionId()).not.toBe(manager.getSessionId());
+										expect(imported.getCwd()).toBe(cwd);
+										expect(imported.getEntries()).toEqual(manager.getEntries());
+										return { cancelled: true };
+									},
+									sessionActions: { navigateTree: (id, options) => runtime.session.navigateTree(id, options) },
+								});
+								const target = manager.appendMessage({
+									role: "user",
+									content: "Recover this fixture prompt",
+									timestamp: Date.now(),
+								});
+								manager.appendCustomEntry("fixture", {});
+								const exported = [manager.getHeader(), ...manager.getEntries()]
+									.map((entry) => JSON.stringify(entry))
+									.join("\n");
+								await expect(inspection.importSession(exported)).resolves.toEqual({ cancelled: true });
+								await expect(inspection.importSession(`${exported}\n{broken`)).rejects.toMatchObject({
+									code: "INVALID_REQUEST",
+								});
+								const invalidMessage = JSON.stringify({
+									type: "message",
+									id: "missing-message-content",
+									parentId: manager.getLeafId(),
+									timestamp: new Date().toISOString(),
+								});
+								await expect(inspection.importSession(`${exported}\n${invalidMessage}`)).rejects.toMatchObject({
+									code: "INVALID_REQUEST",
+								});
+								await inspection.controlSession({ type: "tool", name: "grep", enabled: true });
+								const snapshot = sessionInspectionSchema.parse(await inspection.inspectSession(0));
+								expect(snapshot.tools.find((tool) => tool.name === "grep")?.active).toBe(true);
+								expect(snapshot.entries.some((entry) => entry.id === target)).toBe(true);
+								const navigated = sessionControlResultSchema.parse(
+									await inspection.controlSession({ type: "navigate", entryId: target, summarize: false }),
+								);
+								expect(navigated).toEqual({ cancelled: false, editorText: "Recover this fixture prompt" });
+								expect(operations.activeCount).toBe(0);
+							}
 							expect(
 								runtime.services.resourceLoader
 									.getExtensions()

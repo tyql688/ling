@@ -14,32 +14,26 @@ export const PI_SETTINGS_NPM_COMMAND_MAX_CHARS = 16_384;
 export const PI_SETTINGS_NPM_COMMAND_MAX_ARGS = 64;
 /** 4 KiB cap per npm argument: each arg is bounded, completing the count/total-length/arg-length triple cap. */
 export const PI_SETTINGS_NPM_ARGUMENT_MAX_CHARS = 4_096;
-/** Smallest editable compaction budget. Pi sizes the summary request at 0.8×reserveTokens,
- * so tiny values produce max_tokens 0 and every compaction fails with a provider 400. */
-export const PI_COMPACTION_TOKEN_MIN = 1_024;
-/** Largest editable compaction budget. reserveTokens beyond the model's context window makes
- * shouldCompact true on every turn (constant summarization, history loss); 512k stays useful
- * even for 1M-window models. */
-export const PI_COMPACTION_TOKEN_MAX = 512_000;
+/** Pi accepts non-negative safe integer compaction budgets. */
+export const PI_COMPACTION_TOKEN_MIN = 0;
+export const PI_COMPACTION_TOKEN_MAX = Number.MAX_SAFE_INTEGER;
 
 export type MessageDeliveryMode = "all" | "one-at-a-time";
 
 /** Mirrors Pi's DefaultProjectTrust: what to do when an untrusted project is opened. */
 export type DefaultProjectTrust = "ask" | "always" | "never";
 
-/** Retry attempt bounds; Pi defaults to 3, more than 10 only hides a broken provider. */
-export const PI_RETRY_MAX_RETRIES_MIN = 1;
-export const PI_RETRY_MAX_RETRIES_MAX = 10;
-/** Base backoff bounds (ms); Pi defaults to 2000, growing exponentially per attempt. */
-export const PI_RETRY_BASE_DELAY_MS_MIN = 100;
-export const PI_RETRY_BASE_DELAY_MS_MAX = 60_000;
-/** Limit one agent retry wait to five minutes; zero disables the delay. */
-export const PI_RETRY_MAX_DELAY_MS_MAX = 300_000;
+/** Retry values retain Pi's non-negative integer domain. */
+export const PI_RETRY_MAX_RETRIES_MIN = 0;
+export const PI_RETRY_MAX_RETRIES_MAX = Number.MAX_SAFE_INTEGER;
+export const PI_RETRY_BASE_DELAY_MS_MIN = 0;
+export const PI_RETRY_BASE_DELAY_MS_MAX = Number.MAX_SAFE_INTEGER;
+export const PI_RETRY_MAX_DELAY_MS_MAX = Number.MAX_SAFE_INTEGER;
 
 export const PI_CACHE_WARMING_MODES = ["off", "streaming", "idle"] as const;
 export const PI_DEFAULT_TOOL_NAMES = ["read", "bash", "edit", "write"] as const;
 // Bound the generated tool-description budget exposed by the settings editor.
-export const PI_CODEMODE_INLINE_BUDGET_MAX = 128_000;
+export const PI_CODEMODE_INLINE_BUDGET_MAX = Number.MAX_SAFE_INTEGER;
 export const piCodemodeSettingsSchema = z.strictObject({
 	mode: z.enum(["on", "only"]),
 	inlineBudget: z.number().int().min(0).max(PI_CODEMODE_INLINE_BUDGET_MAX),
@@ -56,8 +50,8 @@ export const piCompactionModelOverridesSchema = z.record(
 		keepRecentTokens: z.number().int().nonnegative().optional(),
 	}),
 );
-/** Cap for the bash command prefix; it is prepended to every bash tool invocation. */
-export const PI_SETTINGS_SHELL_PREFIX_MAX_CHARS = 1_024;
+/** Prefix reads share the canonical settings file byte budget. */
+export const PI_SETTINGS_SHELL_PREFIX_MAX_CHARS = 4 * 1024 * 1024;
 
 export interface PiSettingsSnapshot {
 	defaultProvider: string | null;

@@ -1,4 +1,4 @@
-import type { ProjectTrustChoice } from "@ling/contracts/project";
+import type { ProjectTrustPrompt } from "@ling/contracts/project-trust-ui";
 import type { CompanionToolCall, CompanionToolResult, PiAdapterPlan } from "@ling/contracts/companions";
 import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 
@@ -36,7 +36,7 @@ interface PiWorkerMainRpcOptions {
 	readAdapterPlan(cwd: string): Promise<PiAdapterPlan>;
 	getRuntime(runtimeId: string): PiWorkerRemoteRuntime | undefined;
 	getCreation(requestId: string): PiWorkerCreationContext | undefined;
-	promptProjectTrust(cwd: string, signal?: AbortSignal): Promise<ProjectTrustChoice | null>;
+	promptProjectTrust(cwd: string, signal?: AbortSignal, prompt?: ProjectTrustPrompt): Promise<string | null>;
 	turnLifecycleHost: PiTurnLifecycleHost;
 }
 
@@ -254,7 +254,7 @@ export function createPiWorkerMainRpc(options: PiWorkerMainRpcOptions): PiWorker
 		},
 		"adapters.read": async ({ cwd }) => options.readAdapterPlan(cwd),
 		"project.promptTrust": async (params, { signal }) => {
-			return options.promptProjectTrust(params.cwd, signal);
+			return options.promptProjectTrust(params.cwd, signal, params.prompt);
 		},
 	};
 	const handle = async (request: PiWorkerMainRequest, signal: AbortSignal): Promise<unknown> => {

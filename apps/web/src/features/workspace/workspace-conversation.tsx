@@ -80,8 +80,8 @@ export function WorkspaceConversation(props: {
 		fileReferences: ProjectFileReferenceTarget[],
 	) => Promise<void>;
 	onCancelQueuedEdit: () => void;
-	onRenameSession: (title: string) => void;
-	onCompactSession: () => void;
+	onRenameSession: (title: string) => Promise<void>;
+	onCompactSession: (customInstructions?: string) => Promise<void>;
 	onComposerCommandError: (message: string) => void;
 	contextTokens: number | undefined;
 	onOpenSession: (ref: SessionRef) => void;

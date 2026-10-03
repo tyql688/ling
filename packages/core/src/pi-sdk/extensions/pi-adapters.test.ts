@@ -1,13 +1,22 @@
-import { DefaultResourceLoader, discoverAndLoadExtensions, SettingsManager } from "@earendil-works/pi-coding-agent";
+import {
+	DefaultPackageManager,
+	DefaultResourceLoader,
+	discoverAndLoadExtensions,
+	SettingsManager,
+	SessionManager,
+	createAgentSession,
+	createBashToolDefinition,
+} from "@earendil-works/pi-coding-agent";
 import { fileURLToPath } from "node:url";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
-import { preparePiAdapters } from "./pi-adapters";
+import { preparePiAdapters, createPiBuiltinExtensionFactories } from "./pi-adapters";
 
 const roots: string[] = [];
 afterEach(async () => {
+	vi.unstubAllEnvs();
 	await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -44,7 +53,8 @@ async function fixture() {
 	) => {
 		const settingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted: trusted });
 		await settingsManager.reload();
-		return preparePiAdapters({
+		const input = {
+			sessionRuntime: true,
 			cwd,
 			agentDir,
 			settingsManager,
@@ -63,13 +73,122 @@ async function fixture() {
 				todo: todo ? bundled.todo : null,
 				permissions: { entry: bundled.permissions, enabled: permissionsEnabled },
 			},
-		});
+		};
+		const adapters = await preparePiAdapters(input);
+		const inventory = await new DefaultPackageManager({
+			cwd,
+			agentDir,
+			settingsManager,
+			builtinExtensions: ["codemode", "tool-search", "mcp"],
+		}).resolve();
+		return {
+			...adapters,
+			input,
+			factories: createPiBuiltinExtensionFactories({ cwd, agentDir, settingsManager }),
+			settingsManager,
+			paths: [
+				...inventory.extensions.filter((entry) => entry.enabled).map((entry) => entry.path),
+				...adapters.bundledPaths,
+			],
+		};
 	};
 	const installedEntry = (name: string) => join(agentDir, "npm", "node_modules", name, "index.ts");
 	return { bundled, install, prepare, installedEntry, cwd, agentDir };
 }
 
 describe("bundled Pi adapters", () => {
+	it("requires an available permission implementation while allowing a user-installed replacement", async () => {
+		const f = await fixture();
+		const base = await f.prepare(false, false);
+		const input = { ...base.input, plan: { ...base.input.plan, permissions: { entry: null, enabled: true } } };
+		await expect(preparePiAdapters(input)).rejects.toMatchObject({
+			code: "PI_PERMISSION_UNAVAILABLE",
+			message: expect.stringContaining("package is unavailable"),
+		});
+		await expect(preparePiAdapters({ ...input, sessionRuntime: false })).resolves.toMatchObject({
+			bundledPaths: new Set(),
+		});
+		await f.install(["@gotgenes/pi-permission-system"]);
+		await input.settingsManager.reload();
+		const installed = await preparePiAdapters(input);
+		expect(installed.bundledPaths.size).toBe(0);
+		const loaded = await discoverAndLoadExtensions([], f.cwd, f.agentDir);
+		try {
+			expect(() => installed.overrides(loaded)).toThrow("no active Pi permission extension");
+		} finally {
+			loaded.runtime.invalidate("Fixture completed");
+		}
+	});
+
+	it("gates Host background commands through the installed permission package's Bash and path policies", async () => {
+		const f = await fixture();
+		vi.stubEnv("PI_CODING_AGENT_DIR", f.agentDir);
+		const entry = fileURLToPath(
+			new URL("../../../../host/node_modules/@gotgenes/pi-permission-system/src/index.ts", import.meta.url),
+		);
+		f.bundled.permissions = entry;
+		const directory = join(f.agentDir, "extensions", "pi-permission-system");
+		await mkdir(directory, { recursive: true });
+		const config = JSON.stringify({
+			permission: {
+				"*": "allow",
+				bash: { "*": "allow", "printf *": "deny" },
+				path: { "*": "allow", "**/protected.txt": "deny" },
+			},
+		});
+		await writeFile(join(directory, "config.json"), config);
+		await writeFile(join(f.cwd, "protected.txt"), "Fixture content");
+		const adapter = await f.prepare(true, false);
+		const resourceLoader = new DefaultResourceLoader({
+			cwd: f.cwd,
+			agentDir: f.agentDir,
+			settingsManager: adapter.settingsManager,
+			noExtensions: true,
+			additionalExtensionPaths: [entry],
+			extensionsOverride: adapter.overrides,
+			extensionFactories: [
+				{
+					name: "fixture-background",
+					factory: (pi) => pi.registerTool({ ...createBashToolDefinition(f.cwd), name: "background_start" }),
+				},
+			],
+		});
+		await resourceLoader.reload();
+		expect(resourceLoader.getExtensions().errors).toEqual([]);
+		const { session } = await createAgentSession({
+			cwd: f.cwd,
+			agentDir: f.agentDir,
+			settingsManager: adapter.settingsManager,
+			resourceLoader,
+			sessionManager: SessionManager.inMemory(f.cwd),
+		});
+		try {
+			await session.bindExtensions({});
+			for (const command of ["printf DENIED", "cat protected.txt"]) {
+				const event = {
+					type: "tool_call" as const,
+					toolName: "background_start",
+					toolCallId: command,
+					input: { command },
+				};
+				expect(await session.extensionRunner.emitToolCall(event), command).toMatchObject({ block: true });
+				expect(event.toolName).toBe("background_start");
+			}
+			expect(
+				await session.extensionRunner.emitToolCall({
+					type: "tool_call",
+					toolName: "background_start",
+					toolCallId: "allowed",
+					input: { command: "echo ALLOWED" },
+				}),
+			).not.toMatchObject({ block: true });
+			expect(await readFile(join(directory, "config.json"), "utf8")).toBe(config);
+		} finally {
+			await session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" });
+			session.dispose();
+		}
+	}, 30_000);
+
 	it("resolves global and trusted project builtin filters independently, including wildcard disables", async () => {
 		const f = await fixture();
 		await mkdir(join(f.cwd, ".pi"));
@@ -86,7 +205,7 @@ describe("bundled Pi adapters", () => {
 		const loader = new DefaultResourceLoader({
 			cwd: f.cwd,
 			agentDir: f.agentDir,
-			noExtensions: true,
+			settingsManager: plan.settingsManager,
 			extensionFactories: plan.factories,
 			additionalExtensionPaths: plan.paths,
 		});
@@ -106,7 +225,7 @@ describe("bundled Pi adapters", () => {
 		const loader = new DefaultResourceLoader({
 			cwd: f.cwd,
 			agentDir: f.agentDir,
-			noExtensions: true,
+			settingsManager: plan.settingsManager,
 			extensionFactories: plan.factories,
 			additionalExtensionPaths: plan.paths,
 		});
@@ -141,7 +260,7 @@ describe("bundled Pi adapters", () => {
 			const loader = new DefaultResourceLoader({
 				cwd: f.cwd,
 				agentDir: f.agentDir,
-				noExtensions: true,
+				settingsManager: plan.settingsManager,
 				extensionFactories: plan.factories,
 				additionalExtensionPaths: plan.paths,
 			});
@@ -216,13 +335,15 @@ describe("bundled Pi adapters", () => {
 		expect(approval.paths).not.toContain(f.bundled.todo);
 		expect(approval.paths).not.toContain(f.bundled.permissions);
 		expect(approval.bundledPaths.size).toBe(0);
-		// Full access removes the user's own copy of the permission system too, and nothing else.
+		// Ling's bundled switch preserves independently installed Pi resources.
 		const full = await f.prepare(false);
 		expect(full.paths.filter((path) => !path.startsWith("builtin:"))).toEqual([
 			f.installedEntry("@juicesharp/rpiv-todo"),
+			f.installedEntry("@gotgenes/pi-permission-system"),
 		]);
 		expect((await f.prepare(false, false)).paths.filter((path) => !path.startsWith("builtin:"))).toEqual([
 			f.installedEntry("@juicesharp/rpiv-todo"),
+			f.installedEntry("@gotgenes/pi-permission-system"),
 		]);
 	});
 
@@ -249,7 +370,7 @@ describe("bundled Pi adapters", () => {
 		expect(plan.bundledPaths.size).toBe(0);
 		expect(plan.paths.filter((path) => !path.startsWith("builtin:"))).toEqual([...entries.values()]);
 		const full = await f.prepare(false);
-		expect(full.paths).not.toContain(entries.get("@gotgenes/pi-permission-system"));
+		expect(full.paths).toContain(entries.get("@gotgenes/pi-permission-system"));
 		expect(full.paths).toContain(entries.get("@juicesharp/rpiv-todo"));
 		const loader = new DefaultResourceLoader({
 			cwd: f.cwd,

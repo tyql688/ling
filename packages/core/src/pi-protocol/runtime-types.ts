@@ -2,6 +2,7 @@ import type { EditQueuedRequest, LingSessionEvent, SessionQueue } from "@ling/co
 import type { SessionMessage } from "@ling/contracts/session-messages";
 import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
+import type { PermissionSource } from "@ling/contracts/permissions";
 import type { ReviewSnapshotFile } from "../change-review/change-review";
 
 export type SessionRuntimeReplacementReason = "new" | "fork" | "switch" | "refresh";
@@ -38,6 +39,7 @@ export type SessionRuntimeReplacementCoordinator = (
 ) => SessionRuntimeReplacementReservation | Promise<SessionRuntimeReplacementReservation>;
 
 export interface SessionRuntimeStateSnapshot {
+	permissionSource?: PermissionSource;
 	busy: boolean;
 	queue: SessionQueue;
 	diagnostics: PiDiagnostic[];

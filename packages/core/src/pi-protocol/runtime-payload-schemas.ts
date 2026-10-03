@@ -1,4 +1,5 @@
 import { createMessageFileReferenceSchema } from "@ling/contracts/session-requests";
+import { permissionSourceSchema } from "@ling/contracts/permissions";
 import {
 	type BoundedJsonLimits,
 	type BoundedJsonObject,
@@ -215,6 +216,7 @@ export const diagnosticSchema = z.strictObject({
 });
 
 const stateSnapshotSchema = z.strictObject({
+	permissionSource: permissionSourceSchema.optional(),
 	busy: z.boolean(),
 	queue: queueSchema,
 	diagnostics: z.array(diagnosticSchema).max(COLLECTION_MAX_ITEMS),

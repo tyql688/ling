@@ -1,3 +1,7 @@
+import type { PiResourceReloadSummary } from "@ling/contracts/session";
+import { ResourceReloadFeedback } from "@renderer/components/resource-reload-feedback";
+import { useDomainApi } from "@renderer/lib/host-api-context";
+import { SessionInspector } from "@renderer/features/sessions/session-inspector";
 import { ComposerAttachments } from "./composer-attachments";
 import { ModelConnectionPrompt } from "@renderer/features/models/model-connection-prompt";
 import type { PendingFileReference } from "@ling/contracts/draft";
@@ -118,6 +122,9 @@ export function Composer({
 		[draft.fileReferences, setFileReferences],
 	);
 	const { dropActive, dropHandlers } = useAttachmentDrop(addFiles);
+	const resourceApi = useDomainApi("skills");
+	const [reloadSummary, setReloadSummary] = useState<PiResourceReloadSummary | null>(null);
+	const [inspectorOpen, setInspectorOpen] = useState(false);
 	const [usageOpen, setUsageOpen] = useState(false);
 	const {
 		state: modelState,
@@ -146,7 +153,6 @@ export function Composer({
 		text,
 		setInputText: setBoundedValue,
 		editorRef,
-		commands,
 		onCommandError,
 		createProjectFileReference,
 	});
@@ -234,7 +240,20 @@ export function Composer({
 		setText,
 		snapshotDraft,
 		queuedEdit,
-		commands,
+		commands: {
+			...commands,
+			inspectSession: () => setInspectorOpen(true),
+			reloadResources: async () => {
+				const result = await resourceApi.reload();
+				const failures = [
+					result.projectError,
+					result.sessionError,
+					...(result.sessions?.failed.map((entry) => entry.message) ?? []),
+				].filter(Boolean);
+				if (failures.length) throw new Error(JSON.stringify(failures));
+				setReloadSummary(result);
+			},
+		},
 		onCommandError,
 		onAbort,
 		busy,
@@ -294,6 +313,18 @@ export function Composer({
 
 	return (
 		<div className="pb-5">
+			{reloadSummary && <ResourceReloadFeedback summary={reloadSummary} />}
+			<SessionInspector
+				key={sessionKey(sessionRef)}
+				binding={
+					runtimeBinding.runtimeId === null
+						? null
+						: { ref: sessionRef, runtimeId: runtimeBinding.runtimeId, generation: runtimeBinding.generation }
+				}
+				open={inspectorOpen}
+				onOpenChange={setInspectorOpen}
+				onRestoreText={(restored) => setText(`${text}${text ? "\n\n" : ""}${restored}`)}
+			/>
 			<SessionUsageDialog
 				open={usageOpen}
 				onOpenChange={setUsageOpen}
@@ -386,6 +417,7 @@ export function Composer({
 						onAttachFiles={(files) => void addFiles(files)}
 						usageOpen={usageOpen}
 						onOpenUsage={() => setUsageOpen(true)}
+						onOpenInspector={() => setInspectorOpen(true)}
 						onModelSelect={handleModelSelect}
 						onThinkingLevelChange={(level) => void setThinkingLevel(level)}
 						onFollowUpBehaviorChange={setFollowUpBehavior}

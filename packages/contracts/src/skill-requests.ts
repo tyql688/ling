@@ -25,6 +25,7 @@ export const builtinMasterRequestSchema = strictObject({
 // 64 chars is the Agent Skills spec's skill-name bound.
 export const skillEnabledRequestSchema = strictObject({
 	name: boundedString(64, "Skill name"),
+	filePath: boundedString(SKILL_EXTRA_PATH_MAX_CHARS, "Skill file path").optional(),
 	enabled: z.boolean(),
 });
 

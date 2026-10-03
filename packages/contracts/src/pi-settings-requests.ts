@@ -1,6 +1,5 @@
 import { MODEL_ID_MAX_CHARS, MODEL_PROVIDER_ID_MAX_CHARS } from "@ling/contracts/model";
 import {
-	HTTP_IDLE_TIMEOUT_CHOICES_MS,
 	PI_COMPACTION_TOKEN_MAX,
 	PI_COMPACTION_TOKEN_MIN,
 	PI_CACHE_WARMING_MODES,
@@ -110,13 +109,7 @@ export function createPiSettingsUpdateSchema(
 			z.strictObject({ type: z.literal("analytics"), enabled: z.boolean() }),
 			z.strictObject({
 				type: z.literal("httpIdleTimeoutMs"),
-				timeoutMs: z.union([
-					z.literal(HTTP_IDLE_TIMEOUT_CHOICES_MS[0]),
-					z.literal(HTTP_IDLE_TIMEOUT_CHOICES_MS[1]),
-					z.literal(HTTP_IDLE_TIMEOUT_CHOICES_MS[2]),
-					z.literal(HTTP_IDLE_TIMEOUT_CHOICES_MS[3]),
-					z.literal(HTTP_IDLE_TIMEOUT_CHOICES_MS[4]),
-				]),
+				timeoutMs: z.number().int().nonnegative(),
 			}),
 			z.strictObject({ type: z.literal("enableSkillCommands"), enabled: z.boolean() }),
 			z.strictObject({ type: z.literal("codemode"), settings: piCodemodeSettingsSchema.partial() }),

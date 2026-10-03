@@ -288,7 +288,8 @@
 		"nestedArgumentsOmitted": "Arguments omitted ({{count}} bytes)",
 		"nestedIncomplete": "Some calls or arguments were omitted, or were still running when this result was recorded.",
 		"routedModel": "→ {{model}}",
-		"downloadImage": "Download image"
+		"downloadImage": "Download image",
+		"cmdReloadDesc": "Reload Pi resources"
 	},
 	"explorer": {
 		"title": "Files",
@@ -574,7 +575,8 @@
 		"hostPathEmpty": "No subfolders to display.",
 		"hostPathUnavailable": "Unavailable",
 		"hostPathTruncated": "This folder contains more entries. Enter a path to reach a folder that is not shown.",
-		"hostPathSelect": "Select this folder"
+		"hostPathSelect": "Select this folder",
+		"trustExtensionPrompt": "A global Pi extension is requesting input before loading project resources."
 	},
 	"projectPiConfig": {
 		"title": "Project Pi config",
@@ -631,7 +633,9 @@
 		"clearSearch": "Clear search",
 		"noMatchingProviders": "No matching providers.",
 		"providerCount_one": "{{count}} provider",
-		"providerCount_other": "{{count}} providers"
+		"providerCount_other": "{{count}} providers",
+		"scopedModels": "Scoped models",
+		"allModels": "All models"
 	},
 	"plugins": {
 		"title": "Plugins",
@@ -840,8 +844,6 @@
 		"configurationMaxTokens": "Maximum output",
 		"configurationSamplingParams": "Sampling parameters",
 		"configurationCompat": "Request compatibility",
-		"catalogModelsAdopted": "{{count}} custom models now use official catalog configuration",
-		"catalogModelsBackup": "Previous configuration backed up to: {{path}}",
 		"configured": "Configured"
 	},
 	"settings": {
@@ -970,7 +972,7 @@
 		"globalInstructionsStatusPresent": "File exists",
 		"globalInstructionsReveal": "Open file",
 		"globalInstructionsSaved": "Saved — new sessions pick this up",
-		"globalInstructionsReloadHint": "Changes take effect on the next session, or run /reload in a running one.",
+		"globalInstructionsReloadHint": "Saving reloads Pi resources. Running sessions apply the change when their current operation finishes.",
 		"piDefaults": "Defaults",
 		"defaultModel": "Default model",
 		"defaultThinking": "Default thinking level",
@@ -1123,7 +1125,7 @@
 		"requestLabel": "Pi extension request",
 		"pendingCount": "{{count}} pending",
 		"expiresIn": "{{count}}s remaining",
-		"closeEnvironment": "Close Pi extension UI",
+		"sendEscape": "Send Escape to extension",
 		"dockTitle": "Extension dock",
 		"dockDescription": "Extension status and activity for this session",
 		"dockEmpty": "No extension activity yet",
@@ -1149,7 +1151,8 @@
 		"sessionChanged": "The session changed. Try the operation again.",
 		"historyChanged": "The conversation history changed. Reload it to continue.",
 		"packageHostLost": "The package process stopped. Reload the project resources and try again.",
-		"hostDirectoryUnavailable": "This folder could not be read. Check the path and access permissions."
+		"hostDirectoryUnavailable": "This folder could not be read. Check the path and access permissions.",
+		"piPermissionUnavailable": "The Pi permission package could not load. Repair or enable it, then reopen this conversation."
 	},
 	"markdown": {
 		"clipboardUnavailable": "Clipboard access is unavailable",
@@ -1522,7 +1525,13 @@
 		"retry": "Retry",
 		"moreActions": "More actions",
 		"cancel": "Cancel",
-		"loading": "Loading…"
+		"loading": "Loading…",
+		"edit": "Edit",
+		"save": "Save",
+		"confirm": "Confirm",
+		"close": "Close",
+		"previousPage": "Previous page",
+		"nextPage": "Next page"
 	},
 	"reading": {
 		"region": "Reading area",
@@ -1672,7 +1681,7 @@
 	},
 	"permissions": {
 		"title": "Permission configuration",
-		"description": "Set a default for all projects, or choose a project to configure it separately.",
+		"description": "Choose where Ling loads its bundled permission extension. Installed Pi permission packages keep their own activation and rules.",
 		"accessMode": "Access mode",
 		"choice": {
 			"full": "Full access",
@@ -1698,10 +1707,12 @@
 		"opening": "Opening…",
 		"rulesDescription": "Open in your system's default app. Creates an empty file if none exists.",
 		"rulesDesktopOnly": "Open rule files in the Ling desktop app.",
-		"applying": "Applying access settings…",
+		"applying": "Applying access mode…",
 		"precedence": "Project choices take priority over the global default. Running turns use the new mode after they finish.",
 		"fullAccessNote": "Full access skips this permission system, including configured deny rules. Your rule files stay unchanged.",
-		"approvalNote": "Approval follows your existing global and project settings, and asks only when those settings require confirmation."
+		"approvalNote": "Approval follows your existing global and project settings, and asks only when those settings require confirmation.",
+		"external": "Pi permissions",
+		"externalDescription": "The installed Pi permission extension controls this session. Manage its activation in Pi extensions."
 	},
 	"questions": {
 		"title": "Questions",
@@ -2060,5 +2071,80 @@
 		"invalidOAuthMetadataUrl": "Enter a complete HTTPS metadata URL, or an HTTP URL on localhost, 127.0.0.1 or [::1].",
 		"addRadius": "Add Radius",
 		"radiusHint": "Sign in to Radius in Settings → Models. This service uses that login for MCP requests."
+	},
+	"piConfiguration": {
+		"title": "Pi configuration",
+		"description": "Show configured values, inherited settings and the values Pi resolves. Changes apply to this scope.",
+		"search": "Search configuration",
+		"editJson": "Edit JSON",
+		"jsonHint": "Enter a JSON value. Refresh keeps your draft so you can review concurrent changes before saving.",
+		"applying": "Applying…",
+		"inherit": "Inherit",
+		"source_default": "Pi default",
+		"source_global": "Global",
+		"source_project": "Project",
+		"terminal": "Terminal only",
+		"globalOnly": "Global only",
+		"automatic": "Automatic",
+		"stored": "Configured value",
+		"common": "Common",
+		"complete": "All configuration",
+		"conflict": "The configuration changed. Refresh to inspect the current values, merge your edits into a new draft and review it before saving.",
+		"mergeDraft": "Merge current configuration into draft"
+	},
+	"sessionInspector": {
+		"title": "Session details",
+		"description": "Inspect and control the current Pi session.",
+		"overview": "Overview",
+		"tools": "Tools",
+		"tree": "Branches",
+		"prompt": "System prompt",
+		"flags": "Extension flags",
+		"cancelled": "An extension cancelled this action.",
+		"restoreText": "Add to draft",
+		"state": "State",
+		"busy": "Running",
+		"idle": "Idle",
+		"context": "Context",
+		"unknown": "Unknown",
+		"cache": "Cache warming",
+		"cache_inactive": "Inactive",
+		"cache_scheduled": "Scheduled",
+		"cache_refreshing": "Refreshing",
+		"warmCost": "Refresh cost",
+		"savings": "Expected savings",
+		"extensionOverride": "An extension adjusted this decision.",
+		"exportHtml": "Export HTML",
+		"exportJsonl": "Export JSONL",
+		"toolsHint": "Select tools for this session. Global defaults and extension exposure rules apply independently.",
+		"treeHint": "Select a branch entry to continue from it. The session keeps all branches.",
+		"label": "Branch label",
+		"summarize": "Summarize the branch before switching",
+		"instructions": "Optional summary instructions",
+		"navigate": "Continue from here",
+		"truncated": "The prompt exceeds the preview limit.",
+		"flagsHint": "Flags apply to this running session and survive resource reload.",
+		"noFlags": "This session has no extension flags.",
+		"importJsonl": "Import JSONL",
+		"importLimit": "Session files must be at most 8 MiB.",
+		"currentBranch": "Current branch",
+		"entries": {
+			"user": "User",
+			"assistant": "Assistant",
+			"toolResult": "Tool result",
+			"system": "System prompt",
+			"message": "Message",
+			"custom_message": "Extension message",
+			"custom": "Extension event",
+			"model_change": "Model selection",
+			"thinking_level_change": "Thinking level",
+			"compaction": "Compaction",
+			"branch_summary": "Branch summary",
+			"label": "Label",
+			"session_info": "Session info",
+			"tools": "Tool selection",
+			"toolCall": "Tool call"
+		},
+		"searchTools": "Search tools"
 	}
 }

@@ -6,9 +6,9 @@ Use `ling_mcp` for configuration changes and Settings → MCP services for live 
 
 | Control | Meaning |
 | --- | --- |
-| Ling MCP feature switch | Global, off by default. Controls the official built-in extension and Ling's native controls. `ling_mcp` remains available while execution is off. |
+| Ling MCP switch | Edits Pi's global `builtin:mcp` selection and reflects changes made through the CLI. Existing saved choices are preserved; new installations follow Pi's default. `ling_mcp` remains available while execution is off. |
 | A server's `enabled` field | `false` disables that complete server entry. Absence means enabled. |
-| Pi extension selection | `-builtin:mcp` disables the official extension. An installed extension that owns `/mcp` takes precedence; it retains its own commands and lifecycle. |
+| Pi extension selection | Global and trusted project filters resolve in Pi; `-builtin:mcp` disables and `+builtin:mcp` enables the official extension. An installed extension that owns `/mcp` takes precedence; it retains its own commands and lifecycle. |
 | Built-in skills switches | Control whether this guidance is loaded, independently of MCP activation. A same-name user/project skill can shadow it. |
 
 Start with `ling_mcp` action `read`. The result includes feature state/revision, file paths/revisions, service field names, validity diagnostics and the effective project configuration. Values are omitted because credentials can occur in URLs, arguments, environment variables and custom fields. An error or null result is not an empty configuration. Narrow truncated inventories by `name` or `target`.

@@ -1,215 +1,279 @@
-import { unsupportedExtensionUi as unsupported } from "../../pi-protocol/extension-ui";
+import {
+	KeybindingsManager,
+	TUI_KEYBINDINGS,
+	type KeybindingsConfig,
+	type KeybindingDefinitions,
+	type KeyId,
+} from "@earendil-works/pi-tui";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { z } from "zod";
+import { toError } from "../../ling-error";
 
-/** Pi TUI default keybinding table; the GUI's display/matching fallback when no custom bindings exist, aligned with CLI key semantics. */
-const DEFAULT_KEYBINDINGS: Record<string, readonly string[]> = {
-	"tui.editor.cursorUp": ["up"],
-	"tui.editor.cursorDown": ["down"],
-	"tui.editor.cursorLeft": ["left", "ctrl+b"],
-	"tui.editor.cursorRight": ["right", "ctrl+f"],
-	"tui.editor.cursorWordLeft": ["alt+left", "ctrl+left", "alt+b"],
-	"tui.editor.cursorWordRight": ["alt+right", "ctrl+right", "alt+f"],
-	"tui.editor.cursorLineStart": ["home", "ctrl+a"],
-	"tui.editor.cursorLineEnd": ["end", "ctrl+e"],
-	"tui.editor.pageUp": ["pageUp"],
-	"tui.editor.pageDown": ["pageDown"],
-	"tui.editor.deleteCharBackward": ["backspace"],
-	"tui.editor.deleteCharForward": ["delete", "ctrl+d"],
-	"tui.editor.deleteWordBackward": ["ctrl+w", "alt+backspace"],
-	"tui.editor.deleteWordForward": ["alt+d", "alt+delete"],
-	"tui.editor.deleteToLineStart": ["ctrl+u"],
-	"tui.editor.deleteToLineEnd": ["ctrl+k"],
-	"tui.editor.yank": ["ctrl+y"],
-	"tui.editor.yankPop": ["alt+y"],
-	"tui.editor.undo": ["ctrl+-"],
-	"tui.input.newLine": ["shift+enter", "ctrl+j"],
-	"tui.input.submit": ["enter"],
-	"tui.input.tab": ["tab"],
-	"tui.input.copy": ["ctrl+c"],
-	"tui.select.up": ["up"],
-	"tui.select.down": ["down"],
-	"tui.select.pageUp": ["pageUp"],
-	"tui.select.pageDown": ["pageDown"],
-	"tui.select.confirm": ["enter"],
-	"tui.select.cancel": ["escape", "ctrl+c"],
-	"app.interrupt": ["escape"],
-	"app.clear": ["ctrl+c"],
-	"app.exit": ["ctrl+d"],
-	"app.thinking.cycle": ["shift+tab"],
-	"app.model.cycleForward": ["ctrl+p"],
-	"app.model.cycleBackward": ["ctrl+shift+p"],
-	"app.model.select": ["ctrl+l"],
-	"app.tools.expand": ["ctrl+o"],
-	"app.thinking.toggle": ["ctrl+t"],
-	"app.editor.external": ["ctrl+g"],
-	"app.message.followUp": ["alt+enter"],
-	"app.message.dequeue": ["alt+up"],
-	"app.clipboard.pasteImage": [process.platform === "win32" ? "alt+v" : "ctrl+v"],
-	"app.tree.foldOrUp": ["ctrl+left", "alt+left"],
-	"app.tree.unfoldOrDown": ["ctrl+right", "alt+right"],
-	"app.tree.editLabel": ["shift+l"],
-	"app.tree.toggleLabelTimestamp": ["shift+t"],
-	"app.tree.filter.default": ["ctrl+d"],
-	"app.tree.filter.noTools": ["ctrl+t"],
-	"app.tree.filter.userOnly": ["ctrl+u"],
-	"app.tree.filter.labeledOnly": ["ctrl+l"],
-	"app.tree.filter.all": ["ctrl+a"],
-	"app.tree.filter.cycleForward": ["ctrl+o"],
-	"app.tree.filter.cycleBackward": ["ctrl+shift+o"],
-	"app.models.save": ["ctrl+s"],
-	"app.models.enableAll": ["ctrl+a"],
-	"app.models.clearAll": ["ctrl+x"],
-	"app.models.toggleProvider": ["ctrl+p"],
-	"app.models.reorderUp": ["alt+up"],
-	"app.models.reorderDown": ["alt+down"],
-	"app.session.toggleNamedFilter": ["ctrl+n"],
-	"app.session.togglePath": ["ctrl+p"],
-	"app.session.toggleSort": ["ctrl+s"],
-	"app.session.rename": ["ctrl+r"],
-	"app.session.delete": ["ctrl+d"],
-	"app.session.deleteNoninvasive": ["ctrl+backspace"],
-};
+const windowsKeybindings =
+	process.platform === "win32" ||
+	(process.platform === "linux" && Boolean(process.env.WSL_DISTRO_NAME || process.env.WSL_INTEROP));
 
-/** Raw terminal byte sequences → canonical key names; covers legacy CSI/control-character descriptions. */
-const LEGACY_KEY_DATA: Record<string, string> = {
-	"\x1b": "escape",
-	"\t": "tab",
-	"\n": "enter",
-	"\r": "enter",
-	" ": "space",
-	"\x7f": "backspace",
-	"\x1b[A": "up",
-	"\x1b[B": "down",
-	"\x1b[C": "right",
-	"\x1b[D": "left",
-	"\x1b[H": "home",
-	"\x1b[F": "end",
-	"\x1b[1~": "home",
-	"\x1b[4~": "end",
-	"\x1b[2~": "insert",
-	"\x1b[3~": "delete",
-	"\x1b[5~": "pageUp",
-	"\x1b[6~": "pageDown",
-	"\x1b\x7f": "alt+backspace",
-	"\x1bb": "alt+left",
-	"\x1bf": "alt+right",
-	"\x1bp": "alt+up",
-	"\x1bn": "alt+down",
-};
+const KEYBINDINGS = {
+	...TUI_KEYBINDINGS,
+	"tui.editor.undo": {
+		...TUI_KEYBINDINGS["tui.editor.undo"],
+		defaultKeys: process.platform === "win32" ? "ctrl+z" : windowsKeybindings ? "alt+z" : "ctrl+-",
+	},
+	"tui.altScreen.previousPrompt": {
+		...TUI_KEYBINDINGS["tui.altScreen.previousPrompt"],
+		defaultKeys: windowsKeybindings ? "ctrl+up" : ["ctrl+shift+up", "ctrl+up"],
+	},
+	"tui.altScreen.nextPrompt": {
+		...TUI_KEYBINDINGS["tui.altScreen.nextPrompt"],
+		defaultKeys: windowsKeybindings ? "ctrl+down" : ["ctrl+shift+down", "ctrl+down"],
+	},
+	"tui.altScreen.search": {
+		...TUI_KEYBINDINGS["tui.altScreen.search"],
+		defaultKeys: windowsKeybindings ? "ctrl+f" : "ctrl+shift+f",
+	},
+	"app.interrupt": { defaultKeys: "escape", description: "Cancel or abort" },
+	"app.clear": { defaultKeys: "ctrl+c", description: "Clear editor" },
+	"app.exit": { defaultKeys: "ctrl+d", description: "Exit when editor is empty" },
+	"app.suspend": {
+		defaultKeys: process.platform === "win32" ? [] : "ctrl+z",
+		description: "Suspend to background",
+	},
+	"app.thinking.cycle": {
+		defaultKeys: "shift+tab",
+		description: "Cycle thinking level",
+	},
+	"app.thinking.save": {
+		defaultKeys: "ctrl+s",
+		description: "Save thinking level",
+	},
+	"app.model.cycleForward": {
+		defaultKeys: "ctrl+p",
+		description: "Cycle to next model",
+	},
+	"app.model.cycleBackward": {
+		defaultKeys: windowsKeybindings ? "alt+p" : "shift+ctrl+p",
+		description: "Cycle to previous model",
+	},
+	"app.model.select": { defaultKeys: "ctrl+l", description: "Open model selector" },
+	"app.tools.expand": { defaultKeys: "ctrl+o", description: "Toggle tool output" },
+	"app.thinking.toggle": {
+		defaultKeys: "ctrl+t",
+		description: "Toggle thinking blocks",
+	},
+	"app.session.toggleNamedFilter": {
+		defaultKeys: "ctrl+n",
+		description: "Toggle named session filter",
+	},
+	"app.editor.external": {
+		defaultKeys: "ctrl+g",
+		description: "Open external editor",
+	},
+	"app.message.copy": {
+		defaultKeys: "ctrl+x",
+		description: "Copy selection or last assistant message",
+	},
+	"app.message.followUp": {
+		defaultKeys: windowsKeybindings ? "ctrl+q" : "alt+enter",
+		description: "Queue follow-up message",
+	},
+	"app.message.dequeue": {
+		defaultKeys: windowsKeybindings ? "alt+q" : "alt+up",
+		description: "Restore queued messages",
+	},
+	"app.clipboard.pasteImage": {
+		defaultKeys: windowsKeybindings ? "alt+v" : "ctrl+v",
+		description: "Paste files on macOS, images, or text from clipboard",
+	},
+	"app.session.new": { defaultKeys: [], description: "Start a new session" },
+	"app.session.tree": { defaultKeys: [], description: "Open session tree" },
+	"app.session.fork": { defaultKeys: [], description: "Fork current session" },
+	"app.session.resume": { defaultKeys: [], description: "Resume a session" },
+	"app.tree.foldOrUp": {
+		defaultKeys: process.platform === "darwin" ? ["alt+left", "ctrl+left"] : ["ctrl+left", "alt+left"],
+		description: "Fold tree branch or move up",
+	},
+	"app.tree.unfoldOrDown": {
+		defaultKeys: process.platform === "darwin" ? ["alt+right", "ctrl+right"] : ["ctrl+right", "alt+right"],
+		description: "Unfold tree branch or move down",
+	},
+	"app.tree.editLabel": {
+		defaultKeys: "shift+l",
+		description: "Edit tree label",
+	},
+	"app.tree.toggleLabelTimestamp": {
+		defaultKeys: "shift+t",
+		description: "Toggle tree label timestamps",
+	},
+	"app.session.togglePath": {
+		defaultKeys: "ctrl+p",
+		description: "Toggle session path display",
+	},
+	"app.session.toggleSort": {
+		defaultKeys: "ctrl+s",
+		description: "Toggle session sort mode",
+	},
+	"app.session.rename": {
+		defaultKeys: "ctrl+r",
+		description: "Rename session",
+	},
+	"app.session.delete": {
+		defaultKeys: "ctrl+d",
+		description: "Delete session",
+	},
+	"app.session.deleteNoninvasive": {
+		defaultKeys: "ctrl+backspace",
+		description: "Delete session when query is empty",
+	},
+	"app.models.save": {
+		defaultKeys: "ctrl+s",
+		description: "Save model selection",
+	},
+	"app.models.enableAll": {
+		defaultKeys: "ctrl+a",
+		description: "Enable all models",
+	},
+	"app.models.clearAll": {
+		defaultKeys: "ctrl+x",
+		description: "Clear all models",
+	},
+	"app.models.toggleProvider": {
+		defaultKeys: "ctrl+p",
+		description: "Toggle all models for provider",
+	},
+	"app.models.reorderUp": {
+		defaultKeys: "alt+up",
+		description: "Move model up in order",
+	},
+	"app.models.reorderDown": {
+		defaultKeys: "alt+down",
+		description: "Move model down in order",
+	},
+	"app.tree.filter.default": {
+		defaultKeys: "ctrl+d",
+		description: "Tree filter: default view",
+	},
+	"app.tree.filter.noTools": {
+		defaultKeys: "ctrl+t",
+		description: "Tree filter: hide tool results",
+	},
+	"app.tree.filter.userOnly": {
+		defaultKeys: "ctrl+u",
+		description: "Tree filter: user messages only",
+	},
+	"app.tree.filter.labeledOnly": {
+		defaultKeys: "ctrl+l",
+		description: "Tree filter: labeled entries only",
+	},
+	"app.tree.filter.all": {
+		defaultKeys: "ctrl+a",
+		description: "Tree filter: show all entries",
+	},
+	"app.tree.filter.cycleForward": {
+		defaultKeys: "ctrl+o",
+		description: "Tree filter: cycle forward",
+	},
+	"app.tree.filter.cycleBackward": {
+		defaultKeys: "shift+ctrl+o",
+		description: "Tree filter: cycle backward",
+	},
+} as const satisfies KeybindingDefinitions;
 
-/** CSI arrow letter codes → arrow key names (A/B/C/D per the xterm standard). */
-const ARROW_KEY_BY_CODE: Record<string, string> = { A: "up", B: "down", C: "right", D: "left" };
-/** CSI ~ function-key numeric codes → key names (insert/delete/page/home/end). */
-const FUNCTION_KEY_BY_CODE: Record<string, string> = {
-	"2": "insert",
-	"3": "delete",
-	"5": "pageUp",
-	"6": "pageDown",
-	"7": "home",
-	"8": "end",
-};
-/** CSI u protocol key codes → canonical key names (kitty/modifyOtherKeys style). */
-const CSI_U_KEY_BY_CODE: Record<string, string> = {
-	"9": "tab",
-	"13": "enter",
-	"27": "escape",
-	"32": "space",
-	"127": "backspace",
-};
+const KEYBINDING_NAME_MIGRATIONS = {
+	cursorUp: "tui.editor.cursorUp",
+	cursorDown: "tui.editor.cursorDown",
+	cursorLeft: "tui.editor.cursorLeft",
+	cursorRight: "tui.editor.cursorRight",
+	cursorWordLeft: "tui.editor.cursorWordLeft",
+	cursorWordRight: "tui.editor.cursorWordRight",
+	cursorLineStart: "tui.editor.cursorLineStart",
+	cursorLineEnd: "tui.editor.cursorLineEnd",
+	jumpForward: "tui.editor.jumpForward",
+	jumpBackward: "tui.editor.jumpBackward",
+	pageUp: "tui.editor.pageUp",
+	pageDown: "tui.editor.pageDown",
+	deleteCharBackward: "tui.editor.deleteCharBackward",
+	deleteCharForward: "tui.editor.deleteCharForward",
+	deleteWordBackward: "tui.editor.deleteWordBackward",
+	deleteWordForward: "tui.editor.deleteWordForward",
+	deleteToLineStart: "tui.editor.deleteToLineStart",
+	deleteToLineEnd: "tui.editor.deleteToLineEnd",
+	yank: "tui.editor.yank",
+	yankPop: "tui.editor.yankPop",
+	undo: "tui.editor.undo",
+	newLine: "tui.input.newLine",
+	submit: "tui.input.submit",
+	tab: "tui.input.tab",
+	copy: "tui.input.copy",
+	selectUp: "tui.select.up",
+	selectDown: "tui.select.down",
+	selectPageUp: "tui.select.pageUp",
+	selectPageDown: "tui.select.pageDown",
+	selectConfirm: "tui.select.confirm",
+	selectCancel: "tui.select.cancel",
+	interrupt: "app.interrupt",
+	clear: "app.clear",
+	exit: "app.exit",
+	suspend: "app.suspend",
+	cycleThinkingLevel: "app.thinking.cycle",
+	cycleModelForward: "app.model.cycleForward",
+	cycleModelBackward: "app.model.cycleBackward",
+	selectModel: "app.model.select",
+	expandTools: "app.tools.expand",
+	toggleThinking: "app.thinking.toggle",
+	toggleSessionNamedFilter: "app.session.toggleNamedFilter",
+	externalEditor: "app.editor.external",
+	followUp: "app.message.followUp",
+	dequeue: "app.message.dequeue",
+	pasteImage: "app.clipboard.pasteImage",
+	newSession: "app.session.new",
+	tree: "app.session.tree",
+	fork: "app.session.fork",
+	resume: "app.session.resume",
+	treeFoldOrUp: "app.tree.foldOrUp",
+	treeUnfoldOrDown: "app.tree.unfoldOrDown",
+	treeEditLabel: "app.tree.editLabel",
+	treeToggleLabelTimestamp: "app.tree.toggleLabelTimestamp",
+	toggleSessionPath: "app.session.togglePath",
+	toggleSessionSort: "app.session.toggleSort",
+	renameSession: "app.session.rename",
+	deleteSession: "app.session.delete",
+	deleteSessionNoninvasive: "app.session.deleteNoninvasive",
+} as const satisfies Record<string, string>;
 
-function unsupportedUnknownProperty(target: object, ownerCapability: string, capability: string): object {
-	return new Proxy(target, {
-		get(value, property, receiver) {
-			if (typeof property === "symbol") return Reflect.get(value, property, receiver);
-			if (Object.hasOwn(value, property)) return Reflect.get(value, property, receiver);
-			unsupported(`${ownerCapability}.${capability}.${property}`);
+/** Each custom panel owns its bindings; reload never modifies Pi's shared configuration. */
+export function createPiPanelKeybindings() {
+	const path = join(getAgentDir(), "keybindings.json");
+	function read(): KeybindingsConfig {
+		try {
+			// Key configuration is bounded before parsing in the synchronous extension factory.
+			if (statSync(path).size > 1024 * 1024) throw new Error("Pi keybindings exceed the 1 MiB limit");
+			const raw = z
+				.record(z.string(), z.union([z.string(), z.array(z.string())]))
+				.parse(JSON.parse(readFileSync(path, "utf8").replace(/^\uFEFF/, "")));
+			const bindings: KeybindingsConfig = {};
+			for (const [key, value] of Object.entries(raw)) {
+				const current = Object.hasOwn(KEYBINDING_NAME_MIGRATIONS, key)
+					? KEYBINDING_NAME_MIGRATIONS[key as keyof typeof KEYBINDING_NAME_MIGRATIONS]
+					: key;
+				if (key !== current && Object.hasOwn(raw, current)) continue;
+				bindings[current] = value as KeyId | KeyId[];
+			}
+			return bindings;
+		} catch (error) {
+			const cause = toError(error);
+			if ("code" in cause && cause.code === "ENOENT") return {};
+			throw cause;
+		}
+	}
+	const bindings = new KeybindingsManager(KEYBINDINGS, read());
+	return Object.assign(bindings, {
+		reload() {
+			bindings.setUserBindings(read());
+		},
+		getEffectiveConfig() {
+			return bindings.getResolvedBindings();
 		},
 	});
-}
-
-function defaultKeysFor(keybinding: string): readonly string[] {
-	if (!Object.hasOwn(DEFAULT_KEYBINDINGS, keybinding)) return [];
-	return DEFAULT_KEYBINDINGS[keybinding] ?? [];
-}
-
-function cloneDefaultKeybindings(): Record<string, readonly string[]> {
-	return Object.fromEntries(Object.entries(DEFAULT_KEYBINDINGS).map(([key, bindings]) => [key, [...bindings]]));
-}
-
-function modifierPrefix(modifierValue: number): string {
-	const modifier = modifierValue - 1;
-	const parts: string[] = [];
-	if ((modifier & 4) !== 0) parts.push("ctrl");
-	if ((modifier & 2) !== 0) parts.push("alt");
-	if ((modifier & 1) !== 0) parts.push("shift");
-	if ((modifier & 8) !== 0) parts.push("super");
-	return parts.length === 0 ? "" : `${parts.join("+")}+`;
-}
-
-function csiUCodePointKey(codePoint: number): string | undefined {
-	if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10ffff) return undefined;
-	return String.fromCodePoint(codePoint);
-}
-
-function keyIdsFromData(data: string): string[] {
-	const direct = Object.hasOwn(LEGACY_KEY_DATA, data) ? LEGACY_KEY_DATA[data] : undefined;
-	if (direct) return [direct];
-	if (data.startsWith("\x1b[1;")) {
-		const code = data.at(-1);
-		const key = code ? ARROW_KEY_BY_CODE[code] : undefined;
-		const modifier = data.slice(4, -1);
-		if (key && modifier.length > 0) return [`${modifierPrefix(Number.parseInt(modifier, 10))}${key}`];
-	}
-	if (data.startsWith("\x1b[") && data.endsWith("~")) {
-		const [keyCode, modifier] = data.slice(2, -1).split(";");
-		const key = keyCode ? FUNCTION_KEY_BY_CODE[keyCode] : undefined;
-		if (key) return [`${modifierPrefix(Number.parseInt(modifier ?? "1", 10))}${key}`];
-	}
-	if (data.startsWith("\x1b[") && data.endsWith("u")) {
-		const [code, modifier] = data.slice(2, -1).split(";");
-		const parsedCode = code === undefined ? Number.NaN : Number.parseInt(code, 10);
-		const parsedModifier = modifier === undefined ? Number.NaN : Number.parseInt(modifier, 10);
-		const key = code === undefined ? undefined : (CSI_U_KEY_BY_CODE[code] ?? csiUCodePointKey(parsedCode));
-		if (key && Number.isInteger(parsedModifier)) return [`${modifierPrefix(parsedModifier)}${key}`];
-	}
-	const charCode = data.length === 1 ? data.charCodeAt(0) : 0;
-	if (charCode >= 1 && charCode <= 26) return [`ctrl+${String.fromCharCode(charCode + 96)}`];
-	if (data.length === 2 && data.startsWith("\x1b")) return [`alt+${data[1]}`];
-	if (data.length === 1) return [data];
-	return [];
-}
-
-export function createLingKeybindings(): unknown {
-	const bindings = {
-		matches(data: string, keybinding: string): boolean {
-			const keys = defaultKeysFor(keybinding);
-			if (keys.length === 0) return false;
-			const ids = keyIdsFromData(data);
-			return keys.some((key) => ids.includes(key));
-		},
-		getKeys(keybinding: string): string[] {
-			return [...defaultKeysFor(keybinding)];
-		},
-		getDefinition(keybinding: string) {
-			return { defaultKeys: [...defaultKeysFor(keybinding)] };
-		},
-		getConflicts(): unknown[] {
-			return [];
-		},
-		getUserBindings(): Record<string, never> {
-			return {};
-		},
-		getResolvedBindings(): Record<string, readonly string[]> {
-			return cloneDefaultKeybindings();
-		},
-		getEffectiveConfig(): Record<string, readonly string[]> {
-			return cloneDefaultKeybindings();
-		},
-		setUserBindings() {
-			unsupported("custom.keybindings.setUserBindings");
-		},
-		reload() {
-			unsupported("custom.keybindings.reload");
-		},
-	};
-	return unsupportedUnknownProperty(bindings, "custom", "keybindings");
 }

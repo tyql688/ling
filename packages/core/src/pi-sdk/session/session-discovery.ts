@@ -1,13 +1,14 @@
-import { getAgentDir, parseSessionEntries, SessionManager } from "@earendil-works/pi-coding-agent";
+import { parseSessionEntries, SessionManager } from "@earendil-works/pi-coding-agent";
 import { errorCode } from "@ling/contracts/ling-error";
 import { isRecord } from "@ling/contracts/records";
 import { pathIdentity } from "@ling/core/paths";
 import { createReadStream } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
 import type { PiSessionInfo } from "../types";
 import { createSessionOriginReader } from "./session-origin";
+import { piSessionDirectories } from "./session-storage";
 
 type LingSessionInfo = PiSessionInfo & { manualFork: boolean };
 
@@ -35,17 +36,10 @@ type PiSessionDiscovery =
 /** Limits simultaneous JSONL streams without retaining Pi's unused all-message search corpus. */
 const SESSION_DISCOVERY_CONCURRENCY = 8;
 
-export function listPiSessions(cwd: string): Promise<PiSessionInfo[]> {
-	return SessionManager.list(cwd);
-}
-
-function defaultPiSessionDirectory(cwd: string): string {
-	// Pi 0.83's public SessionManager.list() owns the same default directory convention,
-	// but does not export the resolver from its package root. Keep the adapter detail here.
-	const safePath = `--${resolve(cwd)
-		.replace(/^[/\\]/, "")
-		.replace(/[/\\:]/g, "-")}--`;
-	return join(resolve(getAgentDir()), "sessions", safePath);
+export async function listPiSessions(cwd: string): Promise<PiSessionInfo[]> {
+	return (
+		await Promise.all((await piSessionDirectories(cwd)).map((directory) => SessionManager.list(cwd, directory)))
+	).flat();
 }
 
 function fileFingerprint(stats: { size: number; mtimeMs: number }): PiSessionFileFingerprint {
@@ -183,23 +177,29 @@ async function inspectPiSessionFile(
 }
 
 /**
- * Enumerates one project's default Pi session directory and reuses summaries whose
+ * Enumerates configured and retained session locations and reuses summaries whose
  * size/mtime fingerprint is unchanged. Only new or changed JSONL files are streamed.
  */
 export async function discoverPiSessions(
 	cwd: string,
 	cachedFiles: readonly CachedPiSessionFile[],
 ): Promise<PiSessionDiscovery[]> {
-	const directory = defaultPiSessionDirectory(cwd);
-	let names: string[];
-	try {
-		names = (await readdir(directory)).filter((name) => name.endsWith(".jsonl"));
-	} catch (error) {
-		if (errorCode(error) === "ENOENT") return [];
-		throw error;
-	}
+	const directories = new Set([...(await piSessionDirectories(cwd)), ...cachedFiles.map((file) => dirname(file.path))]);
+	const files = (
+		await Promise.all(
+			[...directories].map(async (directory) => {
+				try {
+					return (await readdir(directory))
+						.filter((name) => name.endsWith(".jsonl"))
+						.map((name) => join(directory, name));
+				} catch (error) {
+					if (errorCode(error) === "ENOENT") return [];
+					throw error;
+				}
+			}),
+		)
+	).flat();
 	const cachedByPath = new Map(cachedFiles.map((entry) => [pathIdentity(entry.path), entry]));
-	const files = names.map((name) => join(directory, name));
 	const results = new Array<PiSessionDiscovery | null>(files.length).fill(null);
 	let nextIndex = 0;
 	const worker = async (): Promise<void> => {
@@ -222,5 +222,8 @@ export async function discoverPiSessions(
 	};
 	const workerCount = Math.min(SESSION_DISCOVERY_CONCURRENCY, files.length);
 	await Promise.all(Array.from({ length: workerCount }, worker));
-	return results.filter((result): result is PiSessionDiscovery => result !== null);
+	return results.filter(
+		(result): result is PiSessionDiscovery =>
+			result !== null && (result.kind === "cached" || pathIdentity(result.info.cwd) === pathIdentity(cwd)),
+	);
 }

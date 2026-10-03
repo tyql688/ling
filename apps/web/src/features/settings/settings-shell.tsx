@@ -260,7 +260,7 @@ export function SettingsShell({ onBack, themeController }: SettingsShellProps) {
 					{category === "general" && <SettingsView />}
 					{category === "appearance" && <AppearanceView themeController={themeController} />}
 					{category === "terminal" && <TerminalSettingsView />}
-					{category === "pi" && <PiSettingsView />}
+					{category === "pi" && <PiSettingsView projects={projects} />}
 					{category === "models" && <ModelsView providerProjectCwd={providerProjectCwd} />}
 					{category === "plugins" && <PluginsView />}
 					{category === "mcp" && <McpSettingsView projects={projects} activeCwd={providerProjectCwd} />}

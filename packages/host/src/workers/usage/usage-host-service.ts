@@ -35,7 +35,7 @@ export function createUsageHostService() {
 			);
 		}
 		try {
-			const result = await getUsageStats(request.rangeDays, request.agentDir, scanner);
+			const result = await getUsageStats(request.rangeDays, request.sessionDirectories, scanner);
 			if (Date.now() >= request.deadlineAt) {
 				return errorResponse(
 					request,

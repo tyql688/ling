@@ -28,6 +28,7 @@ export const modelStateSchema = z.strictObject({
 	models: z
 		.array(
 			z.strictObject({
+				inScope: z.boolean().optional(),
 				provider: fieldSchema,
 				providerName: fieldSchema,
 				id: fieldSchema,

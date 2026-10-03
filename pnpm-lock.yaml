@@ -319,6 +319,9 @@ importers:
       '@earendil-works/pi-coding-agent':
         specifier: 1.0.0
         version: 1.0.0(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5)
+      '@earendil-works/pi-tui':
+        specifier: 1.0.0
+        version: 1.0.0
       '@ling/builtin-extensions':
         specifier: workspace:*
         version: link:../builtin-extensions
@@ -365,6 +368,9 @@ importers:
       '@earendil-works/pi-coding-agent':
         specifier: 1.0.0
         version: 1.0.0(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5)
+      '@earendil-works/pi-tui':
+        specifier: 1.0.0
+        version: 1.0.0
       '@earendil-works/pi-voice':
         specifier: 0.1.0
         version: 0.1.0(@earendil-works/pi-coding-agent@1.0.0(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@1.0.0)(typebox@1.3.34)

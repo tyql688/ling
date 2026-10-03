@@ -186,7 +186,13 @@ export function startPiWorkerServer(options: StartPiWorkerServerOptions): PiWork
 			}
 		}
 
-		const resolveProjectTrust = createPiProjectTrustResolver((cwd) => callMain("project.promptTrust", { cwd }));
+		const resolveProjectTrust = createPiProjectTrustResolver((cwd, prompt, signal) =>
+			callMain(
+				"project.promptTrust",
+				{ cwd, ...(prompt ? { prompt } : {}) },
+				{ timeoutMs: null, ...(signal ? { signal } : {}) },
+			),
+		);
 
 		const turnLifecycle = createPiTurnLifecycle({
 			start: (ref, timestamp, context) => callMain("turn.start", { ref, timestamp, context }),
@@ -245,7 +251,6 @@ export function startPiWorkerServer(options: StartPiWorkerServerOptions): PiWork
 			modelRuntimes,
 			config: modelConfig,
 			credentials,
-			agentDir,
 		});
 		const catalog = createPiModelCatalog({
 			projects: {

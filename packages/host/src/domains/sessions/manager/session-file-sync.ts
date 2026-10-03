@@ -2,6 +2,7 @@ import { createLogger } from "@ling/core/logger";
 import { type FSWatcher, watch } from "node:fs";
 import { stat } from "node:fs/promises";
 import type { SessionRuntimePort } from "@ling/core/pi-protocol/runtime-port";
+import { createLingError } from "@ling/core/ling-error";
 
 const log = createLogger("session-file-sync");
 
@@ -35,10 +36,9 @@ interface RefreshDecisionInput {
 	baseline: SessionFileStamp | null;
 }
 
-/** The one divergence predicate both sides share. No baseline yet (fresh session, file
- * not written) or no file on disk means nothing to diverge from — the SDK owns those. */
+/** A fresh session has no accepted file; a persisted session retains that baseline until replacement. */
 function hasDiverged(disk: SessionFileStamp | null, baseline: SessionFileStamp | null): boolean {
-	if (disk === null || baseline === null) return false;
+	if (baseline === null) return false;
 	return !sameSessionFileStamp(disk, baseline);
 }
 
@@ -113,8 +113,16 @@ export function createSessionFileSyncController(options: SessionFileSyncOptions)
 			const info = await stat(file);
 			return { mtimeMs: info.mtimeMs, size: info.size };
 		} catch (error) {
-			// A missing file is the deferred-first-write case; every other read failure is unknown state.
-			if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+				if (acceptedStampFor(file) === null) return null;
+				throw createLingError({
+					code: "SESSION_FILE_DIVERGED",
+					category: "lifecycle",
+					message:
+						"The saved session file is missing. Restore it before reopening this session; further writes have been stopped to preserve its history.",
+					retryable: false,
+				});
+			}
 			throw error;
 		}
 	}

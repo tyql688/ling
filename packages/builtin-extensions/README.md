@@ -6,9 +6,9 @@ These implement Ling-owned tool behaviour. If the agent merely needs instruction
 
 ## Boundaries
 
-The package uses the public Pi SDK, Contracts and TypeBox. It does not import Host, Desktop or renderer internals. `bash-guard` exports a standard Pi extension factory. `manage-plugins` exports `createPluginTools(host)` and `companion-tools` exports `createCompanionTools(host)`; both require Ling's explicit Host callbacks and cannot run independently by copying their directories into Pi's extension roots.
+The package uses the public Pi SDK, Contracts and TypeBox. It does not import Host, Desktop or renderer internals. `manage-plugins`, `manage-mcp` and `companion-tools` export factories that require explicit Host callbacks. `generate-image` receives the session's Pi ModelRuntime. These factories receive their dependencies from the Pi adapter.
 
-`packages/core/src/pi-sdk/entrypoints/pi-worker.ts` constructs `lingExtensionFactories(pluginTools, companionTools)` with the package-operation and companion callbacks. Project services receive these factories as dependencies and merge them into the SDK resource loader. The package does not locate Host services globally.
+`packages/core/src/pi-sdk/entrypoints/pi-worker.ts` constructs `lingExtensionFactories(pluginTools, companionTools, features, mcpTools)` with the package-operation, companion and MCP callbacks. Project services receive these factories as dependencies and merge them into the SDK resource loader alongside the image-generation factory. The package does not locate Host services globally.
 
 It is a direct dependency of `@ling/core`. The Host build bundles the extension registry into the Pi worker graph so a deployed Host does not depend on workspace resolution. After a fresh Host build, inspect its entry and shared chunks for unresolved package imports:
 
@@ -24,7 +24,7 @@ There must be no unresolved package import; `rg` exits 1 when no match is found.
 2. Add its named inline entry to `lingExtensionFactories()` in `src/index.ts` and supply dependencies from the Pi entrypoint.
 3. Select checks from `AGENTS.md`. Execution or UI changes need actual registration, model/tool-approval and relevant reload/cleanup checks; prose-only changes do not. Inspect Pi's extension diagnostics when exercising project open or resource reload.
 
-Co-locate tool policy with its extension. `bash-guard/timeout.ts` owns the timeout interpretation shared by the shell tools.
+Co-locate tool policy with its extension. Pi owns its built-in shell tools, including shell selection, command prefixes and timeouts.
 
 Use stable `ling-<concern>` inline names from the registry. Pi uses these identities in extension sources and diagnostics.
 
@@ -38,6 +38,7 @@ Use distinct names for new Ling capabilities. When replacing a stock tool, inspe
 
 | Name | Does |
 | --- | --- |
-| `ling-bash-guard` | Defaults foreground bash/Windows PowerShell calls to 120 seconds and rejects timeouts above one hour |
+| `ling-mcp` | Provides `ling_mcp` for canonical MCP configuration and runtime reconciliation |
 | `ling-plugins` | Provides `ling_plugins` for Host-owned Pi package operations and resource reconciliation |
 | `ling-companions` | Registers the companion tools declared in `@ling/contracts/companion-tools` (questions, background tasks, schedules) and forwards each call to the Host |
+| `ling-image-generation` | Exposes Pi image-model discovery and generation through the session's ModelRuntime |

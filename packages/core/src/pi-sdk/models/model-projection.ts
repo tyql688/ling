@@ -48,11 +48,8 @@ export function createPiModelProjection(modelRuntimes: Pick<PiModelRuntimes, "ha
 	function projectSessionModels(session: AgentSession): ModelInfo[] {
 		const available = projectAvailableModels(session.modelRuntime);
 		if (session.scopedModels.length === 0) return available;
-		const availableByKey = new Map(available.map((model) => [modelKey(model.provider, model.id), model]));
-		return session.scopedModels.flatMap((entry) => {
-			const model = availableByKey.get(modelKey(entry.model.provider, entry.model.id));
-			return model ? [model] : [];
-		});
+		const scoped = new Set(session.scopedModels.map((entry) => modelKey(entry.model.provider, entry.model.id)));
+		return available.map((model) => ({ ...model, inScope: scoped.has(modelKey(model.provider, model.id)) }));
 	}
 	return { projectAvailableModels, projectSessionModels };
 }

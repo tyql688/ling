@@ -1,5 +1,5 @@
+import type { ProjectTrustPrompt } from "@ling/contracts/project-trust-ui";
 import type { DiagnosticProcess } from "@ling/contracts/diagnostics";
-import type { ProjectTrustChoice } from "@ling/contracts/project";
 import type { CompanionToolCall, CompanionToolResult, PiAdapterPlan } from "@ling/contracts/companions";
 import { type SessionRef, sessionKey } from "@ling/contracts/session-ref";
 
@@ -52,7 +52,7 @@ interface PiWorkerClientOptions {
 	runMcpTool(value: unknown, signal: AbortSignal): Promise<string>;
 	invokeCompanionTool(call: CompanionToolCall, signal: AbortSignal): Promise<CompanionToolResult>;
 	readAdapterPlan(cwd: string): Promise<PiAdapterPlan>;
-	promptProjectTrust(cwd: string, signal?: AbortSignal): Promise<ProjectTrustChoice | null>;
+	promptProjectTrust(cwd: string, signal?: AbortSignal, prompt?: ProjectTrustPrompt): Promise<string | null>;
 	turnLifecycleHost: PiTurnLifecycleHost;
 	hostEnvironment(): Record<string, string>;
 	systemProxyFallback(): string | null;

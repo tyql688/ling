@@ -185,8 +185,8 @@ export function WorkspaceSessionConversation() {
 			queuedEdit={queuedEdit}
 			onSaveQueuedEdit={saveQueuedEdit}
 			onCancelQueuedEdit={cancelQueuedEdit}
-			onRenameSession={(title) => void handleRenameSession(activeSessionRef, title).catch(showCommandError)}
-			onCompactSession={() => void handleCompact()}
+			onRenameSession={(title) => handleRenameSession(activeSessionRef, title)}
+			onCompactSession={handleCompact}
 			onComposerCommandError={showComposerCommandError}
 			contextTokens={lastContextTokens}
 			onOpenSession={(ref) => void selectSession(ref).catch(showCommandError)}

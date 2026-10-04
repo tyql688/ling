@@ -7,7 +7,7 @@ import { isPiRenderableComponent, renderPiComponentLines } from "./extension-ui-
 import { lingWidgetTheme } from "./extension-ui-theme";
 import { createPiToolOrigins } from "./pi-tool-origin";
 
-type PiToolDefinition = NonNullable<ReturnType<PiAgentSession["extensionRunner"]["getToolDefinition"]>>;
+type PiToolDefinition = NonNullable<ReturnType<PiAgentSession["extensionRunner"]["resolveToolRenderers"]>>;
 type PiRenderCall = NonNullable<PiToolDefinition["renderCall"]>;
 type PiRenderResult = NonNullable<PiToolDefinition["renderResult"]>;
 type PiRenderContext = Parameters<PiRenderCall>[2];
@@ -97,13 +97,19 @@ function renderResultVariant(
 	);
 }
 
+function resolveToolRenderers(owner: PiBranchProjectionSource, name: string): PiToolDefinition | undefined {
+	const runner = owner.extensions?.extensionRunner;
+	return runner?.resolveToolRenderers(name, () => runner.getToolDefinition(name));
+}
+
 function renderCallSnapshot(
-	definition: PiToolDefinition,
+	owner: PiBranchProjectionSource,
 	call: TrackedToolCall,
 	toolCallId: string,
 ): RenderedTextSnapshot | undefined {
-	if (!definition.renderCall) return undefined;
 	try {
+		const definition = resolveToolRenderers(owner, call.name);
+		if (!definition?.renderCall) return undefined;
 		return {
 			collapsedLines: renderCallVariant(definition.renderCall, call, toolCallId, false, {}),
 			expandedLines: renderCallVariant(definition.renderCall, call, toolCallId, true, {}),
@@ -114,15 +120,16 @@ function renderCallSnapshot(
 }
 
 function renderResultSnapshot(
-	definition: PiToolDefinition,
+	owner: PiBranchProjectionSource,
 	call: TrackedToolCall,
 	toolCallId: string,
 	result: unknown,
 	isError: boolean,
 	isPartial = false,
 ): RenderedTextSnapshot | undefined {
-	if (!definition.renderResult) return undefined;
 	try {
+		const definition = resolveToolRenderers(owner, call.name);
+		if (!definition?.renderResult) return undefined;
 		return {
 			collapsedLines: renderResultVariant(
 				definition,
@@ -173,9 +180,7 @@ export function createPiToolRendererProjection(owner: PiBranchProjectionSource) 
 					}
 					const call = { name: part.name, args: record(part.arguments) ?? {}, cwd: owner.sessionManager.getCwd() };
 					rememberCall(part.id, call);
-					const definition = owner.extensions?.extensionRunner.getToolDefinition(part.name);
-					if (!definition) return candidate;
-					const rendered = renderCallSnapshot(definition, call, part.id);
+					const rendered = renderCallSnapshot(owner, call, part.id);
 					if (!rendered) return candidate;
 					changed = true;
 					return { ...part, rendered };
@@ -195,9 +200,8 @@ export function createPiToolRendererProjection(owner: PiBranchProjectionSource) 
 				if (deferResult) {
 					return { ...result, content: [], details: undefined, rendered: undefined, contentState: "deferred" };
 				}
-				const definition = owner.extensions?.extensionRunner.getToolDefinition(source.toolName);
-				if (!call || call.name !== source.toolName || !definition) return result;
-				const rendered = renderResultSnapshot(definition, call, source.toolCallId, source, source.isError);
+				if (!call || call.name !== source.toolName) return result;
+				const rendered = renderResultSnapshot(owner, call, source.toolCallId, source, source.isError);
 				return rendered ? { ...result, rendered } : result;
 			}
 			return value;
@@ -205,8 +209,7 @@ export function createPiToolRendererProjection(owner: PiBranchProjectionSource) 
 		projectPartial(toolCallId: string, result: unknown): RenderedTextSnapshot | undefined {
 			const call = calls.get(toolCallId);
 			if (!call) return undefined;
-			const definition = owner.extensions?.extensionRunner.getToolDefinition(call.name);
-			return definition ? renderResultSnapshot(definition, call, toolCallId, result, false, true) : undefined;
+			return renderResultSnapshot(owner, call, toolCallId, result, false, true);
 		},
 		clear(): void {
 			calls.clear();

@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { getAgentDir, type LoadedMcpConfig, type McpServerConfig } from "@earendil-works/pi-coding-agent";
 import {
 	mcpScopedServerSchema,
+	mcpConfiguredServerSchema,
+	isMcpProjectOverride,
 	mcpServerNameSchema,
 	mcpServerNamespace,
 	type McpDocument,
@@ -26,7 +28,11 @@ function sources(agentDir: string, cwd: string | null) {
 /** One bounded configuration snapshot feeds both native editing and the official extension. */
 export async function readPiMcpConfiguration(agentDir: string, cwd: string | null, signal?: AbortSignal) {
 	const documents: McpDocument[] = [];
-	const loaded: LoadedMcpConfig = { servers: [], errors: [] };
+	const loaded: LoadedMcpConfig = {
+		servers: [],
+		errors: [],
+		...(cwd === null ? {} : { projectConfig: join(cwd, ".pi", "mcp.json") }),
+	};
 	const entries = new Map<string, LoadedMcpConfig["servers"][number]>();
 	for (const source of sources(agentDir, cwd)) {
 		try {
@@ -41,6 +47,7 @@ export async function readPiMcpConfiguration(agentDir: string, cwd: string | nul
 						`${source.path}: ${field} is not supported by official Pi MCP. Use mcpServers and autoEnableCodemode.`,
 					);
 			for (const [name, value] of Object.entries(document.servers)) {
+				const inherited = entries.get(name);
 				// An invalid project entry must not activate a same-name global service.
 				entries.delete(name);
 				const validName = mcpServerNameSchema.safeParse(name);
@@ -60,6 +67,15 @@ export async function readPiMcpConfiguration(agentDir: string, cwd: string | nul
 					loaded.errors.push(
 						`${source.path}: server "${name}" conflicts with "${conflict}" in namespace ${mcpServerNamespace(name)}.`,
 					);
+					continue;
+				}
+				if (source.scope === "project" && isMcpProjectOverride(parsed.data.server)) {
+					if (!inherited) {
+						loaded.errors.push(`${source.path}: ${name}: A project override requires a valid global MCP service.`);
+						continue;
+					}
+					const config = mcpConfiguredServerSchema.parse({ ...inherited.config, ...parsed.data.server });
+					entries.set(name, { ...inherited, config: config as McpServerConfig, override: source.path });
 					continue;
 				}
 				// The boundary schema requires one complete transport; the SDK type represents that union.
@@ -140,7 +156,7 @@ export function createPiMcp(projects: Pick<PiProjectServices, "withOpenProject">
 				return {
 					documents,
 					notices,
-					effective: loaded.servers.map(({ name, config, source }) => ({
+					effective: loaded.servers.map(({ name, config, source, override }) => ({
 						name,
 						disabled: config.enabled === false,
 						transport: "url" in config ? "http" : "stdio",
@@ -148,6 +164,7 @@ export function createPiMcp(projects: Pick<PiProjectServices, "withOpenProject">
 						...(config.description === undefined ? {} : { description: config.description }),
 						...("url" in config && config.auth ? { authProvider: config.auth.provider } : {}),
 						source,
+						...(override === undefined ? {} : { override }),
 					})),
 				};
 			});

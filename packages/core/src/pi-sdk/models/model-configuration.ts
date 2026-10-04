@@ -15,7 +15,14 @@ import { ownProviderEntry, type ModelsJsonConfig } from "./models-config-format"
 export function portableModelOptions(value: object): ModelOptions {
 	const fields: Record<string, unknown> = {};
 	const record = value as Record<string, unknown>;
-	for (const key of ["api", "input", "thinkingLevelMap", "cost", "promptCache"] as const) {
+	for (const key of [
+		"api",
+		"input",
+		"thinkingLevelMap",
+		"cost",
+		"promptCache",
+		"samplingParamsByThinkingLevel",
+	] as const) {
 		if (Object.hasOwn(record, key) && record[key] !== undefined) fields[key] = structuredClone(record[key]);
 	}
 	return modelOptionsSchema.parse(fields);
@@ -53,6 +60,7 @@ function inspectFields(value: object): BoundedJsonObject {
 		"maxTokens",
 		"thinkingLevelMap",
 		"samplingParams",
+		"samplingParamsByThinkingLevel",
 		"compat",
 	] as const) {
 		if (Object.hasOwn(record, key) && record[key] !== undefined) fields[key] = record[key];

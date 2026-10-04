@@ -22,6 +22,109 @@ async function fixture() {
 	return { root, path, file: createMcpConfigFile(path, "global"), signal: new AbortController().signal };
 }
 
+it("persists project exposure overrides without copying or redirecting global credentials", async () => {
+	const f = await fixture();
+	const cwd = join(f.root, "project");
+	await mkdir(join(cwd, ".pi"), { recursive: true });
+	const global = {
+		url: "https://example.com/mcp",
+		auth: { provider: "fixture" },
+		enabled: false,
+		exposure: "direct",
+		toolExposure: { read: "direct" },
+	};
+	const source = JSON.stringify({ mcpServers: { shared: global } });
+	await writeFile(f.path, source);
+	const path = join(cwd, ".pi", "mcp.json");
+	const file = createMcpConfigFile(path, "project");
+	const server = { enabled: true, exposure: "deferred" as const, toolExposure: { read: "hidden" as const } };
+	const input = mcpWriteRequestSchema.parse({
+		cwd,
+		target: "project",
+		name: "shared",
+		expectedRevision: (await file.read()).revision,
+		change: { kind: "save", server },
+	});
+	await file.write(input, f.signal);
+	const snapshot = await readPiMcpConfiguration(f.root, cwd);
+	expect(snapshot.loaded.errors).toEqual([]);
+	expect(snapshot.loaded.projectConfig).toBe(path);
+	expect(snapshot.loaded.servers).toEqual([
+		{ name: "shared", source: f.path, scope: "global", override: path, config: { ...global, ...server } },
+	]);
+	expect((await file.read()).servers.shared).toEqual(server);
+	expect(await readFile(f.path, "utf8")).toBe(source);
+	await file.write(
+		{ name: "shared", expectedRevision: (await file.read()).revision, change: { kind: "reset-enabled" } },
+		f.signal,
+	);
+	expect((await readPiMcpConfiguration(f.root, cwd)).loaded.servers[0]?.config.enabled).toBe(false);
+	await file.write(
+		{ name: "shared", expectedRevision: (await file.read()).revision, change: { kind: "remove" } },
+		f.signal,
+	);
+	expect((await readPiMcpConfiguration(f.root, cwd)).loaded.servers[0]).toEqual({
+		name: "shared",
+		source: f.path,
+		scope: "global",
+		config: global,
+	});
+});
+
+it("rejects credential-bearing project overrides and reports missing global services", async () => {
+	const f = await fixture();
+	const cwd = join(f.root, "project");
+	await mkdir(join(cwd, ".pi"), { recursive: true });
+	const file = createMcpConfigFile(join(cwd, ".pi", "mcp.json"), "project");
+	await expect(
+		file.write(
+			{
+				name: "shared",
+				expectedRevision: (await file.read()).revision,
+				change: { kind: "save", server: { enabled: false, headers: { Authorization: "private" } } },
+			},
+			f.signal,
+		),
+	).rejects.toThrow();
+	expect((await file.read()).exists).toBe(false);
+	await file.write(
+		{
+			name: "missing",
+			expectedRevision: (await file.read()).revision,
+			change: { kind: "save", server: { enabled: false } },
+		},
+		f.signal,
+	);
+	const snapshot = await readPiMcpConfiguration(f.root, cwd);
+	expect(snapshot.loaded.servers).toEqual([]);
+	expect(snapshot.loaded.errors).toEqual([expect.stringContaining("requires a valid global")]);
+});
+
+it("validates CIMD identity and callback combinations without rejecting an unfinished metadata draft", async () => {
+	const f = await fixture();
+	const server = {
+		url: "https://example.com/mcp",
+		oauth: { clientRegistration: "cimd" as const, callbackUrl: "http://127.0.0.1:43210/callback", futureOption: true },
+	};
+	await f.file.write(
+		{ name: "remote", expectedRevision: (await f.file.read()).revision, change: { kind: "save", server } },
+		f.signal,
+	);
+	expect((await readPiMcpConfiguration(f.root, null)).loaded.servers[0]?.config).toEqual(server);
+	for (const option of [
+		{ clientId: "fixed" },
+		{ clientName: "custom" },
+		{ callbackUrl: "http://localhost/other" },
+		{ callbackUrl: "http://[::1]/callback" },
+	])
+		expect(mcpConfiguredServerSchema.safeParse({ ...server, oauth: { ...server.oauth, ...option } }).success).toBe(
+			false,
+		);
+	const draft = { ...server, oauth: { ...server.oauth, authServerMetadataUrl: "https://" } };
+	expect(mcpServerSchema.safeParse(draft).success).toBe(true);
+	expect(mcpConfiguredServerSchema.safeParse(draft).success).toBe(false);
+});
+
 it("isolates malformed MCP options and names while keeping valid services editable", async () => {
 	const f = await fixture();
 	const oversizedName = "x".repeat(201);

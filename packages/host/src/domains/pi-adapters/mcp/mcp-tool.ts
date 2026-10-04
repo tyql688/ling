@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { mcpToolRequestSchema } from "@ling/contracts/mcp-tool";
-import { mcpScopedServerSchema, type McpOverview, type McpWriteRequest } from "@ling/contracts/mcp";
+import {
+	isMcpProjectOverride,
+	mcpScopedServerSchema,
+	type McpOverview,
+	type McpWriteRequest,
+} from "@ling/contracts/mcp";
 import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiResourceReloadSummary } from "@ling/contracts/session";
 import { parsePiWorkerSessionRef } from "@ling/core/pi-protocol/protocol-validation";
@@ -33,10 +38,20 @@ function inventory(overview: McpOverview, name?: string, target?: string) {
 					servers:
 						entries?.slice(0, TOOL_SERVER_LIMIT).map(([name, entry]) => {
 							const parsed = mcpScopedServerSchema.safeParse({ scope: document.scope, server: entry });
+							const inherited = parsed.success && isMcpProjectOverride(parsed.data.server);
+							const resolved = effective.find((server) => server.name === name);
 							return {
 								name,
-								enabled: parsed.success ? (parsed.data.server.enabled ?? true) : null,
-								transport: parsed.success ? (parsed.data.server.command ? "stdio" : "http") : "invalid",
+								enabled: parsed.success
+									? (parsed.data.server.enabled ?? (inherited ? (resolved ? !resolved.disabled : null) : true))
+									: null,
+								transport: parsed.success
+									? inherited
+										? "inherited"
+										: parsed.data.server.command
+											? "stdio"
+											: "http"
+									: "invalid",
 								fields: typeof entry === "object" && entry !== null ? Object.keys(entry) : [],
 								valid: parsed.success,
 							};

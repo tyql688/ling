@@ -33,6 +33,7 @@ const oauthSchema = z
 		clientId: text.optional(),
 		clientSecret: text.optional(),
 		clientName: text.refine((value) => value.trim().length > 0, "OAuth client name must not be empty").optional(),
+		clientRegistration: z.enum(["dcr", "cimd"]).optional(),
 		authServerMetadataUrl: text.optional(),
 		callbackPort: z.number().int().min(1).max(65535).optional(),
 		callbackUrl: text
@@ -61,7 +62,7 @@ const oauthSchema = z
 			});
 	});
 
-/** A patch can omit connection fields; a saved entry must describe one complete server. */
+/** Editable server fields; scope validation distinguishes connections from project overrides. */
 export const mcpServerSchema = z
 	.object({
 		type: z.enum(["stdio", "http", "streamable-http"]).optional(),
@@ -85,6 +86,22 @@ export const mcpServerSchema = z
 	.catchall(z.json());
 export type McpServer = z.infer<typeof mcpServerSchema>;
 export const mcpConfiguredServerSchema = mcpServerSchema.superRefine((entry, context) => {
+	if (entry.oauth?.clientRegistration === "cimd") {
+		if (entry.oauth.clientId !== undefined || entry.oauth.clientName !== undefined)
+			context.addIssue({
+				code: "custom",
+				path: ["oauth", "clientRegistration"],
+				message: "CIMD cannot be combined with an OAuth client ID or client name.",
+			});
+		const callback =
+			entry.oauth.callbackUrl && URL.canParse(entry.oauth.callbackUrl) ? new URL(entry.oauth.callbackUrl) : null;
+		if (callback && (callback.hostname === "[::1]" || callback.pathname !== "/callback"))
+			context.addIssue({
+				code: "custom",
+				path: ["oauth", "callbackUrl"],
+				message: "CIMD requires a localhost or 127.0.0.1 callback with path /callback.",
+			});
+	}
 	if (entry.oauth?.authServerMetadataUrl !== undefined) {
 		const value = entry.oauth.authServerMetadataUrl;
 		const url = URL.canParse(value) ? new URL(value) : null;
@@ -140,10 +157,34 @@ export const mcpConfiguredServerSchema = mcpServerSchema.superRefine((entry, con
 				message: `${field} is not supported by official Pi MCP. Use enabled, exposure and Ling access-mode rules.`,
 			});
 });
+export const mcpProjectOverrideSchema = z.strictObject({
+	enabled: z.boolean().optional(),
+	exposure: configuredExposureSchema.optional(),
+	toolExposure: z.record(z.string().max(256), configuredExposureSchema).optional(),
+});
+
+/** A connection-free project entry inherits its global server's destination and credentials. */
+export function isMcpProjectOverride(server: McpServer): boolean {
+	return server.command === undefined && server.url === undefined && server.type === undefined;
+}
+
+const mcpConfigEntrySchema = mcpServerSchema.superRefine((server, context) => {
+	const parsed = (isMcpProjectOverride(server) ? mcpProjectOverrideSchema : mcpConfiguredServerSchema).safeParse(
+		server,
+	);
+	if (!parsed.success) for (const issue of parsed.error.issues) context.addIssue({ ...issue });
+});
+
 /** A project may not select a destination for credentials held by Pi. */
 export const mcpScopedServerSchema = z
-	.object({ scope: mcpTargetSchema, server: mcpConfiguredServerSchema })
+	.object({ scope: mcpTargetSchema, server: mcpConfigEntrySchema })
 	.superRefine((entry, context) => {
+		if (entry.scope === "global" && isMcpProjectOverride(entry.server))
+			context.addIssue({
+				code: "custom",
+				path: ["server"],
+				message: "A global MCP service requires a command or HTTP URL.",
+			});
 		if (entry.scope === "project" && entry.server.auth)
 			context.addIssue({
 				code: "custom",
@@ -179,7 +220,7 @@ export const mcpWriteRequestSchema = z
 		expectedRevision: z.string().length(64),
 		name: mcpStoredServerNameSchema,
 		change: z.discriminatedUnion("kind", [
-			z.strictObject({ kind: z.literal("save"), server: mcpConfiguredServerSchema }),
+			z.strictObject({ kind: z.literal("save"), server: mcpConfigEntrySchema }),
 			mcpPatchSchema,
 			z.strictObject({ kind: z.literal("toggle"), enabled: z.boolean() }),
 			z.strictObject({ kind: z.literal("reset-enabled") }),
@@ -228,6 +269,7 @@ export const mcpOverviewSchema = z.strictObject({
 				description: z.string().optional(),
 				authProvider: z.string().optional(),
 				source: z.string(),
+				override: z.string().optional(),
 			}),
 		)
 		.max(MCP_SERVER_LIMIT * 2),

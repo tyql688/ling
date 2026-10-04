@@ -359,7 +359,8 @@ export function createPiModelProviderMutations({
 			const model = models.find((candidate) => candidate.id === request.modelId);
 			if (!model) throw new Error(`Model "${request.modelId}" not found for provider "${request.provider}"`);
 			if (options !== undefined) {
-				for (const key of ["api", "input", "thinkingLevelMap", "cost"] as const) delete model[key];
+				for (const key of ["api", "input", "thinkingLevelMap", "cost", "samplingParamsByThinkingLevel"] as const)
+					delete model[key];
 				Object.assign(model, structuredClone(options));
 			}
 			// Full-state edit: cleared fields are REMOVED so Pi's own defaults apply again.

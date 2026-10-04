@@ -3,6 +3,7 @@ import {
 	mcpServerSchema,
 	mcpScopedServerSchema,
 	mcpExposureSchema,
+	isMcpProjectOverride,
 	type McpServer,
 	type McpStoredServer,
 	type McpTarget,
@@ -66,11 +67,13 @@ export function McpServerEditor({
 	const initialTransport =
 		(storedServer !== null && !inspected.success) || server?.args?.some((arg) => arg === "" || /[\r\n]/.test(arg))
 			? "advanced"
-			: server?.url
-				? "http"
-				: server?.command || !server
-					? "stdio"
-					: "advanced";
+			: scope === "project" && server && isMcpProjectOverride(server)
+				? "override"
+				: server?.url
+					? "http"
+					: server?.command || !server
+						? "stdio"
+						: "advanced";
 	const [transport, setTransport] = useState(initialTransport);
 	const [command, setCommand] = useState(server?.command ?? "");
 	const [args, setArgs] = useState(server?.args?.join("\n") ?? "");
@@ -91,7 +94,9 @@ export function McpServerEditor({
 			return null;
 		}
 	}, [advanced]);
-	const exposure = parsedAdvanced?.success ? (parsedAdvanced.data.exposure ?? "codemode") : "codemode";
+	const exposure = parsedAdvanced?.success
+		? (parsedAdvanced.data.exposure ?? (transport === "override" ? "inherit" : "codemode"))
+		: "codemode";
 	function fail(field: string, message: string) {
 		setInvalid({ field, message });
 		if (field === "advanced" && advancedDetails.current) advancedDetails.current.open = true;
@@ -119,6 +124,10 @@ export function McpServerEditor({
 	function changeTransport(next: string) {
 		try {
 			const value = mcpServerSchema.parse(JSON.parse(advanced));
+			if (next === "override") {
+				for (const key of Object.keys(value))
+					if (!["enabled", "exposure", "toolExposure"].includes(key)) delete value[key];
+			}
 			if (next === "advanced") {
 				if ((transport === "stdio" && command) || (transport === "http" && url)) applyConnection(value);
 			} else if (transport === "advanced") {
@@ -198,7 +207,9 @@ export function McpServerEditor({
 								? "command"
 								: transport === "http"
 									? "url"
-									: "advanced";
+									: transport === "override"
+										? "transport"
+										: "advanced";
 					document.getElementById(`${id}-${field}`)?.focus();
 				}}
 			>
@@ -266,11 +277,11 @@ export function McpServerEditor({
 						<div className="flex flex-col gap-1.5">
 							<span className="text-sm font-medium">{t("mcp.transport")}</span>
 							<Select value={transport} disabled={busy} onValueChange={changeTransport}>
-								<SelectTrigger aria-label={t("mcp.transport")} className="w-full">
+								<SelectTrigger id={`${id}-transport`} aria-label={t("mcp.transport")} className="w-full">
 									<SelectValue>{t(`mcp.transport_${transport}`)}</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
-									{["stdio", "http", "advanced"].map((value) => (
+									{["stdio", "http", ...(scope === "project" ? ["override"] : []), "advanced"].map((value) => (
 										<SelectItem key={value} value={value}>
 											{t(`mcp.transport_${value}`)}
 										</SelectItem>
@@ -278,26 +289,31 @@ export function McpServerEditor({
 								</SelectContent>
 							</Select>
 						</div>
-						<div className="flex flex-col gap-1.5">
-							<label htmlFor={`${id}-description`} className="text-sm font-medium">
-								{t("mcp.serverDescription")}
-							</label>
-							<Input
-								id={`${id}-description`}
-								value={parsedAdvanced?.success ? (parsedAdvanced.data.description ?? "") : ""}
-								disabled={busy || !parsedAdvanced?.success}
-								aria-describedby={`${id}-description-hint`}
-								onChange={(event) =>
-									changeOptions((value) => {
-										if (event.target.value) value.description = event.target.value;
-										else delete value.description;
-									})
-								}
-							/>
-							<p id={`${id}-description-hint`} className="text-xs leading-relaxed text-text-muted">
-								{t("mcp.serverDescriptionHint")}
-							</p>
-						</div>
+						{transport === "override" && (
+							<p className="text-xs leading-relaxed text-text-muted">{t("mcp.overrideHint")}</p>
+						)}
+						{transport !== "override" && (
+							<div className="flex flex-col gap-1.5">
+								<label htmlFor={`${id}-description`} className="text-sm font-medium">
+									{t("mcp.serverDescription")}
+								</label>
+								<Input
+									id={`${id}-description`}
+									value={parsedAdvanced?.success ? (parsedAdvanced.data.description ?? "") : ""}
+									disabled={busy || !parsedAdvanced?.success}
+									aria-describedby={`${id}-description-hint`}
+									onChange={(event) =>
+										changeOptions((value) => {
+											if (event.target.value) value.description = event.target.value;
+											else delete value.description;
+										})
+									}
+								/>
+								<p id={`${id}-description-hint`} className="text-xs leading-relaxed text-text-muted">
+									{t("mcp.serverDescriptionHint")}
+								</p>
+							</div>
+						)}
 						{transport === "stdio" && (
 							<>
 								<div className="flex flex-col gap-1.5">
@@ -375,6 +391,37 @@ export function McpServerEditor({
 								{parsedAdvanced?.success && !parsedAdvanced.data.auth && (
 									<>
 										<div className="flex flex-col gap-1.5">
+											<span className="text-sm font-medium">{t("mcp.oauthRegistration")}</span>
+											<Select
+												value={parsedAdvanced.data.oauth?.clientRegistration ?? "dcr"}
+												disabled={busy}
+												onValueChange={(next) =>
+													changeOptions((value) => {
+														const oauth = { ...value.oauth };
+														if (next === "cimd") oauth.clientRegistration = "cimd";
+														else delete oauth.clientRegistration;
+														if (Object.keys(oauth).length) value.oauth = oauth;
+														else delete value.oauth;
+													})
+												}
+											>
+												<SelectTrigger className="w-full" aria-label={t("mcp.oauthRegistration")}>
+													<SelectValue>
+														{t(
+															parsedAdvanced.data.oauth?.clientRegistration === "cimd"
+																? "mcp.oauthRegistrationCimd"
+																: "mcp.oauthRegistrationDcr",
+														)}
+													</SelectValue>
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="dcr">{t("mcp.oauthRegistrationDcr")}</SelectItem>
+													<SelectItem value="cimd">{t("mcp.oauthRegistrationCimd")}</SelectItem>
+												</SelectContent>
+											</Select>
+											<p className="text-xs leading-relaxed text-text-muted">{t("mcp.oauthRegistrationHint")}</p>
+										</div>
+										<div className="flex flex-col gap-1.5">
 											<label htmlFor={`${id}-client-name`} className="text-sm font-medium">
 												{t("mcp.oauthClientName")}
 											</label>
@@ -435,7 +482,8 @@ export function McpServerEditor({
 								disabled={busy || !parsedAdvanced?.success}
 								onValueChange={(next) =>
 									changeOptions((value) => {
-										value.exposure = mcpExposureSchema.parse(next);
+										if (next === "inherit") delete value.exposure;
+										else value.exposure = mcpExposureSchema.parse(next);
 									})
 								}
 							>
@@ -443,6 +491,7 @@ export function McpServerEditor({
 									<SelectValue>{t(`mcp.exposure_${exposure}`)}</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
+									{transport === "override" && <SelectItem value="inherit">{t("mcp.exposure_inherit")}</SelectItem>}
 									{mcpExposureSchema.options.map((value) => (
 										<SelectItem key={value} value={value}>
 											{t(`mcp.exposure_${value}`)}

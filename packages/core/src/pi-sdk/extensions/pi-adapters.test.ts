@@ -13,6 +13,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { preparePiAdapters, createPiBuiltinExtensionFactories } from "./pi-adapters";
+import { createPiToolRendererProjection } from "./extension-tool-renderer";
+import { piBranchProjectionSource } from "../types";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -97,6 +99,80 @@ async function fixture() {
 }
 
 describe("bundled Pi adapters", () => {
+	it("projects unregistered tool renderers and isolates resolver failures from transcript content", async () => {
+		const f = await fixture();
+		const resourceLoader = new DefaultResourceLoader({
+			cwd: f.cwd,
+			agentDir: f.agentDir,
+			noExtensions: true,
+			extensionFactories: [
+				{
+					name: "renderer-fixture",
+					factory(pi) {
+						pi.registerToolRenderer((name, next) => {
+							if (name === "broken") throw new Error("Fixture renderer failed");
+							if (name !== "offline") return next();
+							return {
+								renderCall: () => ({ render: () => ["Offline call"], invalidate() {} }),
+								renderResult: (_result, options) => ({
+									render: () => [
+										options.isPartial ? "Partial" : options.expanded ? "Expanded result" : "Collapsed result",
+									],
+									invalidate() {},
+								}),
+							};
+						});
+					},
+				},
+			],
+		});
+		await resourceLoader.reload();
+		const { session } = await createAgentSession({
+			cwd: f.cwd,
+			agentDir: f.agentDir,
+			resourceLoader,
+			sessionManager: SessionManager.inMemory(f.cwd),
+		});
+		try {
+			await session.bindExtensions({});
+			const projection = createPiToolRendererProjection(piBranchProjectionSource(session));
+			expect(session.extensionRunner.getToolDefinition("offline")).toBeUndefined();
+			expect(
+				projection.project({
+					role: "assistant",
+					content: [
+						{ type: "toolCall", id: "offline-call", name: "offline", arguments: {} },
+						{ type: "toolCall", id: "broken-call", name: "broken", arguments: {} },
+					],
+				}),
+			).toMatchObject({
+				content: [
+					{ rendered: { collapsedLines: ["Offline call"] } },
+					{ rendered: { error: "Fixture renderer failed" } },
+				],
+			});
+			expect(projection.projectPartial("offline-call", { content: [] })).toMatchObject({ collapsedLines: ["Partial"] });
+			expect(
+				projection.project(
+					{
+						role: "toolResult",
+						toolCallId: "offline-call",
+						toolName: "offline",
+						isError: false,
+						content: [{ type: "text", text: "Retained result" }],
+					},
+					true,
+				),
+			).toMatchObject({
+				content: [{ text: "Retained result" }],
+				rendered: { collapsedLines: ["Collapsed result"], expandedLines: ["Expanded result"] },
+			});
+			expect(projection.projectPartial("offline-call", { content: [] })).toBeUndefined();
+		} finally {
+			await session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" });
+			session.dispose();
+		}
+	});
 	it("requires an available permission implementation while allowing a user-installed replacement", async () => {
 		const f = await fixture();
 		const base = await f.prepare(false, false);

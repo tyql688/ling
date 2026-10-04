@@ -1,6 +1,7 @@
 import {
 	mcpScopedServerSchema,
 	mcpServerSchema,
+	isMcpProjectOverride,
 	type McpDocument,
 	type McpOverview,
 	type McpStoredServer,
@@ -277,6 +278,7 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 						const parsed = mcpServerSchema.safeParse(stored);
 						const server = parsed.success ? parsed.data : null;
 						const valid = mcpScopedServerSchema.safeParse({ scope: document.scope, server: stored }).success;
+						const inherited = server !== null && isMcpProjectOverride(server);
 						const toggling = pending?.name === name && pending.change.kind === "toggle" ? pending.change : null;
 						return (
 							<SettingsRow
@@ -288,7 +290,7 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 										? t("mcp.transport_stdio")
 										: server?.url
 											? t("mcp.transport_http")
-											: t("mcp.transport_advanced"))
+											: t(document.scope === "project" && valid ? "mcp.transport_override" : "mcp.transport_advanced"))
 								}
 							>
 								<div className="flex items-center gap-1">
@@ -311,7 +313,14 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 										<Trash2 className="size-3.5" aria-hidden="true" />
 									</Button>
 									<Switch
-										checked={toggling?.enabled ?? (valid && server?.enabled !== false)}
+										checked={
+											toggling?.enabled ??
+											(valid &&
+												(server?.enabled ??
+													(inherited
+														? overview?.effective.find((entry) => entry.name === name)?.disabled === false
+														: true)))
+										}
 										pending={toggling !== null}
 										disabled={!writable || !valid}
 										aria-label={t("mcp.enableNamed", { name })}
@@ -338,12 +347,23 @@ function McpConfiguration({ cwd, active }: { cwd: string | null; active: Session
 									<>
 										{server.description && <span className="block break-words">{server.description}</span>}
 										<span className="break-all">{server.source}</span>
+										{server.override && <span className="block break-all">{server.override}</span>}
 									</>
 								}
 							>
 								<div className="flex flex-wrap items-center gap-2">
 									<span className="text-xs text-text-muted">{t(server.disabled ? "mcp.disabled" : "mcp.enabled")}</span>
 									<span className="text-xs text-text-muted">{t(`mcp.exposure_${server.exposure}`)}</span>
+									{target === "project" && document && !Object.hasOwn(document.servers ?? {}, server.name) && (
+										<Button
+											size="sm"
+											variant="outline"
+											disabled={!writable}
+											onClick={() => openEditor(null, {}, document, server.name)}
+										>
+											{t("mcp.overrideProject")}
+										</Button>
+									)}
 								</div>
 							</SettingsRow>
 						))}

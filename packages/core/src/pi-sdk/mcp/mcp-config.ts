@@ -91,7 +91,7 @@ export function createMcpConfigFile(path: string, scope: McpTarget) {
 					}
 					if (change.kind === "reset-enabled" && entry === undefined) return { commit: false, result: false };
 					if (change.kind === "toggle" || change.kind === "reset-enabled") {
-						// Project entries replace a complete global entry; an incomplete override is never synthesized.
+						// Toggles retain the entry's connection or inherited project scope.
 						const server = mcpScopedServerSchema.parse({ scope, server: entry }).server;
 						if (change.kind === "toggle" && server.enabled === change.enabled) return { commit: false, result: false };
 						if (change.kind === "reset-enabled" && server.enabled === undefined)

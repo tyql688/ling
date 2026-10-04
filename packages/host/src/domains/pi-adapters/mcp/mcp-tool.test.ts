@@ -26,6 +26,7 @@ async function fixture() {
 	let trusted = true;
 	let managed = true;
 	let reloadFailure = false;
+	let effective: McpOverview["effective"] = [];
 	const reloaded: (readonly string[] | undefined)[] = [];
 	const changed: boolean[] = [];
 	const sessions: (readonly string[] | undefined)[] = [];
@@ -54,7 +55,7 @@ async function fixture() {
 				return {
 					notices: [],
 					documents: [{ ...(await file.read()), path, target: "project", scope: "project", error: null }],
-					effective: [],
+					effective,
 				};
 			},
 			writeMcp: async (input, writeSignal) => {
@@ -97,6 +98,9 @@ async function fixture() {
 		reloaded,
 		sessions,
 		configurationChanges,
+		setEffective: (value: McpOverview["effective"]) => {
+			effective = value;
+		},
 		run: async (request: unknown) => JSON.parse(await tool.run({ ref, request }, signal)),
 		setTrusted: (value: boolean) => {
 			trusted = value;
@@ -109,6 +113,26 @@ async function fixture() {
 		},
 	};
 }
+
+it("reports inherited connection state without presenting a missing global service as enabled", async () => {
+	const f = await fixture();
+	await writeFile(f.path, JSON.stringify({ mcpServers: { inherited: {} } }));
+	expect((await f.run({ action: "read" })).documents[0].servers).toEqual([
+		{ name: "inherited", enabled: null, transport: "inherited", fields: [], valid: true },
+	]);
+	const server = {
+		name: "inherited",
+		disabled: true,
+		transport: "stdio" as const,
+		exposure: "direct" as const,
+		source: "global",
+		override: f.path,
+	};
+	f.setEffective([server]);
+	expect((await f.run({ action: "read" })).documents[0].servers[0].enabled).toBe(false);
+	f.setEffective([{ ...server, disabled: false }]);
+	expect((await f.run({ action: "read" })).documents[0].servers[0].enabled).toBe(true);
+});
 
 it("allows configuration while off, keeps values out of inventory and reports deferred reloads", async () => {
 	const f = await fixture();

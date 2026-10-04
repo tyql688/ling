@@ -2,6 +2,7 @@ import { z } from "zod";
 import { boundedJsonObjectValidationError, type BoundedJsonLimits, type BoundedJsonObject } from "./bounded-json";
 import type * as requestSchemas from "./model-requests";
 import type { ModelInfo } from "./session";
+import { THINKING_LEVELS } from "./session";
 
 // Transport bounds are intentionally generous for real provider/model identifiers and
 // secrets while preventing unbounded settings/login payloads from crossing IPC.
@@ -207,6 +208,7 @@ const thinkingMapValueSchema = z.string().nullable().optional();
 /** Portable model metadata. Connections and authentication remain provider-owned. */
 export const modelOptionsSchema = z
 	.strictObject({
+		samplingParamsByThinkingLevel: z.partialRecord(z.enum(THINKING_LEVELS), z.record(z.string(), z.json())).optional(),
 		api: z.string().trim().min(1).max(MODEL_PROVIDER_ID_MAX_CHARS).optional(),
 		input: z.array(z.enum(["text", "image"])).optional(),
 		promptCache: z

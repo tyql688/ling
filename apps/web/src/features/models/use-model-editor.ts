@@ -64,9 +64,14 @@ function applyReferenceGroup(
 	enabled: boolean,
 ): ModelDraft {
 	if (group === "compat") return { ...draft, compat: enabled ? objectText(source.compat) : "" };
-	if (group === "sampling") return { ...draft, samplingParams: enabled ? objectText(source.samplingParams) : "" };
 	// Empty advanced settings intentionally delegate every portable field to Pi.
 	const options = modelOptionsSchema.parse(draft.options.trim() === "" ? {} : JSON.parse(draft.options));
+	if (group === "sampling") {
+		delete options.samplingParamsByThinkingLevel;
+		if (enabled && source.options.samplingParamsByThinkingLevel !== undefined)
+			options.samplingParamsByThinkingLevel = structuredClone(source.options.samplingParamsByThinkingLevel);
+		return { ...draft, samplingParams: enabled ? objectText(source.samplingParams) : "", options: objectText(options) };
+	}
 	if (group === "cost") {
 		delete options.cost;
 		if (enabled && source.options.cost !== undefined) options.cost = structuredClone(source.options.cost);
@@ -78,6 +83,7 @@ function applyReferenceGroup(
 	if (enabled) {
 		const capabilities = structuredClone(source.options);
 		delete capabilities.cost;
+		delete capabilities.samplingParamsByThinkingLevel;
 		Object.assign(options, structuredClone(capabilities));
 	}
 	return {

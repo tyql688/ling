@@ -54,8 +54,8 @@ export function createTranscriptScrollRestoration({
 		interactionRoot.removeEventListener("touchstart", dispose, true);
 		interactionRoot.removeEventListener("keydown", dispose, true);
 	};
-	// Includes the scrollbar, minimap, jump button, and keyboard navigation. Do not fight
-	// user input or keep a stale anchor when a disclosure changes the intended view.
+	// Stop restoration when the user scrolls, jumps, uses the keyboard or changes a disclosure.
+
 	interactionRoot.addEventListener("wheel", dispose, { capture: true, passive: true });
 	interactionRoot.addEventListener("pointerdown", dispose, { capture: true, passive: true });
 	interactionRoot.addEventListener("touchstart", dispose, { capture: true, passive: true });

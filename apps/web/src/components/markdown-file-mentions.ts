@@ -8,8 +8,7 @@ interface MarkdownFileMentions {
 	open(path: string): void;
 }
 
-/** Null on surfaces with no changed-file vocabulary behind them — settings previews, skill
- * descriptions — where every inline code stays inert. */
+/** Null for settings previews and skill descriptions, where inline code has no changed-file links. */
 export const MarkdownFileMentionsContext = createContext<MarkdownFileMentions | null>(null);
 
 export function useMarkdownFileMentions(): MarkdownFileMentions | null {
@@ -25,12 +24,7 @@ function normalizeToken(token: string): string {
 	return normalized.startsWith("./") ? normalized.slice(2) : normalized;
 }
 
-/**
- * Resolver over the paths a session actually changed. A token resolves by exact path, or by
- * being the basename of exactly one changed path — a basename two paths share stays inert
- * instead of guessing, so a mention can never open a file the message did not name. The
- * resolved value always equals one of `paths`, so nothing the model wrote reaches `open`.
- */
+/** Resolves a token to an exact changed path or a basename shared by exactly one changed path. Ambiguous basenames return null. Every resolved value comes from `paths`, which supplies the file passed to `open`. */
 export function createMarkdownFileMentions(
 	paths: readonly string[],
 	open: (path: string) => void,

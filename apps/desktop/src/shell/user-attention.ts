@@ -12,11 +12,7 @@ import {
 	updateRecentProjects,
 	type RecentProject,
 } from "../state/recent-projects";
-/**
- * Single owner of every platform attention surface: session toast notifications, window
- * attention requests, unread completion badges, and Windows taskbar run progress.
- * Each platform branch lives here so call sites never branch on process.platform.
- */
+/** Handles session notifications, window attention, unread badges and Windows taskbar progress. Platform-specific behavior lives in this factory. */
 
 interface SessionNotificationEvent {
 	ref: SessionRef;
@@ -210,10 +206,7 @@ export function createDesktopAttention(options: AttentionOptions) {
 		updateUnreadSessionBadge(0);
 	}
 
-	/**
-	 * Windows taskbar indeterminate progress while any agent run is in flight.
-	 * macOS `setProgressBar` is a determinate Dock bar and must not be used as a spinner.
-	 */
+	/** Shows indeterminate taskbar progress on Windows while an agent runs. macOS supports determinate Dock progress, so this spinner is Windows-only. */
 	function updateAgentRunProgress(runningCount: number): void {
 		if (process.platform !== "win32") return;
 		options.getWindow()?.setProgressBar(runningCount > 0 ? 2 : -1);

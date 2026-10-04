@@ -69,8 +69,8 @@ export function registerSessionLifecycleHost(options: RegisterSessionLifecycleHo
 		if (!sameSession) {
 			options.cancelSessionOperations(event.previousRef, "sessionReplaced");
 			changeReviewDiffOperations.cancelByRef(event.previousRef, "sessionReplaced");
-			// Detach the previous bridge before binding next — fire-and-forget release let
-			// both listeners stack on the same managed object and double-forward events.
+			// Detach the previous bridge synchronously before binding next to keep one event listener.
+
 			options.releaseSessionEventBridges([event.previousRef]);
 			options.releaseSessionReviewInBackground([event.previousRef]);
 		}

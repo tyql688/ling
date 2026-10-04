@@ -115,10 +115,9 @@ function handleParentMessage(value: unknown): void {
 
 process.on("message", (value) => handleParentMessage(value));
 
-// User-installed extensions run in this process and leak rejections / throw from detached
-// timers (e.g. a JSON-RPC write to an LSP child they just killed). Those must never take the
-// host — and every live session — down: log and keep serving. A host that is genuinely
-// wedged is still caught by the supervisor heartbeat and per-request timeouts; only Ling's
-// own protocol paths above call fatal().
+// Log detached extension timer failures and rejected promises while keeping the worker
+// available. The supervisor heartbeat and request deadlines detect a stalled worker.
+// Ling protocol failures call fatal().
+
 process.on("uncaughtException", (error) => log.error("uncaught exception, host kept alive:", error));
 process.on("unhandledRejection", (error) => log.error("unhandled rejection, host kept alive:", toError(error)));

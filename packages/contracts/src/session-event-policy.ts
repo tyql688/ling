@@ -6,8 +6,7 @@ interface SessionEventPolicy {
 	transcriptEffect: boolean;
 }
 
-/** Canonical V1 event policy. Producers and consumers use the same registry so callers cannot
- * downgrade delivery or invent revision effects per frame. */
+/** Shared V1 registry of event delivery and revision effects. Producers and consumers validate each frame against it. */
 export function sessionEventPolicy(event: LingSessionEvent): SessionEventPolicy {
 	switch (event.type) {
 		case "messageStart":

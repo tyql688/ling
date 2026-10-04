@@ -75,7 +75,7 @@ export function PermissionsSettingsView({
 	const state = useAccessActivation();
 	const value = state.value;
 	const [selectedCwd, setSelectedCwd] = useState(activeCwd);
-	// This selection only chooses what is edited here; it never navigates the workspace.
+	// Selects the project whose permission settings this page edits.
 	const selected =
 		projects.find((item) => item.cwd === selectedCwd) ?? projects.find((item) => item.cwd === activeCwd) ?? projects[0];
 	const project = selected ? value?.projects[selected.cwd] : undefined;

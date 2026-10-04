@@ -69,9 +69,8 @@ const DiagnosticsView = lazy(() =>
 	import("./diagnostics-view").then(({ DiagnosticsView }) => ({ default: DiagnosticsView })),
 );
 
-// Traffic lights are a window-level setting (see main/index.ts) — they render at a fixed
-// physical position regardless of which screen is showing, so every full-screen mode (this one
-// included) must reserve the same 44px-tall drag region or they'll overlap real content.
+// macOS traffic lights stay at a fixed window position on every screen.
+// Reserve the shared 44px drag region in Settings so its content clears them.
 
 /** Settings sidebar category table: order equals navigation order, with each id/labelKey/icon triple defined once. */
 const CATEGORIES: { id: SettingsCategory; labelKey: string; icon: typeof SlidersHorizontal }[] = [
@@ -114,7 +113,7 @@ export function SettingsShell({ onBack, themeController }: SettingsShellProps) {
 	};
 	const showSidebarTrigger = shellSidebar.presentation === "sheet";
 	const activeCategory = CATEGORIES.find((item) => item.id === category);
-	// Content slides in from the direction of travel along the nav order (down the list → from below).
+	// Animate content from below or above according to its position in the navigation list.
 	const categoryIndex = CATEGORIES.findIndex((item) => item.id === category);
 	const previousIndexRef = useRef(categoryIndex);
 	const direction = categoryIndex >= previousIndexRef.current ? 1 : -1;

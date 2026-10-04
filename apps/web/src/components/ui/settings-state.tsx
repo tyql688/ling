@@ -13,7 +13,7 @@ interface SettingsStateProps {
 	className?: string;
 }
 
-/** Full-page and in-list states intentionally use the same hierarchy. */
+/** Uses the same heading and content order for full-page and in-list states. */
 export function SettingsState({
 	icon: StateIcon = Info,
 	title,

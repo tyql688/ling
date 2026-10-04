@@ -29,7 +29,7 @@ export const RENDERER_PREFERENCE_KEYS = {
 	sidebarSortMode: "ling:sidebar-sort-mode",
 	sidebarArchiveVisibility: "ling:sidebar-archive-visibility",
 	changeReviewPanelWidth: "ling:change-review-panel-width",
-	// Preserve the saved value as native glass expands from the sidebar to the conversation.
+	// The saved native-glass preference applies to the sidebar and conversation.
 	nativeTransparency: "ling:vibrancy-transparency",
 	fontSmoothing: "ling:font-smoothing",
 	sendShortcut: "ling:send-shortcut",
@@ -146,9 +146,9 @@ export function initializeRendererPreferences(storage?: Storage): RendererPrefer
 	try {
 		const raw = target.getItem(PREFERENCE_META_KEY);
 		if (raw === null) {
-			// Pre-versioning installs wrote owned keys with no metadata. A headerless store is a
-			// documented migration boundary (same policy as the app settings file): stamp the
-			// current schema and keep the values — each read validates its own key anyway.
+			// Headerless stores come from installations that predate schema metadata. Stamp the current
+			// schema and preserve their values. Each preference read validates its stored value.
+
 			target.setItem(PREFERENCE_META_KEY, JSON.stringify(currentMeta()));
 			initialization = { status: "ready", version: PREFERENCE_VERSION, diagnostics: inspectAllowedValues(target) };
 			return initialization;

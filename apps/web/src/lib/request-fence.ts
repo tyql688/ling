@@ -10,12 +10,7 @@ export interface RequestFence<Identity> {
 	isCurrent(token: RequestFenceToken<Identity>, current: Identity | null): boolean;
 }
 
-/**
- * Latest-wins fence for async responses that publish into shared UI state. A response
- * may only land when no newer request, explicit invalidation, or identity change has
- * happened since it started — so a slow reply can never overwrite a fresher one, and a
- * value fetched for one identity can never render against another.
- */
+/** Accepts an asynchronous result when its request and identity are still current. A newer request, invalidation or identity change rejects the earlier result. */
 export function createRequestFence<Identity>(): RequestFence<Identity> {
 	let revision = 0;
 	return {

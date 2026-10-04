@@ -17,7 +17,7 @@ export function useMonacoSkinTheme(): string {
 
 	useLayoutEffect(() => {
 		const { palette, codeTheme, codeSurface, popoverSurface } = appearance;
-		// Comments are text, not decoration: keep their quieter tint within AA on both editor materials.
+		// Keep comment text within AA contrast on both editor materials.
 		const muted = readableSkinColor(
 			mixSkinColor(codeSurface, palette.text, 0.64),
 			[codeSurface, popoverSurface],
@@ -46,8 +46,8 @@ export function useMonacoSkinTheme(): string {
 				"list.inactiveFocusOutline": TRANSPARENT_EDITOR_BACKGROUND,
 				"list.focusAndSelectionOutline": TRANSPARENT_EDITOR_BACKGROUND,
 				contrastActiveBorder: TRANSPARENT_EDITOR_BACKGROUND,
-				// The React workbench surface owns the single material layer. Repainting these
-				// Monaco planes with palette.surface made file and diff views fully opaque.
+				// Transparent Monaco planes expose the React workbench material.
+
 				"editor.background": TRANSPARENT_EDITOR_BACKGROUND,
 				"editorGutter.background": TRANSPARENT_EDITOR_BACKGROUND,
 				"editorStickyScroll.background": TRANSPARENT_EDITOR_BACKGROUND,

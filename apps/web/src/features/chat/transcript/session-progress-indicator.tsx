@@ -1,12 +1,6 @@
 import { cn } from "@renderer/lib/utils";
 
-/**
- * A quiet three-dot hop keeps the working state friendly without competing with the status text.
- * Plain elements rather than SVG circles: Chromium cannot composite a transform on an SVG child,
- * so the same keyframes there forced a main-frame plus a full layerize pass on every vsync for as
- * long as a run was in flight (measured ~24-32% of a core). On HTML elements transform/opacity
- * animate on the compositor thread instead.
- */
+/** Animates three HTML dots with transform and opacity on the compositor thread. Chromium transforms on SVG children require main-thread and layerization work each frame, measured at ~24-32% of a core during a run. */
 export function SessionProgressIndicator({ className }: { className?: string }) {
 	return (
 		<span className={cn("ling-session-progress shrink-0 text-accent", className)} aria-hidden="true">

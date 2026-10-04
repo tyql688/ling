@@ -12,7 +12,7 @@ const timingSchema = z.strictObject({
 const log = createLogger("assistant-generation");
 type StreamEvent = Extract<PiAgentSessionEvent, { type: "message_update" }>["assistantMessageEvent"];
 
-/** Matches DSH's decode interval: text, thinking and tool arguments count; framing and usage do not. */
+/** Measures decoding time for text, thinking and tool arguments. Request framing and usage reporting fall outside this interval. */
 function hasOutputToken(event: StreamEvent): boolean {
 	if (event.type === "text_delta" || event.type === "thinking_delta" || event.type === "toolcall_delta")
 		return event.delta.length > 0;

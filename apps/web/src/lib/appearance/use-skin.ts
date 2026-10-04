@@ -92,8 +92,8 @@ export function useSkin(workspace: boolean): ActiveSkinBackdrop {
 	const forceOpaque = useReducedTransparency();
 
 	useEffect(() => {
-		// The OS preference can change while the window is open. Keep the renderer material
-		// class synchronized instead of relying only on the pre-paint bootstrap decision.
+		// Synchronize the renderer material class when the OS preference changes.
+
 		document.documentElement.classList.toggle("vibrancy", hostUiApi.translucent && !forceOpaque);
 	}, [hostUiApi, forceOpaque]);
 

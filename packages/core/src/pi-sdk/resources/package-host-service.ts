@@ -43,9 +43,7 @@ function localOption(scope: PluginPackageScope): { local: boolean } {
 	return { local: scope === "project" };
 }
 
-/** Mirrors Pi's resolvePath() identity rules for configured local packages.
- * This fallback is needed only when Pi cannot report an installedPath because
- * the configured package has already disappeared from disk. */
+/** Resolves the settings-relative identity of a configured local package when Pi cannot report an installedPath because its directory is missing. */
 function resolveConfiguredLocalPackage(source: string, baseDir: string): string {
 	let normalized = expandTildePath(source);
 	if (/^file:\/\//.test(normalized)) {
@@ -320,8 +318,8 @@ export function createPiPackageHostService(settings: PiSettings) {
 					if (source !== null && sources.length === 0) {
 						throw new Error(`Package is not configured in ${request.scope} scope: ${source}`);
 					}
-					// A settings-relative string can name different local packages in each scope.
-					// Require an absolute path or one scope instead of choosing the first package.
+					// A settings-relative string can identify different packages in different scopes.
+					// Require an absolute path or a selected scope to disambiguate removal.
 					if (source !== null && sources.length > 1) {
 						throw new Error("Package source is ambiguous across scopes; use its absolute path or one scope");
 					}

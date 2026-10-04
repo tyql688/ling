@@ -2,7 +2,7 @@ import { isTodoOrigin, todoDetailsSchema, todoProgress } from "@ling/contracts/t
 import type { PiInlineExtension } from "../types";
 import { createPiToolOrigins } from "./pi-tool-origin";
 
-/** Gives a successful turn one chance to reconcile tasks it used without claiming that work succeeded. */
+/** Gives each successful turn one reconciliation attempt for the tasks it used. */
 export function createPiTodoReconciliation() {
 	return {
 		name: "ling-todo-reconciliation",
@@ -43,7 +43,7 @@ export function createPiTodoReconciliation() {
 				if (!isTodoOrigin(origin ?? null)) return;
 				const details = todoDetailsSchema.parse(entry.message.details);
 				if (details.error || !todoProgress(details).open.length) return;
-				// Do not reset at agent_start: retries, compaction and follow-ups share this request's budget.
+				// Retries, compaction and follow-ups share this request's reconciliation budget.
 				reviewQueued = true;
 				pi.sendMessage(
 					{

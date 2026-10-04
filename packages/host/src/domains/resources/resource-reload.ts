@@ -69,15 +69,13 @@ export function createResourceReloadCoordinator({
 	const reloadListeners = new Set<() => void>();
 	const pendingMutations = new Set<Promise<{ mutation: PiMutationOutcome; reload: PiResourceReloadSummary }>>();
 
-	/** Runs after every reload pass settles (success or not — project diagnostics may have changed
-	 * either way). Used to tell the renderer its cached project catalog is stale. */
+	/** Runs after each reload attempt so the renderer refreshes project diagnostics and catalog state, including partial results. */
 	function onPiResourcesReloaded(listener: () => void): () => void {
 		reloadListeners.add(listener);
 		return () => void reloadListeners.delete(listener);
 	}
 
-	/** Reconcile one coherent project-catalog → live-session generation. Each half is
-	 * best-effort: one failure never prevents the other from reconciling. */
+	/** Reconciles project catalogs and live sessions for one resource generation. Attempts both phases and retains their failures. */
 	async function reloadPiResourcesNow(
 		projectCwds?: readonly string[],
 		options: ResourceReloadOptions = {},
@@ -160,11 +158,7 @@ export function createResourceReloadCoordinator({
 		return tracked;
 	}
 
-	/** Shared skeleton for "canonical mutation, then reconcile live Pi resources".
-	 * Reconciliation always runs — an admitted mutation may already have touched disk.
-	 * When the reconciliation pass itself rejects, an earlier mutation failure is
-	 * preserved alongside it; otherwise both outcomes return so each IPC surface can
-	 * apply its own policy (throw where the UI has no reload notice, return where it does). */
+	/** Runs a persisted mutation, then reconciles live Pi resources even if the mutation failed after a partial write. Returns both outcomes or combines failures when reconciliation rejects. Each handler decides whether to throw or return its reload notice. */
 	async function mutateAndReload(
 		bothFailedMessage: string,
 		// A successful mutation may return exactly the projects whose effective resources changed.

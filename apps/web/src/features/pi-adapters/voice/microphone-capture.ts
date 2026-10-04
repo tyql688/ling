@@ -11,7 +11,7 @@ export class VoiceCaptureError extends Error {
 	}
 }
 
-/** Browser-owned capture keeps a remote Host away from the wrong computer's microphone. */
+/** Captures audio on the client's computer when Host runs remotely. */
 export async function captureMicrophone(options: {
 	signal: AbortSignal;
 	onLevel(level: number): void;

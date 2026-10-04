@@ -6,7 +6,7 @@ export interface DataStoreIssue {
 	message: string;
 }
 
-/** One health surface for Host-owned durable state. A damaged legacy dataset does not invalidate other imports. */
+/** Reports durable Host data health, including separate results for each legacy dataset import. */
 export interface DataStoreHealth {
 	status: "ready" | "degraded" | "unavailable";
 	path: string;

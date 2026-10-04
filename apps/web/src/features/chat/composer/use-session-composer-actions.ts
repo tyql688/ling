@@ -118,8 +118,8 @@ export function useSessionComposerActions({
 		if (command) {
 			const arg = (commandLine?.[2] ?? "").trim();
 			if (command.needsArg && !arg) {
-				// Keep the draft so either submission surface lets the user finish
-				// the argument instead of silently sending an invalid host command.
+				// Keep an incomplete Host command in the draft so the user can finish its argument before sending.
+
 				onCommandError(t("session.cmdNeedsArg", { name: command.name }));
 				return;
 			}
@@ -133,7 +133,7 @@ export function useSessionComposerActions({
 		if (pendingActionRef.current !== null) return;
 		const actionRevision = beginAction("stop");
 		if (actionRevision === null) return;
-		// Abort failures land in the session banner via useSessionChat.abort; no toast.
+		// useSessionChat.abort reports abort failures in the session banner.
 		void onAbort().finally(() => finishAction(actionRevision));
 	};
 

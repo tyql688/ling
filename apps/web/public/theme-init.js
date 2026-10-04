@@ -43,7 +43,7 @@
 		const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 		isDark = stored === "dark" || (stored !== "light" && prefersDark);
 	} catch (_err) {
-		// localStorage/matchMedia unavailable — fall back to the light default.
+		// Use the light theme when localStorage or matchMedia is unavailable.
 	}
 	root.classList.toggle("dark", isDark);
 	try {

@@ -22,11 +22,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 
 export type PiAgentSession = AgentSession;
-/**
- * What projecting a session branch reads from a session. An archived transcript is opened straight
- * from its file without a loaded project, so it carries no extension runner and its registered
- * renderers and markdown transformers do not apply.
- */
+/** Session data used to render a branch. Live sessions supply extension renderers and Markdown transforms; archived reads use the saved file and pass extensions: null. */
 /** A live session projects with its own extensions; archived reads pass `extensions: null`. */
 export function piBranchProjectionSource(session: AgentSession): PiBranchProjectionSource {
 	return { sessionManager: session.sessionManager, extensions: session };

@@ -9,9 +9,7 @@ import {
 import pLimit from "p-limit";
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
 
-/** Optional external attachment state. When passed, the hook operates on it instead of an
- * internal `useState` — lets the session Composer persist attachments per-session in a
- * draft atom. Omit for self-contained use (the home-screen quick start). */
+/** Optional external attachment state for a session's draft atom. When omitted, the hook uses internal `useState` for standalone composers such as quick start. */
 export type AttachmentSource = readonly [PendingAttachment[], Dispatch<SetStateAction<PendingAttachment[]>>];
 
 function readAsDataUrl(file: File, signal: AbortSignal): Promise<string> {
@@ -86,8 +84,8 @@ export function useImageAttachments(source?: AttachmentSource, scopeKey?: string
 	);
 
 	const addFiles = (files: Iterable<File>): Promise<void> => {
-		// No pre-filtering: selectAttachmentFiles rejects non-image types itself and reports
-		// an unsupported-type issue, so a dropped PDF fails visibly instead of vanishing.
+		// Pass every dropped file to selectAttachmentFiles so it can report unsupported types, including PDFs.
+
 		const candidates = captureFiles(files, SESSION_IMAGE_MAX_ITEMS + 1);
 		const controller = new AbortController();
 		addControllersRef.current.add(controller);

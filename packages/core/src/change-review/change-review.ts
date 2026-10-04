@@ -31,10 +31,9 @@ export interface ReviewSnapshotFile {
 	status: ChangeReviewFile["status"];
 	additions?: number | undefined;
 	deletions?: number | undefined;
-	/** Main-process-only patch data. Never include this field in an IPC snapshot. */
+	/** Patch data retained in the main process. */
 	diff?: string | undefined;
-	/** Main-process-only content identity. Only its truncated form crosses IPC, as the
-	 * opaque `contentTag` fingerprint (see main/change-review.ts toIpcFile). */
+	/** Full content identity retained in the main process. IPC carries its truncated contentTag fingerprint. */
 	identity?: string | undefined;
 }
 
@@ -269,9 +268,8 @@ export function buildChangeScopes(
 	const workspace = classifyWorkspaceChanges(current, baselineIndex, turnIndexes);
 	const workspaceIndex = buildReviewFileLineageIndex(workspace);
 	const latestTurn = turns.at(-1);
-	// Fold rename lineage across turns the same way non-repo fold does: a rename
-	// retires `from`, later paths win. Path-only first-seen left both `a` and `b`
-	// after a→b when neither remains in the workspace.
+	// Fold renames across turns: retire `from` and retain the latest path for each lineage.
+
 	const committedLatest = new Map<string, ReviewSnapshotFile>();
 	for (const turn of turns) {
 		for (const file of turn.files) {

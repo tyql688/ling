@@ -1,12 +1,7 @@
 import { dragPayloadHasFiles, trackDropDepth } from "@renderer/features/chat/composer/attachment-drop";
 import { type DragEvent, useRef, useState } from "react";
 
-/**
- * Turns an element into a file drop zone feeding the shared attachment pipeline.
- * Spread `dropHandlers` on the zone element and render a highlight while `dropActive`.
- * File validation (type/size/count) stays in addFiles — the zone accepts every file
- * drag so rejects surface as attachment issues instead of a dead drop cursor.
- */
+/** Accepts file drags and passes dropped files to addFiles for type, size and count validation. Spread `dropHandlers` on the zone element and highlight it while `dropActive` is true. Validation failures appear as attachment issues. */
 export function useAttachmentDrop(addFiles: (files: Iterable<File>) => Promise<void>) {
 	const [dropActive, setDropActive] = useState(false);
 	const depthRef = useRef(0);

@@ -161,7 +161,7 @@ export function createPiModelsConfig(modelRuntimes: PiModelRuntimes, agentDir: s
 		}
 	}
 
-	/** Provider ids that ship with Pi — computed from a runtime that ignores models.json. */
+	/** Provider ids shipped with Pi, read from a runtime with models.json disabled. */
 	let builtInProviderIdsPromise: Promise<ReadonlySet<string>> | null = null;
 
 	function getBuiltInProviderIds(): Promise<ReadonlySet<string>> {

@@ -19,8 +19,7 @@ export interface SkillBrowserGroup {
 	action?: ReactNode;
 	/** Force-disable this group's row switches (built-in master switched off). */
 	togglesDisabled?: boolean;
-	/** Render rows directly without the directory-root chrome — for groups whose
-	 * location is an implementation detail (built-in skills ship inside the app). */
+	/** Displays rows within the group, with the installation path hidden for app-bundled skills. */
 	flat?: boolean;
 }
 
@@ -45,11 +44,7 @@ interface SkillFolder {
 	skills: SkillInfo[];
 }
 
-/**
- * How a bucket earned its identity. `repo` and `package` name something the skill genuinely
- * belongs to; `directory` is the fallback for a skill nothing claims, and is the only kind whose
- * label is a path — a directory is a location, never a statement of ownership.
- */
+/** Groups skills by recorded repository or package identity. Skills with no recorded owner use `directory`, whose label is their filesystem path. */
 type SkillBucketKind = "repo" | "package" | "directory";
 
 interface SkillRoot {
@@ -150,12 +145,7 @@ function folderLabel(path: string): string {
 	return path.split("/").filter(Boolean).join(" / ");
 }
 
-/**
- * Buckets a group's skills by where they came from, falling back to the directory tree only for
- * skills whose origin nothing records. A source repository or a package splits a long list the way
- * a user thinks about it; the directory almost never does, because everything an installer put in
- * place shares one directory.
- */
+/** Groups skills by source repository or package so collections installed into one directory remain distinguishable. Skills without a recorded source use their directory tree. */
 function bucketOf(skill: SkillInfo): { key: string; label: string; kind: SkillBucketKind } | null {
 	if (skill.provenance) {
 		return { key: `repo:${skill.provenance.source}`, label: skill.provenance.source, kind: "repo" };

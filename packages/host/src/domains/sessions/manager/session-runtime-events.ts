@@ -52,8 +52,8 @@ function subscribeAgent(managed: ManagedSession, options: ManagedSessionRuntimeE
 		notifyListeners(managed.listeners, "session event", envelope);
 		if (normalized.type === "snapshotChanged") options.publishSummary(managed);
 		if (normalized.type === "runFinished" && normalized.runId === "compaction") {
-			// Compaction rewrote the transcript; refresh the sidebar summary without the
-			// agent-turn side effects (auto-title, notifications) a real turn would trigger.
+			// Refresh the sidebar summary after compaction. Auto-title and notifications run on agent turns.
+
 			options.publishSummary(managed);
 		}
 		if (normalized.type === "runFinished" && normalized.runId === "agent") {
@@ -68,9 +68,9 @@ function subscribeAgent(managed: ManagedSession, options: ManagedSessionRuntimeE
 				publishTitle: options.lifecycleEvents.publishSessionTitleChanged,
 			});
 		}
-		// Keep the file-sync baseline aligned with Pi's own JSONL appends. Without this,
-		// mid-turn/post-turn send checks treat Ling's writes as external divergence and
-		// surface SESSION_FILE_DIVERGED for every steer/followUp after the first append.
+		// Accept Pi's JSONL appends into the file-sync baseline so send checks recognize Ling's
+		// writes during and after the turn.
+
 		if (
 			normalized.type === "runFinished" ||
 			normalized.type === "snapshotChanged" ||
@@ -227,8 +227,8 @@ export function bindManagedSessionRuntimeEvents(
 		}
 	});
 	managed.unsubscribeTranscriptProjectionChanged = session.onTranscriptProjectionChanged((transcriptRef, reason) => {
-		// Display-only projections change transcript payloads without touching JSONL,
-		// summaries, file-sync baselines, resource generations, or active operations.
+		// Display transforms update transcript payloads. Persisted session data and active runtime
+		// operations retain their current state.
 		managed.transcriptPager.invalidate();
 		const envelope = managed.eventStream.publish(transcriptRef, { type: "transcriptProjectionChanged", reason });
 		notifyListeners(managed.listeners, "session event", envelope);

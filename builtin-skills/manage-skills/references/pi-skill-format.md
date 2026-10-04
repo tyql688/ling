@@ -1,6 +1,6 @@
 # Pi skill format and discovery
 
-These rules describe Ling's embedded Pi resource loader. Read the installed SDK's `docs/skills.md` when checking a different version; the low-level `loadSkills` helper's default order alone does not describe application discovery.
+These rules describe Ling's embedded Pi resource loader. Read the installed SDK's `docs/skills.md` when checking a different version; application discovery adds scope and package ordering to the low-level `loadSkills` helper.
 
 ## File format
 
@@ -20,9 +20,9 @@ Read the changed code and its callers. Use references/checklist.md for the detai
 | `name` | Defaults to the directory name when absent or empty. At most 64 characters: lowercase letters, digits, single hyphens, with no leading or trailing hyphen. Invalid names warn but can still load. Keep it equal to the directory name for stable invocation and switches. |
 | `description` | Required nonblank string. Missing or invalid descriptions skip the skill; descriptions over 1024 characters warn. |
 | `disable-model-invocation` | Only boolean `true` hides the skill from the automatic prompt. `/skill:<name>` remains available when skill commands are enabled. |
-| Other fields | Do not grant tools or capabilities. Pi ignores fields such as `allowed-tools`. |
+| Other fields | Pi ignores capability declarations such as `allowed-tools`; available tools come from the runtime. |
 
-Use valid YAML frontmatter at the start of the file. Quote descriptions containing `: `; double a literal apostrophe inside a single-quoted YAML string. Keep descriptions and prose on one physical line for easy review; this is an authoring convention, not a Pi parser restriction.
+Use valid YAML frontmatter at the start of the file. Quote descriptions containing `: `; double a literal apostrophe inside a single-quoted YAML string. Keep descriptions and prose on one physical line for easy review; Pi's parser also accepts wrapped prose.
 
 A directory-form skill has `SKILL.md`. A missing description or malformed YAML in that file produces a load note. A root-level `.md` without skill frontmatter may be ignored as an ordinary document.
 
@@ -38,6 +38,6 @@ First name wins. Duplicate names between Pi roots produce a collision note; Ling
 
 Pi's global `skills` resource filters own installed and extra-path selection; Ling writes exact `+<filePath>` or `-<filePath>` overrides. `lingSkills.disabled` contains packaged built-in names and `lingSkills.builtinEnabled` owns the packaged master switch. Unresolved legacy disabled names remain recorded until discovery can map them to canonical paths. A disabled skill is absent from the effective prompt and commands. Global per-skill controls target non-project resources; project filters remain in the project Pi settings. Settings keeps configuration rows for disabled and built-in skills; the workspace Skills control shows the project's effective set.
 
-Companion paths resolve relative to the skill directory. Ling lists `scripts/`, `references/`, and `assets/`, with at most three path components below each directory, for example `references/topic/detail.md`. The browser skips companion symlinks, reports truncated listings, previews `SKILL.md` up to 4 MiB and text companions up to 1 MiB, and identifies binary files without displaying them as text. These are UI preview limits, not Pi discovery limits or a sandbox on agent file tools.
+Companion paths resolve relative to the skill directory. Ling lists `scripts/`, `references/`, and `assets/`, with at most three path components below each directory, for example `references/topic/detail.md`. The browser skips companion symlinks, reports truncated listings, previews `SKILL.md` up to 4 MiB and text companions up to 1 MiB, and identifies binary files without displaying them as text. These limits apply to UI previews. Pi discovery and agent file access follow their own rules.
 
-Use Settings → Skills → Reload after manual changes to reconcile current projects and sessions. Switch and path mutations reload automatically. Inspect diagnostics and the reload result rather than treating a saved file or new session as proof that every existing session refreshed.
+Use Settings → Skills → Reload after manual changes to reconcile current projects and sessions. Switch and path mutations reload automatically. Inspect diagnostics and the reload result for every existing session that needs the change.

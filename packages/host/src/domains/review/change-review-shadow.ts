@@ -29,10 +29,7 @@ const SHADOW_STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1_000;
  * a stuck git process must be killed, or it holds file locks.
  */
 const GIT_COMMAND_TIMEOUT_MS = 30_000;
-/**
- * Timeout for heavy whole-tree operations like `add` / `gc`. Large repos legitimately run
- * several times slower than plumbing; 2min is the acceptable ceiling — longer means stuck.
- */
+/** Allow whole-tree add/gc operations up to two minutes. They can take longer than Git plumbing calls; the deadline bounds how long they hold resources. */
 const GIT_HEAVY_TIMEOUT_MS = 120_000;
 /**
  * Cap for non-diff git output. 4MiB covers status/rev listings; guards against malicious

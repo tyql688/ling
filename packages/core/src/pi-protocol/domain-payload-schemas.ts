@@ -307,8 +307,8 @@ export const skillsOverviewSchema = z.strictObject({
 			}),
 		)
 		.max(COLLECTION_MAX_ITEMS),
-	// Pi settings preserve user-facing forms such as ~/.claude/skills; unlike resolved
-	// resource paths, these configuration entries are not required to be absolute.
+	// Pi settings retain user-entered directory forms such as ~/.claude/skills.
+	// Resource discovery resolves those entries to absolute paths.
 	extraPaths: z.array(configuredSkillPathSchema).max(COLLECTION_MAX_ITEMS),
 	enableSkillCommands: z.boolean(),
 	globalSkillsDir: absolutePathSchema,

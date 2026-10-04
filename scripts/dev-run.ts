@@ -123,7 +123,7 @@ async function seed(path: string): Promise<void> {
 	]) {
 		execFileSync("git", arguments_, { cwd: project, stdio: "ignore" });
 	}
-	// Sessions are created through Host/Pi during acceptance, rather than writing a guessed SDK format.
+	// Create acceptance sessions through Host/Pi so the SDK writes their session format.
 	console.log(project);
 }
 

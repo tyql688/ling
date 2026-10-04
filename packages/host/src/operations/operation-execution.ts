@@ -26,8 +26,7 @@ interface CreateOperationExecutionOptions {
 	release(): void;
 }
 
-/** Owns only canonical lifecycle transitions and timer cleanup. Feature registries still own
- * identity validation, record lookup, cancellation policy, and the concrete effect. */
+/** Applies operation lifecycle transitions and cleans up timers. Feature registries validate identities, find records, choose cancellation behavior and run the effect. */
 export function createOperationExecution(options: CreateOperationExecutionOptions): OperationExecutionRecord {
 	if (!Number.isSafeInteger(options.remainingMs) || options.remainingMs <= 0) {
 		throw createLingError({

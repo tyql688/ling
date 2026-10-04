@@ -18,7 +18,7 @@ type ProjectAvailability = "ready" | "missing";
 export interface OpenProjectInfo {
 	cwd: string;
 	name: string;
-	/** Conversation targets use Ling's persistent working directory instead of a user-selected project. */
+	/** Conversation targets use Ling's persistent conversation directory as cwd. */
 	purpose: "project" | "conversation";
 	availability: ProjectAvailability;
 	meta: WorkspaceMeta;
@@ -33,8 +33,7 @@ export interface ProjectListFailure {
 /** Project-list failures cross the Host protocol; 2,000 characters preserve normal diagnostics without allowing one tool error to inflate the response. */
 export const PROJECT_LIST_FAILURE_MESSAGE_MAX_CHARS = 2_000;
 
-/** Project inspection is entity-isolated: healthy projects remain usable while a bounded
- * representative failure keeps a partial list from masquerading as a complete success. */
+/** Returns healthy projects alongside a bounded diagnostic for projects that failed inspection. */
 export type ProjectListResult =
 	| { status: "complete"; projects: OpenProjectInfo[] }
 	| {
@@ -129,9 +128,8 @@ interface ProjectFilePreviewBase {
 
 export type ProjectFilePreview =
 	| (ProjectFilePreviewBase & { kind: "text"; content: string; revision: string })
-	// Pinned to ArrayBuffer rather than the default ArrayBufferLike, which also admits
-	// SharedArrayBuffer and is therefore rejected as a Response/Blob body: the reader never
-	// produces a shared buffer, and stating that keeps callers from re-copying the bytes.
+	// The reader produces ArrayBuffer bytes, which Response and Blob accept directly.
+	// ArrayBufferLike would also admit SharedArrayBuffer and require callers to copy the bytes.
 	| (ProjectFilePreviewBase & { kind: "image"; data: Uint8Array<ArrayBuffer>; mime: ProjectImagePreviewMime })
 	| (ProjectFilePreviewBase & { kind: "binary" })
 	| (ProjectFilePreviewBase & { kind: "tooLarge"; maxBytes: number });
@@ -164,7 +162,7 @@ export const PROJECT_LAUNCH_TARGET_IDS = [
 export type ProjectLaunchTargetId = (typeof PROJECT_LAUNCH_TARGET_IDS)[number];
 export type ProjectLaunchTargetKind = "file-manager" | "editor" | "terminal";
 
-/** Static id→kind table; preference storage and default launch group by kind, staying consistent with the detected target list. */
+/** Maps application ids to launch kinds for preference storage and default selection. */
 export const PROJECT_LAUNCH_TARGET_KIND_BY_ID: Record<ProjectLaunchTargetId, ProjectLaunchTargetKind> = {
 	"file-manager": "file-manager",
 	nautilus: "file-manager",
@@ -213,12 +211,7 @@ export interface ProjectTrustRequest {
 
 export type ProjectTrustChoice = "trust" | "session" | "deny";
 
-/**
- * A project's own Pi configuration, read straight from its `.pi/settings.json`.
- * `settings` is empty both when the file is missing and when the project is untrusted —
- * Pi refuses to load project settings it does not trust — so `exists` and `trusted` are
- * carried separately to tell those two very different states apart.
- */
+/** Reads the project's `.pi/settings.json`. Missing files and untrusted projects both yield empty settings; `exists` and `trusted` identify the reason. Pi loads project settings after trust is granted. */
 export interface ProjectPiConfig {
 	path: string;
 	exists: boolean;

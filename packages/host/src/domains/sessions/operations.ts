@@ -10,7 +10,7 @@ import { pathIdentity } from "@ling/core/paths";
 import type { OperationExecutionHandle, OperationExecutionRecord } from "../../operations/operation-execution";
 
 import { createOperationRegistry, ownerMismatchError } from "../../operations/operation-registry";
-// ── Session operations (transcript paging / completion etc., bound to runtimeId + generation) ──
+// Session paging and completion operations bind to runtimeId and generation.
 
 /**
  * Max deadline span for session-class cancellable operations (transcript

@@ -31,7 +31,7 @@ export async function prepareEditorChange(
 	api: LingApi["project"],
 	markDirty: (input: { key: string; dirty: boolean }) => void,
 ): Promise<PreparedEditorChange> {
-	// A review is interactive; refuse oversized proposals instead of retaining an entire generated project.
+	// Reject oversized edit proposals to bound memory during interactive review.
 	if (change.files.length > languageLimits.editFiles)
 		throw new Error("Review at most 50 files in one editor operation");
 	const files: PreparedEditorFile[] = [];

@@ -6,13 +6,12 @@
 		scrollbar-color: var(--color-scrollbar-thumb) transparent;
 	}
 
-	/* Text selection follows the accent (skinnable through --color-selection) instead of the
-	   OS default, so a skin's highlight matches its palette. */
+	/* Text selection uses --color-selection from the skin’s palette. */
 	::selection {
 		background-color: var(--color-selection);
 	}
 
-	/* Focus belongs to the control's surface, never a global accent-colored rectangle. */
+	/* Controls show keyboard focus through their own surface and text styles. */
 	:focus,
 	:focus-visible {
 		outline: none;
@@ -21,9 +20,7 @@
 		background-color: var(--color-surface-hover);
 	}
 
-	/* Desktop chrome, not a document: pressing and dragging across a control would leave the
-	   system text-selection highlight on its label. Content keeps its selection — only the
-	   controls opt out. */
+	/* Disable text selection on controls so dragging a label does not select it. Content remains selectable. */
 	button,
 	label,
 	summary,
@@ -43,8 +40,7 @@
 	}
 	::-webkit-scrollbar-thumb {
 		border-radius: 9999px;
-		/* Transparent 2px border + padding-box keeps the visible thumb at 6px so it never
-		   reads as a heavy bar, even though the track is a generous 10px hit target. */
+		/* A transparent 2px border with padding-box leaves a visible 6px thumb inside a 10px hit target. */
 		border: 2px solid transparent;
 		background-color: var(--color-scrollbar-thumb);
 		background-clip: padding-box;
@@ -207,8 +203,7 @@
 		--alert-color: var(--color-danger);
 	}
 
-	/* Empty-home backdrop — the app icon's brush-stroke π applied as a mask, so the faint
-	   theme-tinted gradient fills the glyph without obscuring content. */
+	/* The app icon masks a faint, theme-tinted gradient on the empty home screen. */
 	.empty-state-glyph {
 		width: clamp(160px, 22vw, 280px);
 		aspect-ratio: 1024 / 836;
@@ -238,8 +233,7 @@
 	.katex {
 		font-size: 1.15em;
 	}
-	/* Long INLINE formulas scroll within themselves instead of being clipped by the
-	   transcript (whose scroller is overflow-x hidden on purpose). */
+	/* Long inline formulas scroll within their own box to remain readable inside the transcript’s hidden horizontal overflow. */
 	p .katex,
 	li .katex {
 		display: inline-block;

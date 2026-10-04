@@ -9,12 +9,9 @@ import {
 import { assertJsonFrameSize } from "@ling/core/json-frame";
 import { z } from "zod";
 
-/**
- * Versioned, method-specific transport between Main and the package utility process.
- * Pi SDK objects never cross this boundary.
- */
+/** Versioned requests and responses exchanged by Main and the package utility process. */
 
-/** Plugin host frame protocol version; bumping makes old subprocess handshakes fail deliberately. */
+/** Plugin-host protocol version. Subprocess handshakes require a matching version. */
 export const PLUGIN_HOST_PROTOCOL_VERSION = 5 as const;
 export const PLUGIN_HOST_SYSTEM_PROXY_FALLBACK_ENV = "LING_PLUGIN_HOST_SYSTEM_PROXY_FALLBACK";
 /** Host request frame limit (64Ki); requests carry only small fields like cwd/method. */
@@ -173,7 +170,7 @@ export function parsePluginHostEvent(value: unknown): PluginHostEvent {
 	return eventSchema.parse(value);
 }
 
-/** Transport abstraction keeps Core shell-agnostic. */
+/** Transport operations supplied by the process host. */
 export interface PluginHostTransport {
 	postMessage(message: unknown): void | Promise<void>;
 	onMessage(listener: (message: unknown) => void): () => void;

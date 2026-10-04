@@ -3,11 +3,7 @@ import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { createLingError } from "../../ling-error";
 import { projectPiBranchMessages } from "./session-message-projector";
 
-/**
- * Reads a persisted session without a runtime. Pi refuses to resume a session whose stored working
- * directory is gone, so a deleted project would otherwise take its history with it. Opening the file
- * directly keeps that history readable; nothing here binds a runtime, so the session cannot continue.
- */
+/** Reads saved history for a session whose working directory is gone. Pi requires the directory to resume execution; archived reads load the file for display. */
 export function readArchivedPiSessionMessages(sessionFilePath: string, markdownWidth: number): SessionMessage[] {
 	let sessionManager: ReturnType<typeof SessionManager.open>;
 	try {
@@ -24,7 +20,7 @@ export function readArchivedPiSessionMessages(sessionFilePath: string, markdownW
 			error,
 		);
 	}
-	// No project is loaded for an archived read, so no extension renders its entries, and nothing
-	// could later fetch a deferred tool body — the projection keeps tool output inline.
+	// Archived reads load complete tool output inline because deferred bodies require a runtime.
+
 	return projectPiBranchMessages({ sessionManager, extensions: null }, { markdownWidth, deferToolResults: false });
 }

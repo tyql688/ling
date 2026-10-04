@@ -46,7 +46,7 @@ interface SessionListItemProps {
 	onArchive: (archived: boolean) => void;
 	onDelete: () => void;
 	onReveal: () => void;
-	/** Only the active session can compact — the runtime command needs its live binding. */
+	/** Compaction requires the active session's live runtime binding. */
 	onCompact?: (() => void) | undefined;
 }
 

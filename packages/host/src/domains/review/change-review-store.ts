@@ -78,9 +78,9 @@ const storedChangeStateSchema: z.ZodType<StoredChangeState> = z.strictObject({
 	baseline: storedGitSnapshotSchema,
 	turns: storedTurnsSchema,
 });
-/** Dataset schema identifier; validated when reading from disk to prevent cross-reading other userData JSON. */
+/** Schema identifier for a session's saved change-review state. */
 const CHANGE_REVIEW_DATASET_ID = "ling/change-review-state";
-/** Current envelope version; v2→v3 carried the tracking-field migration, so a version bump needs a migration or old files must be rejected. */
+/** Current envelope version. Versions 2 to 3 migrate tracking fields; later version changes require migration or rejection of older files. */
 const CHANGE_REVIEW_DATASET_VERSION = 3;
 const storedChangeStateEnvelopeSchema = z.strictObject({
 	schema: z.literal(CHANGE_REVIEW_DATASET_ID),

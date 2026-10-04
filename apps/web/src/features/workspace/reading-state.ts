@@ -26,9 +26,9 @@ export interface WorkbenchPanelState {
 	open: boolean;
 	/** The file tree docked beside the right column's content. */
 	treeOpen: boolean;
-	/** Branch history opens from the Changes tab and does not replace it. */
+	/** Branch history opens within the Changes tab. */
 	historyOpen: boolean;
-	/** File focus: expand parent directories and select the preview; directory focus: only expand that directory, no file preview. */
+	/** File focus expands parent directories and selects the preview. Directory focus expands the directory. */
 	explorerFocus: { path: string; directory: boolean } | null;
 	reviewScope: WorkbenchReviewScope;
 	reviewTurnId: string | null;

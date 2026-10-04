@@ -4,7 +4,7 @@ import { skinArtworkScopeSchema, skinArtworkTreatmentSchema } from "./skins";
 import { sessionKey, sessionRefSchema, type SessionRef } from "./session-ref";
 import { portableAbsolutePathSchema } from "./path-validation";
 
-/** Recent read markers are a convenience cache, not the durable session catalog. */
+/** Recent read-marker cache, stored separately from the durable session catalog. */
 export const SESSION_SEEN_MAX_ITEMS = 10_000;
 /** The ordered strip keeps the latest pinned tabs; previews belong to each window. */
 export const OPEN_SESSION_TABS_MAX_ITEMS = 40;
@@ -237,7 +237,7 @@ export const userStateRecoverySchema = z.strictObject({
 	mutations: z.array(userStateMutationSchema).max(10_000),
 });
 
-/** A first-paint hint only; these choices become authoritative after the Host snapshot arrives. */
+/** First-paint hints replaced by the saved choices from the Host snapshot. */
 export const uiBootPreferencesSchema = z.strictObject({
 	version: z.literal(1),
 	theme: z.enum(["system", "light", "dark"]),

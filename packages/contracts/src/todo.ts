@@ -20,7 +20,7 @@ export const todoDetailsSchema = z.object({
 });
 export type TodoDetails = z.infer<typeof todoDetailsSchema>;
 
-/** A finished model turn is not evidence that any individual task was completed. */
+/** Task completion requires a recorded status change. */
 export function todoProgress(value: TodoDetails) {
 	const tasks = value.tasks.filter((task) => task.status !== "deleted");
 	return {
@@ -42,7 +42,7 @@ function supportedVersion(version: string | null): boolean {
 	return minor > TODO_MIN_VERSION[1] || (minor === TODO_MIN_VERSION[1] && patch >= TODO_MIN_VERSION[2]);
 }
 
-/** Only rpiv-todo output is projected; another extension registering `todo` keeps its original rendering. */
+/** Projects verified rpiv-todo output. Other extensions named `todo` use Pi rendering. */
 export function isTodoOrigin(origin: PiToolOrigin | null): boolean {
 	if (!origin) return false;
 	if (origin.source === TODO_BUNDLED_SOURCE) return true;

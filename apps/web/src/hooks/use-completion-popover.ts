@@ -1,11 +1,7 @@
 import type { RefObject } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
-/**
- * Shared completion-popover controller: active-row state, wrap-around keyboard navigation,
- * and caret placement after an insertion. Both composers (session and quick-start) go through
- * it so the popover keymap and focus handling cannot diverge.
- */
+/** Tracks the active completion row, wraps keyboard navigation and places the caret after insertion for both composers. */
 export function useCompletionPopover(
 	editorRef: RefObject<{ focus(offset?: number): void } | null>,
 	text: string,
@@ -40,12 +36,7 @@ export function useCompletionPopover(
 	}, []);
 	/** Active row clamped to the current item count (the list can shrink between render and keypress). */
 	const activeIndexFor = (itemCount: number): number => activeIndex % Math.max(itemCount, 1);
-	/**
-	 * Arrow/Tab/Enter handling while the popover is visible; returns true when the event was
-	 * consumed. Only a BARE Enter/Tab confirms a selection — Shift+Enter (newline) and a
-	 * shortcut-modifier Enter (steer/queue while the agent runs) must fall through to the
-	 * composer's Enter handler, otherwise the popover swallows them.
-	 */
+	/** Handles arrows, Tab and Enter while the popover is visible. Returns true when it consumes the event. Bare Enter or Tab confirms a selection. Shift+Enter and shortcut-modifier Enter reach the composer for newline, steer or queue handling. */
 	const interceptPopoverKey = (
 		event: globalThis.KeyboardEvent,
 		itemCount: number,

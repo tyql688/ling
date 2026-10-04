@@ -48,11 +48,11 @@ const REPLAY_HARD_MAX_CHARS_PER_TERMINAL = 2_000_000;
 /** Character caps alone still permit millions of tiny chunk objects. */
 const REPLAY_MAX_CHUNKS_PER_TERMINAL = 4_096;
 const REPLAY_HARD_MAX_CHUNKS_PER_TERMINAL = 8_192;
-/** Timeout for terminal-host replies to spawn/resize etc; 10s covers a cold start — past that, fail visibly instead of hanging forever. */
+/** Allow ten seconds for terminal-host replies, including a cold start, then report a timeout. */
 const HOST_REQUEST_TIMEOUT_MS = 10_000;
 /** Response promises each retain a timer and command context until host settlement. */
 const HOST_REQUEST_CAPACITY = 128;
-/** Max integrated terminals per project; 16 covers multi-tab use — more only inflates PTY/replay-buffer footprint. */
+/** Limit each project to 16 integrated terminals to bound PTY and replay-buffer retention. */
 const MAX_TERMINALS_PER_PROJECT = 16;
 /** Process-wide terminal cap; 64 stops cross-project tab sprawl from dragging down the main process and host. */
 const MAX_TERMINALS_TOTAL = 64;

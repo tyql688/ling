@@ -59,12 +59,7 @@ export function createChangeReviewRuntimeOwner({
 	store: Pick<ChangeReviewStore, "loadState" | "persist">;
 }): ChangeReviewRuntimeOwner {
 	const { loadState, persist } = store;
-	/**
-	 * Startup GC of crash-orphaned shadow repositories, held as a barrier rather than awaited
-	 * before the window. It deletes by mtime, so it has to finish before a session can adopt a
-	 * shadow directory it was about to remove; `ensureState` is the only way one is reached.
-	 * Never rejects — `initialize` hands the real failure to its caller to report.
-	 */
+	/** Tracks startup cleanup of orphaned shadow repositories. ensureState waits for cleanup before adopting a directory that cleanup could remove. initialize reports cleanup failures; this barrier resolves after the attempt. */
 	let staleShadowDataCleaned: Promise<void> = Promise.resolve();
 	let stopping = false;
 	let disposal: Promise<void> | null = null;

@@ -50,7 +50,7 @@
 	--window-controls-left-inset: max(96px, env(titlebar-area-x, 0px));
 }
 
-/* Light theme (default). Overridden by `.dark` below — see hooks/use-theme.ts. */
+/* Light is the default theme. The .dark block overrides it; lib/appearance/use-theme.ts sets the class. */
 @theme {
 	--font-sans:
 		ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -85,16 +85,14 @@
 	--color-border-default: color-mix(in srgb, var(--color-text-primary) 20%, transparent);
 	--default-transition-duration: 150ms;
 
-	/* Light palette: white surface over a quiet neutral under-layer, near-black foreground,
-	   and every secondary color derived as an alpha tint of the foreground so it sits correctly
-	   on any surface. */
+	/* The light palette uses a white surface, a neutral background and near-black text. Secondary colors use alpha tints of the foreground. */
 	--color-surface: #ffffff;
 	--color-shell-content: var(--color-surface);
 	/* Loading overlays never add another tint over a viewport's native or artwork glass. */
 	--color-loading-veil: #ffffff;
 	--color-surface-raised: #f9f9f9;
 	--color-header: #f2f2f3;
-	/* Sidebar is the canvas, not a second card — same tint as the window chrome. */
+	/* The sidebar shares the window chrome’s canvas tint. */
 	--color-sidebar: #f2f2f3;
 	--color-sidebar-preview: #f2f2f3;
 	--color-panel: #ffffff;
@@ -112,8 +110,7 @@
 	--color-text-muted: #707074;
 	--color-accent: #006dd3;
 	--color-accent-muted: #006dd31a;
-	/* Text painted on top of a solid --color-accent fill — kept separate because dark mode's
-	   accent is light (needs dark text), the inverse of light mode's (needs white text). */
+	/* Text over --color-accent uses dark ink in dark mode and white ink in light mode to match the accent fill. */
 	--color-accent-foreground: #ffffff;
 	--color-danger: #e02e2a;
 	--color-success: #00a240;
@@ -132,8 +129,7 @@
 	--color-status-success: #0a8f3c;
 	--color-status-warning: #d97706;
 	--color-status-danger: #d0342c;
-	/* Primary action fill (send button, default Button) — near-black in light mode, white in
-	   dark; accent blue is reserved for links and live indicators. */
+	/* Primary actions, including Send and the default Button, use near-black fill in light mode and white in dark mode. Links and live indicators use accent blue. */
 	--color-btn-primary: #0d0d0d;
 	--color-btn-primary-foreground: #ffffff;
 	--color-btn-primary-hover: #111113;
@@ -150,16 +146,14 @@
 	--color-scene-text: #1a1a1d;
 	--color-scene-text-muted: #707074;
 	--color-scene-accent: #006dd3;
-	/* Attention-card orbit glow (mint), inline-code teal, and the [!IMPORTANT] alert purple —
-	   tokens so skins can restyle them; consumed via var() where they used to be literals. */
+	/* Skins can set the attention-card orbit glow, inline-code color and [!IMPORTANT] alert color through these tokens. */
 	--color-attention-glow: #0f9f76;
 	--color-inline-code: #0f766e;
-	/* A 5% ink wash restores the original inline chip; skins resolve its protected equivalent. */
+	/* Inline chips use a 5% ink tint; skins resolve a matching protected fill. */
 	--color-inline-code-bg: color-mix(in srgb, var(--color-text-primary) 5%, var(--color-surface-raised));
 	--color-inline-code-link: var(--color-link);
 	--color-alert-important: #924ff7;
-	/* ANSI terminal palette (light-theme values) — consumed by the .ansi-*-fg classes below,
-	   which ansi-to-react emits for shell output in tool results. */
+	/* The .ansi-*-fg classes use this light terminal palette for shell output emitted by ansi-to-react. */
 	--ansi-black: #000000;
 	--ansi-red: #d53538;
 	--ansi-green: #008809;
@@ -177,8 +171,7 @@
 	--ansi-bright-cyan: #20b8ff;
 	--ansi-bright-white: #828282;
 
-	/* Derived details — the active skin replaces these as one resolved semantic set. The CSS values remain
-	   authoritative first-paint defaults before the active manifest is applied. */
+	/* The active skin resolves these semantic colors together. CSS values supply the defaults before the manifest is applied. */
 	--color-user-bubble: var(--color-surface-raised);
 	--color-today-usage: transparent;
 	/* Bounded reading panels use a 55:45 raised/base mix before the skin resolves its palette. */
@@ -187,8 +180,7 @@
 	--color-reading-surface-header: color-mix(in srgb, var(--color-text-primary) 3.5%, var(--color-surface-raised));
 	/* Retaining 75% of the semantic hairline keeps the edge visible over both light and dark art. */
 	--color-reading-surface-border: color-mix(in srgb, var(--color-border-subtle) 75%, transparent);
-	/* Full-height code surfaces need more protection than prose cards. Skin resolution supplies
-	   a mode-aware solid/alpha base; the derived chrome is only a 3% text tint, not another card. */
+	/* Full-height code surfaces use a mode-aware solid or alpha background. Their headers add a 3% text tint. */
 	--color-workbench-surface: var(--color-surface-raised);
 	--color-workbench-chrome: color-mix(in srgb, var(--color-text-primary) 3%, var(--color-workbench-surface));
 	/* The default workspace is one continuous plane; skins may tint its navigator from their sidebar role. */
@@ -228,11 +220,7 @@
 	--shadow-input: inset 0 1px 2px #0000000a;
 }
 
-/* Categorical data-viz palette (usage stats charts) — the monochrome-first rule governs
-   chrome, not data marks. Eight stable rank slots keep more models distinguishable before
-   the remainder folds into "other". Tool categories use a separate palette so danger red
-   remains exclusive to failures. `static` is required because these vars are consumed via
-   inline style={} var() references rather than generated utility classes. */
+/* Usage charts use eight stable model colors, then group remaining models under "other". Tools have a separate palette; danger red is reserved for failures. These variables require static because inline style var() references consume them directly. */
 @theme static {
 	--color-chart-1: #0b7fff;
 	--color-chart-2: #1e8a3e;

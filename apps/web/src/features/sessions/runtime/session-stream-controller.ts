@@ -1,12 +1,7 @@
 import type { SessionEventEnvelope, SessionSnapshot } from "@ling/contracts/session";
 import { sessionEventPolicy } from "@ling/contracts/session-event-policy";
 
-/**
- * Max events buffered while no snapshot is ready. 512 ≈ the upper bound of one dense tool
- * stream: larger just prolongs the "poisoned buffer → repeated resync" cycle; smaller drops
- * events after a normal blip and forces a screen clear. Overflow clears the buffer and
- * demands a resync with clearProjection, preventing unbounded buildup.
- */
+/** Buffers up to 512 events while waiting for a snapshot, enough for a dense tool stream. Overflow clears the buffer and requests a resync with clearProjection. This bounds memory and retries while tolerating brief interruptions. */
 const MAX_BUFFERED_EVENTS = 512;
 
 interface SessionStreamPosition {
@@ -169,9 +164,9 @@ function createSessionStreamController(): SessionStreamController {
 			);
 			if (bufferHasNewerBinding) return { type: "ignore" };
 
-			// Snapshot is authoritative. Replay only a contiguous prefix of the buffer after
-			// the snapshot watermark; drop any gap/mismatch tail instead of failing closed into
-			// a resync loop that re-reads the same poisoned buffer and clears the UI forever.
+			// Replay the buffer's contiguous events after the snapshot watermark. Drop the tail at a sequence gap or binding mismatch.
+			// Retrying that same invalid tail would repeatedly clear the UI and request another snapshot.
+
 			let position = positionFromSnapshot(snapshot);
 			const buffered = entry.buffer.filter(
 				(envelope) => sameBinding(position, envelope) && envelope.sequence > position.lastSequence,

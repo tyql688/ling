@@ -325,11 +325,7 @@ function removeFooterComponent(owner: PiExtensionComponentState, ref: SessionRef
 	}
 }
 
-/**
- * A TUI component draws to an exact column count, so it must be given the width of the surface it
- * will actually appear on: widgets and the footer render inside the extension dock, the header
- * inline at the top of the transcript. Passing one fixed width is what clipped dock lines.
- */
+/** Renders each TUI component at its displayed column width: dock width for widgets and footer, transcript width for the header. */
 function renderWidgetComponent(
 	owner: PiExtensionComponentState,
 	ref: SessionRef,

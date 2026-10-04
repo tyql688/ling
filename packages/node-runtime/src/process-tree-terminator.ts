@@ -14,7 +14,7 @@ const TERMINATION_GRACE_MS = 500;
 const FORCED_EXIT_GRACE_MS = 250;
 /** Interval for polling "has the root/child exited"; 25ms balances responsiveness against idle CPU. */
 const EXIT_POLL_INTERVAL_MS = 25;
-/** Max descendants handled in one termination. 8k far exceeds a normal tool tree; more implies a cycle/enumeration bug — truncate to prevent OOM. */
+/** Handle at most 8,192 descendants per termination to bound memory use during process-tree enumeration. */
 const MAX_DESCENDANTS = 8_192;
 
 interface ProcessIdentity {

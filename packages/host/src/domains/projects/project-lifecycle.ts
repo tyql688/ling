@@ -168,10 +168,7 @@ export function createProjectLifecycle({
 		};
 	}
 
-	/** Global resources (user skills, packages, extra paths) reach every project through the same
-	 * loader, so their diagnostics would otherwise flag every project at once. The project badge
-	 * only carries what lives under this project and still needs attention — informational
-	 * notes such as a skill shadowing another stay out of it. */
+	/** Project badges show actionable diagnostics from that project. Global resource diagnostics and informational skill-shadowing notes remain in the resource catalog. */
 	function isProjectDiagnostic(diagnostic: PiDiagnostic, cwd: string): boolean {
 		if (diagnostic.severity === "info") return false;
 		if (diagnostic.path === undefined) return true;
@@ -185,8 +182,8 @@ export function createProjectLifecycle({
 			const ready = await directoryExists(canonicalCwd);
 			// Missing directories remain manageable projects; Git metadata cannot be inspected until they return.
 			const meta: WorkspaceMeta = ready ? await workspaceMeta(canonicalCwd) : { kind: "primary", branchName: null };
-			// basename() is separator-aware on every platform; `split("/").pop()` returned the
-			// whole path as the name on Windows (backslash paths don't split on `/`).
+			// basename() recognizes the platform's path separators.
+
 			return {
 				cwd: canonicalCwd,
 				name: basename(canonicalCwd) || canonicalCwd,
@@ -198,8 +195,7 @@ export function createProjectLifecycle({
 		});
 	}
 
-	/** Restores every project that was open last time. Each path is independent — one missing/deleted
-	 * directory logs and is skipped rather than blocking the rest. Never falls back to `process.cwd()`. */
+	/** Restores saved open projects independently. Logs and skips a failed restoration while continuing with other paths. The saved list supplies all restore targets. */
 	async function restoreOpenProjects(): Promise<void> {
 		recovery.clear();
 		let paths: string[];
@@ -359,8 +355,8 @@ export function createProjectLifecycle({
 	}
 
 	async function openProjectAndPersistNow(projectPath: string): Promise<OpenProjectInfo> {
-		// Restoring a deleted project is deliberate; adding one is not. Only the restore path may
-		// admit a missing folder, so a mistyped request cannot register a project that never existed.
+		// Restoration can admit a missing folder to retain its session history. Add requests require
+		// an existing folder.
 		if (!(await directoryExists(projectPath))) {
 			throw createLingError({
 				code: "PROJECT_DIRECTORY_MISSING",

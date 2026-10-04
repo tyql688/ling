@@ -6,7 +6,7 @@ import type { TFunction } from "i18next";
 export const PROVIDER_QUOTA_WARNING_USED_PERCENT = 70;
 /** At 90% used, quota bars turn red to flag imminent exhaustion. */
 const PROVIDER_QUOTA_DANGER_USED_PERCENT = 90;
-/** Duration formatting uses exact provider seconds rather than assuming fixed quota windows. */
+/** Formats the duration from the provider's exact seconds. */
 const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
 const SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;

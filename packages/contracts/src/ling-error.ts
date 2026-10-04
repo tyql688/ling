@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-/** Closed set of error categories: the main boundary picks logging and UI recovery policy by category; do not add unmodeled categories. */
+/** Error categories used by main for logging and UI recovery. Additions require corresponding handling. */
 const LING_ERROR_CATEGORIES = ["validation", "lifecycle", "runtime", "compatibility", "external"] as const;
 
-/** Closed set of suggested user actions: the renderer only renders these three recovery entries, so free-form copy never drives the flow. */
+/** The three recovery actions the renderer can display. */
 const LING_ERROR_USER_ACTIONS = ["retry", "reopenProject", "report"] as const;
 export type LingErrorUserAction = (typeof LING_ERROR_USER_ACTIONS)[number];
 
-/** Closed set of stable error codes: IPC/DTOs branch on code, never on message strings; additions/removals must stay in sync with main and the UI. */
+/** Stable error codes used for IPC and DTO branching. Changes require matching handling in main and Web. */
 const LING_ERROR_CODES = [
 	"INVALID_REQUEST",
 	"SESSION_NOT_FOUND",
@@ -63,12 +63,12 @@ export function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
 
-/** Normalizes an unknown thrown value into an Error at renderer-safe boundaries. */
+/** Converts an unknown thrown value to a browser-safe Error. */
 export function toError(error: unknown): Error {
 	return error instanceof Error ? error : new Error(String(error));
 }
 
-/** Extracts a stable code from an unknown error without relying on its message. */
+/** Reads a stable error code from an unknown value. */
 export function errorCode(error: unknown): string | null {
 	return error !== null && typeof error === "object" && "code" in error && typeof error.code === "string"
 		? error.code

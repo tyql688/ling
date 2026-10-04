@@ -21,7 +21,7 @@ const single =
 	<Value>(schema: z.ZodType<Value>) =>
 	(args: readonly unknown[]): [Value] => [schema.parse(args[0])];
 
-/** Native paths are interpreted by Electron main; preload uses the same channel declarations without admitting input. */
+/** Electron main validates native paths. Preload shares the channel declarations. */
 export function createShellProcedures(pathSchema: z.ZodType<string> = portableAbsolutePathSchema("Path")) {
 	return {
 		host: { connection: request("desktop:get-host-connection", noArguments, returns<HostConnectionInfo>()) },

@@ -23,9 +23,7 @@ export function isLingError(error: unknown): error is LingError {
 	);
 }
 
-/** Stable overload outcome for every bounded in-process admission queue. Keeping the
- * DTO construction here prevents individual domains from drifting to plain message
- * errors that renderer callers cannot distinguish or retry safely. */
+/** Creates the typed overload error for bounded admission queues so callers can identify and retry rejected work. */
 export function requestCapacityExceeded(resource: string, capacity: number, message: string): LingError {
 	return createLingError({
 		code: "REQUEST_CAPACITY_EXCEEDED",

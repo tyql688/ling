@@ -53,15 +53,10 @@ export interface ShellApi {
 	updates: ShellProcedureClient["updates"];
 }
 
-/**
- * Windows 11 22H2 introduced the background material Ling requests for translucent windows.
- * Main gates the window itself; preload reports the same answer to the renderer so its chrome
- * matches. Both must decide from one build number — they read the version through different
- * APIs (`os.release()` in main, `process.getSystemVersion()` in the sandboxed preload).
- */
+/** Windows 11 22H2 supports the translucent material Ling requests. Main and preload use the same build-number check for the window and renderer, with os.release() in main and process.getSystemVersion() in preload. */
 const WINDOWS_ACRYLIC_MIN_BUILD = 22621;
 
-/** `version` is a Windows version string such as `10.0.22621`; non-Windows callers must not call this. */
+/** Accepts a Windows version string such as `10.0.22621`. Call from Windows paths only. */
 export function supportsWindowsAcrylicBuild(version: string): boolean {
 	return Number.parseInt(version.split(".")[2] ?? "0", 10) >= WINDOWS_ACRYLIC_MIN_BUILD;
 }

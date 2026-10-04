@@ -10,8 +10,7 @@ import { formatRequestError } from "@renderer/lib/errors";
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-/** Rename from a session actions menu — the sidebar keeps its inline edit; this
- * dialog covers surfaces without an editable title field. */
+/** Renames a session from menus whose surfaces lack an editable title. The sidebar uses inline editing. */
 export function RenameSessionDialog({
 	target,
 	onClose,

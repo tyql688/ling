@@ -87,9 +87,8 @@ export function useChangeReviewDiffPreview({
 			setRequest(null);
 			return;
 		}
-		// A picture has no text diff worth fetching: Git answers either a one-line "binary files
-		// differ" or a base85 patch body, and neither is something to read. The pane draws the
-		// versions themselves instead, straight from the protocol.
+		// Display image versions from the protocol. Git's binary-file notice or base85 patch is unsuitable for this preview.
+
 		if (previewMediaKind(selectedPath) !== null) {
 			setPreview({ key: previewKey, owner, path: selectedPath, kind: "media" });
 			setRequest({ key: requestKey, pending: false, error: null });

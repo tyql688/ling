@@ -1,8 +1,4 @@
-/**
- * Column preferences. Version 2 stores the right column as a ratio of its usable range, so window
- * resizes keep the split. Version 1 stored a pixel conversation width; it stays the preference until
- * the user drags the divider or resets it.
- */
+/** Version 2 stores right-column width as a ratio of its usable range. Version 1 pixel widths remain valid until the user drags or resets the divider. Ratio-based widths follow window resizing. */
 export interface WorkbenchGeometry {
 	version: 2;
 	/** 0 is the narrowest right column and 1 the widest; null follows the default width. */
@@ -53,7 +49,7 @@ export function parseWorkbenchGeometry(value: unknown): WorkbenchGeometry | null
 			: null;
 	}
 	if (record.version !== 2) return null;
-	// Older version 2 preferences predate pane swapping and used conversation-first order.
+	// Version 2 preferences with no pane-order field use conversation-first order.
 	const readingOnLeft = record.readingOnLeft === undefined ? false : record.readingOnLeft;
 	if (typeof readingOnLeft !== "boolean") return null;
 	const ratio = record.rightRatio;

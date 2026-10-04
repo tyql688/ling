@@ -129,7 +129,7 @@ const signatureResultSchema = z.strictObject({
 	chainValid: z.boolean(),
 });
 
-/** Publisher names alone cannot distinguish two self-signed certificates with the same subject. */
+/** Compare certificate fingerprints because self-signed certificates can share a publisher name. */
 export function validateWindowsSignature(result: unknown, file: string): string | null {
 	const signature = signatureResultSchema.parse(result);
 	if (win32.normalize(signature.path).toLowerCase() !== win32.normalize(file).toLowerCase())
@@ -159,7 +159,7 @@ export async function verifyWindowsUpdateSignature(
 		{
 			...(signal ? { signal } : {}),
 			windowsHide: true,
-			// Certificate verification must not retain a native child indefinitely or unbounded output.
+			// Bound the certificate-verification child process's lifetime and output.
 			timeout: 20_000,
 			maxBuffer: 64 * 1024,
 			env: { ...process.env, PSModulePath: "", LING_UPDATE_FILE: file },

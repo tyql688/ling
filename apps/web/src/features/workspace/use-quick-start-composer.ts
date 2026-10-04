@@ -58,11 +58,11 @@ import { useTranslation } from "react-i18next";
 export interface QuickStartOptions {
 	/** Canonical working directory of the selected project or managed conversation target. */
 	cwd: string;
-	/** null → Pi's default model for the new session. */
+	/** null selects Pi's default model for the new session. */
 	model: { provider: string; id: string } | null;
-	/** null → the session keeps Pi's resolved default thinking level. */
+	/** null keeps Pi's resolved default thinking level. */
 	thinkingLevel: ThinkingLevel | null;
-	/** null → text-only first message. */
+	/** null sends a text-only first message. */
 	images: ImageAttachment[] | null;
 	fileReferences: MessageFileReference[];
 	/** Renderer draft form retained until the first send is accepted. */
@@ -77,7 +77,7 @@ export type QuickStartComposerProps = {
 	onQuickStart: (text: string, options: QuickStartOptions) => Promise<void>;
 };
 
-/** Owns the form's asynchronous work, recovery state and submission intent. */
+/** Creates the first session and retains the draft until submission succeeds. */
 export function useQuickStartComposer({ projects, preferredCwd, onAddProject, onQuickStart }: QuickStartComposerProps) {
 	const hostUiApi = useDomainApi("ui");
 	const hostProjectApi = useDomainApi("project");
@@ -181,7 +181,7 @@ export function useQuickStartComposer({ projects, preferredCwd, onAddProject, on
 		text,
 		cursorOffset,
 	});
-	// The skill-directory scan is paid only once the user actually opens the slash popover.
+	// Scan skill directories when the slash popover opens.
 	const slashActive = slashToken !== null;
 	const [slashUsed, setSlashUsed] = useState(false);
 	useEffect(() => {

@@ -33,8 +33,8 @@ export type ExtensionUiStateEvent =
 	| { type: "toolsExpanded"; expanded: boolean }
 	| { type: "hiddenThinkingLabel"; label: string | null }
 	| { type: "notify"; level: "info" | "warning" | "error"; message: string }
-	// Observable clear at a runtime-generation boundary (reload/replacement), so
-	// cross-process mirrors drop the previous generation's snapshot too.
+	// Reload and replacement emit a clear event so every process drops the retired
+	// runtime generation's UI snapshot.
 	| { type: "reset" };
 
 export type ExtensionOverlayAnchor =

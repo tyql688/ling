@@ -16,10 +16,7 @@ export interface SessionScrollMemory {
 	 * no longer exists; anchorRowId is preferred because it survives content-height changes.
 	 */
 	scrollFraction: number;
-	/**
-	 * Timeline row id (`data-timeline-row`) near the viewport top when leaving.
-	 * Restore pins that row — more resilient to content-height changes than absolute px / fraction.
-	 */
+	/** Timeline row ID (`data-timeline-row`) near the viewport top. Anchoring to this row preserves reading position when content height changes. */
 	anchorRowId: string | null;
 	/** Offset (px) of the viewport top relative to the anchor row top; positive means the row top is above the viewport. */
 	anchorOffsetPx: number;
@@ -168,12 +165,7 @@ export function forgetSessionScrollMemory(sessionKeys: readonly string[]): void 
 	}
 }
 
-/**
- * Resolve open-session scrollTop from memory and the fully mounted transcript.
- * - no memory / was at bottom → stick to bottom
- * - has anchor → restore that row
- * - otherwise → scrollFraction
- */
+/** Restores scrollTop after the transcript mounts. With no memory, or a saved bottom position, follow the bottom. Otherwise restore the saved row anchor, falling back to scrollFraction when that anchor is unavailable. */
 export function resolveScrollTarget(saved: SessionScrollMemory | null, scroller: HTMLElement): number {
 	const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
 	if (saved === null || saved.atBottom) {

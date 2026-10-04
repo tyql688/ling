@@ -2,17 +2,7 @@ import { sanitizeChildProcessEnvironment } from "@ling/host/runtime/child-proces
 import { getHostPackageBinPath } from "@ling/host/runtime/runtime-paths";
 import { delimiter } from "node:path";
 
-/**
- * One environment policy for every process Ling spawns, in two tiers:
- *
- * - Toolchain children (package installs, skills updates, Pi worker) run through
- *   `createToolchainChildEnvironment`, which prepends the host runtime's own `.bin` so a
- *   packaged build resolves npm/npx to Ling's pinned copies — never the user's toolchain —
- *   while `sanitizeChildProcessEnvironment` appends the runtime node they require.
- * - Generic children (usage host, terminal host, pty shells) use plain
- *   `sanitizeChildProcessEnvironment`: the user's own toolchain wins and the runtime node
- *   is only a last-resort fallback.
- */
+/** Toolchain children use createToolchainChildEnvironment, which prepends the Host .bin directory for pinned npm/npx and appends the bundled Node directory. Generic usage, terminal and PTY children use sanitizeChildProcessEnvironment, keeping the user toolchain before bundled Node. */
 export function createToolchainChildEnvironment(
 	source: Readonly<NodeJS.ProcessEnv> = process.env,
 	additionalBlockedKeys: readonly string[] = [],

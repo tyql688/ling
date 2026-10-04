@@ -56,9 +56,9 @@ export function useWorkspaceRuntime({
 	const sessionRuntimeOpening = activeSessionKey !== null && activeSessionKey === openingSessionKey;
 
 	const archivedTranscripts = useAtomValue(archivedTranscriptsAtom);
-	// An archived session is read from its file and never binds a runtime. Withholding the runtime
-	// ref keeps every session-bound surface — extension UI, dock, viewport reporting — unmounted
-	// instead of each one failing its own request against a session Host has no runtime for.
+	// Archived sessions load their transcript from disk. A null runtime ref keeps extension UI,
+	// dock and viewport reporting unmounted because they require a running session.
+
 	const archivedSession = activeSessionKey !== null && archivedTranscripts.has(activeSessionKey);
 	const runtimeSessionRef = sessionRuntimeOpening || archivedSession ? null : activeSessionRef;
 

@@ -133,7 +133,7 @@ export function TerminalPanel({ cwd, open, controller, onOpenChange, onError }: 
 	if (!open) return null;
 	return (
 		<section
-			// Bottom split of the stage sheet: a hairline, not a nested card.
+			// A hairline separates the bottom terminal split from the stage.
 			className="glass-surface view-fade-in relative flex h-full min-h-0 flex-1 flex-col overflow-hidden border-border-subtle border-t bg-workbench-surface"
 			aria-label={t("terminal.title")}
 			data-terminal-panel=""

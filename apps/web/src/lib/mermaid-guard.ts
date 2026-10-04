@@ -11,7 +11,7 @@ const MERMAID_RENDER_LIMITS = {
 
 /** Edge/arrow-like tokens: coarse diagram-complexity estimate without parsing the full grammar. */
 const EDGE_LIKE_TOKEN = /(?:<-->|<--|-->|---|-\.->|==>|--x|--o|x--|o--)/gu;
-/** Node-like tokens: line-start identifier + square/round/curly-brace label — the other dimension of the complexity score. */
+/** Estimates node count from line-start identifiers followed by square, round or curly-brace labels. */
 const NODE_LIKE_TOKEN = /(?:^|\n)\s*[A-Za-z][\w-]*(?:\[[^\]\n]{0,200}\]|\([^)\n]{0,200}\)|\{[^}\n]{0,200}\})/gu;
 
 function countMatches(source: string, pattern: RegExp): number {

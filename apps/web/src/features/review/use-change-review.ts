@@ -16,7 +16,7 @@ interface TimelineReviewCacheEntry {
 	turns: ChangeReviewSnapshot["turns"];
 }
 
-/** Turn cards only affect timeline layout; keep recent sessions cached so A→B→A does not briefly lose a batch of cards before they come back. */
+/** Cache recent sessions' turn cards so returning to a session preserves its timeline layout. */
 const MAX_TIMELINE_REVIEW_CACHE_ENTRIES = 20;
 
 /** Evicts oldest-first until the cache is back within its entry bound. */

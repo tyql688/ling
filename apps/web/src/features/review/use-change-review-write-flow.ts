@@ -35,7 +35,7 @@ export function useChangeReviewWriteFlow({ sessionRef, onRefresh }: { sessionRef
 
 	// Switching sessions invalidates any in-flight write and drops both dialogs.
 
-	// keyed on the session identity, not on referenced values.
+	// Reset on session identity changes.
 	useEffect(() => {
 		writeRevisionRef.current += 1;
 		setCommitTarget(null);
@@ -56,8 +56,8 @@ export function useChangeReviewWriteFlow({ sessionRef, onRefresh }: { sessionRef
 		setDiscardTarget(null);
 	}, []);
 
-	// Panel close dismisses both dialogs WITHOUT invalidating an in-flight write:
-	// its completion still refreshes the snapshot so a reopened panel is fresh.
+	// Closing the panel dismisses both dialogs. An in-flight write keeps running and refreshes the snapshot on completion.
+
 	const dismissWriteDialogs = useCallback((): void => {
 		setCommitTarget(null);
 		setDiscardTarget(null);
@@ -86,8 +86,8 @@ export function useChangeReviewWriteFlow({ sessionRef, onRefresh }: { sessionRef
 			})
 			.then(async () => {
 				if (push) {
-					// The commit is already recorded — a push failure must say so, not read
-					// like the commit failed.
+					// Report push failure together with the successful commit result.
+
 					try {
 						await hostGitApi.push({ cwd: sessionRef.cwd });
 					} catch (cause) {

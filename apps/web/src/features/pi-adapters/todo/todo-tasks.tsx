@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 
 const filters = ["all", "open", "completed"] as const;
 
-/** Read-only checklist projection; the agent's todo tool owns every change. */
+/** Displays the checklist. The agent's Todo tool updates task state. */
 export function TodoTasks({
 	value,
 	compact = false,

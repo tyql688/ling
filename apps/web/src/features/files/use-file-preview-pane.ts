@@ -56,7 +56,7 @@ export function useFilePreviewPane({
 
 	const insertSelectionReference = () => {
 		if (path === null || selectionLineRange === null) return;
-		// A whole-file selection equals a bare reference — no line numbers.
+		// A whole-file selection produces a bare file reference with line numbers omitted.
 		const totalLines = preview?.kind === "text" ? countTextLines(preview.content) : 0;
 		if (totalLines > 0 && selectionLineRange.start === 1 && selectionLineRange.end >= totalLines) {
 			onInsertReference(path);

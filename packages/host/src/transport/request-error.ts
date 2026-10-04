@@ -82,11 +82,7 @@ interface NormalizeRequestErrorOptions {
 	fallbackMessage: string;
 }
 
-/**
- * Error codes treated as in-protocol control flow rather than service failures. Stale
- * generation/revision, cancellation, and timeouts should be silent/retryable — do not
- * log them as main-process errors or toast them as "crashes".
- */
+/** Expected protocol outcomes for stale generations or revisions, cancellation and timeout. Callers can retry or settle silently as appropriate; logging treats these separately from service failures. */
 const EXPECTED_CONTROL_FLOW_CODES = new Set<LingErrorCode>([
 	"SESSION_LIFECYCLE_CONFLICT",
 	"STALE_RUNTIME_GENERATION",
@@ -99,7 +95,7 @@ const EXPECTED_CONTROL_FLOW_CODES = new Set<LingErrorCode>([
 	"REQUEST_CAPACITY_EXCEEDED",
 ]);
 
-/** These errors are explicit retry/cancellation protocol outcomes, not server failures. */
+/** Retry and cancellation outcomes handled by the protocol. */
 export function isExpectedRequestControlFlow(error: LingErrorDto): boolean {
 	return EXPECTED_CONTROL_FLOW_CODES.has(error.code);
 }

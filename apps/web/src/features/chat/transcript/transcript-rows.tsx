@@ -41,8 +41,7 @@ import { createTranscriptScrollTracking } from "./transcript-scroll-tracking";
 import type { TranscriptVirtualLayout } from "./transcript-virtual-layout";
 import { shouldCollapseUserMessage } from "./user-message-collapse";
 
-/** Where a compaction summarized older history — the messages above it are still shown; the
- * divider only carries the summary the LLM sees in their place. */
+/** Shows the summary supplied to the model at compaction. The preceding messages remain visible in history. */
 function HistorySummaryDivider({ summary, label }: { summary: string; label: string }) {
 	return (
 		<details>
@@ -111,8 +110,8 @@ export function TurnFoldDivider({
 	const handleToggle = () => {
 		const scroller = scrollRef.current;
 		stopScroll();
-		// Pin the timeline row wrapper, not this divider: that is the stable node the parent
-		// can find again after the expanded rows have been inserted.
+		// Pin the stable timeline row wrapper so the parent can find it after expanded rows are inserted.
+
 		const anchor = rootRef.current?.closest<HTMLElement>("[data-timeline-row]");
 		const rowId = anchor?.dataset.timelineRow;
 		if (scroller && anchor && rowId !== undefined) {
@@ -244,7 +243,7 @@ export function TranscriptScrollMemory({
 		const immediate = attach();
 		if (immediate) return immediate;
 
-		// Content mounts after this sibling — retry until the scroller exists, then save on cleanup.
+		// Wait for the sibling scroller to mount, then save its position during cleanup.
 		let disposed = false;
 		let teardown: (() => void) | undefined;
 		let frame = 0;
@@ -600,8 +599,7 @@ export function CustomMessageBlock({
 	);
 }
 
-/** First human-readable line of model-facing custom content: markup-only lines (e.g. an
- * XML event envelope) are skipped so the collapsed row shows the sentence, not the tag. */
+/** Returns the first readable line of custom content, skipping markup-only lines such as XML event wrappers. */
 function customMessageSummary(text: string): string | null {
 	for (const rawLine of text.split("\n")) {
 		const line = rawLine

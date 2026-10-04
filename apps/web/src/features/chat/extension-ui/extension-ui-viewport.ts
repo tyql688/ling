@@ -44,8 +44,8 @@ export function createExtensionViewportMeasurer() {
 	const root = document.documentElement;
 	if (!document.body) return null;
 	const transcriptProbe = createCellProbe("font-mono text-xs leading-relaxed");
-	// The dock renders widget lines at text-xs/leading-4, so its column count must be measured
-	// in that cell — reusing the transcript's would overstate the columns and clip every line.
+	// Measure dock columns with the rendered text-xs/leading-4 cell width.
+	// The transcript cell width would overestimate columns and clip lines.
 	const dockProbe = createCellProbe(EXTENSION_DOCK_LINE_CLASS);
 	// Both text styles stay attached while observed, including across font and skin changes.
 	document.body.append(transcriptProbe, dockProbe);

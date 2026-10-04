@@ -3,8 +3,7 @@ import type { SessionRef } from "./session-ref";
 
 const HOST_MEDIA_PATH = "/api/media";
 
-/** Authenticated Host routes let Chromium fetch and evict images without retaining their bytes
- * in every projected message. Query parameters preserve the original path for Host validation. */
+/** Chromium loads images through authenticated Host routes. Query parameters carry the original path for Host validation. */
 export function markdownImageUrl(cwd: string, path: string): string {
 	return `${HOST_MEDIA_PATH}/project?cwd=${encodeURIComponent(cwd)}&path=${encodeURIComponent(path)}`;
 }
@@ -31,11 +30,7 @@ export function markdownImageUrlKind(url: string): "project" | "attachment" | "r
 
 type ReviewMediaSide = "base" | "current";
 
-/**
- * One side of a changed media file. Both sides come through this route rather than reusing the
- * markdown-image one: that route serves what a transcript can draw, which excludes video, while a
- * review can play a clip.
- */
+/** Authenticated route for either side of a changed media file, including video. Transcript image routes support drawable image formats. */
 export function reviewMediaUrl(cwd: string, path: string, side: ReviewMediaSide, revision?: string): string {
 	const query = new URLSearchParams({ cwd, path, side });
 	if (revision !== undefined) query.set("revision", revision);

@@ -79,11 +79,7 @@ export async function planGlobalSkillUpdates(names: string[], skillsDir: string)
 	return plans;
 }
 
-/**
- * The CLI arguments for one refresh. Pi is the only agent Ling may write to; a shared skill names
- * the store it is linked into as well, so the CLI keeps rewriting one shared copy. Naming a second
- * agent here would reach into that agent's directory — the fan-out `skills update` performs.
- */
+/** Build CLI arguments for one skill refresh. Pi is the only agent target Ling may write. For a shared skill, also name its linked store so the CLI updates that shared copy. Additional agent targets would write to those agents’ directories. */
 export function buildGlobalSkillUpdateArgs(plan: GlobalSkillUpdatePlan): string[] {
 	const args = ["add", plan.source, "--skill", plan.name, "-g", "-y", "--agent", "pi"];
 	if (plan.shared) args.push(SHARED_STORE_AGENT);

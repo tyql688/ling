@@ -19,7 +19,7 @@ interface PendingRequestOptions<Context, Id> {
 	onExpired?(reason: "deadline" | "abort", error: Error, id: Id): void;
 }
 
-/** Transport-neutral correlation and wait ownership. Domains retain envelopes, retries and mutation policy. */
+/** Tracks pending request ids and wait completion. Domain callers supply envelopes, retries and mutation policy. */
 export function createPendingRequests<Context, Id extends string | number = string>(options: {
 	capacity: number;
 	capacityError(): Error;

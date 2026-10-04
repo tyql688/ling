@@ -42,23 +42,13 @@ import { withoutPatches, type ChangeReviewStore } from "./change-review-store";
 
 const log = createLogger("change-review-query");
 
-/**
- * Disk-read cap for untracked-file diffs. 2MiB shows meaningful added text; larger files
- * are unrenderable in the UI anyway, so truncate/refuse rather than let one file blow up
- * IPC and rendering.
- */
+/** Caps untracked text reads at 2 MiB for diff previews. Oversized files are truncated or rejected within the display and IPC budgets. */
 const MAX_UNTRACKED_DIFF_BYTES = 2 * 1024 * 1024;
 /** A pair of 8MiB UTF-8 sides stays below the existing 16MiB Git-blob boundary while keeping
  * review rendering responsive; oversized text still renders through the bounded unified diff. */
 const MAX_REVIEW_SIDE_BYTES = 8 * 1024 * 1024;
 
-/**
- * Retention budget for diffs computed on demand within one snapshot. Expanding context refetches
- * the same file at 100-line steps up to CHANGE_REVIEW_DIFF_CONTEXT_MAX_LINES, so browsing a
- * repository caches one full-file patch per file per step, and only snapshot invalidation drops
- * them — which reading alone never triggers. Retain at most 32M UTF-16 code units;
- * a larger diff is returned to its caller without being retained.
- */
+/** Retains at most 32M UTF-16 code units of computed diffs for one snapshot. Context expansion requests steps of 100 lines up to CHANGE_REVIEW_DIFF_CONTEXT_MAX_LINES. Oversized diffs return to the caller uncached; snapshot invalidation clears retained patches. */
 const MAX_DYNAMIC_DIFF_CACHE_CHARS = 32 * 1024 * 1024;
 
 interface ChangeReviewQueryOwner {

@@ -102,7 +102,7 @@ export type ModelsModelEditorDialogProps = {
 	onClose: () => void;
 };
 
-/** Owns the form's asynchronous work, recovery state and submission intent. */
+/** Loads model defaults and saves the model form while retaining drafts and recovery state. */
 export function useModelEditor({ provider, models, initial, referenceId, onClose }: ModelsModelEditorDialogProps) {
 	const hostModelsApi = useDomainApi("models");
 
@@ -153,8 +153,8 @@ export function useModelEditor({ provider, models, initial, referenceId, onClose
 			}),
 		};
 	}, [draft.samplingParams, draft.compat, draft.options, t]);
-	// The JSON draft is the single owner. Invalid JSON must stay visible rather
-	// than making the input selector appear to have reverted to Pi defaults.
+	// Keep invalid JSON visible in the draft and input selector so the user can correct it.
+
 	const parsedOptions =
 		jsonDrafts.options.error === null ? modelOptionsSchema.parse(jsonDrafts.options.value ?? {}) : null;
 	const selectedInputs = parsedOptions === null ? null : (parsedOptions.input ?? defaultInputTypes);

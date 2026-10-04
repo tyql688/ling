@@ -35,7 +35,7 @@ export interface SystemPermissionState {
 
 export interface AppSettingsSnapshot {
 	keepRunningOnWindowClose: boolean;
-	/** Applied at the next launch — Chromium only honors disableHardwareAcceleration() before app ready. */
+	/** Takes effect at the next launch because Chromium requires disableHardwareAcceleration() before app ready. */
 	disableHardwareAcceleration: boolean;
 	/** Download an available native update after a check. Defaults to on. */
 	autoDownloadUpdates: boolean;
@@ -73,7 +73,7 @@ export type AppSettingsUpdate =
 
 /** Closed set of settings-page zoom steps accepted by ShellApi.setZoomFactor, preventing arbitrary float zoom. */
 export const INTERFACE_ZOOM_PERCENTS = [80, 90, 100, 110, 125, 150] as const;
-/** Normalized native-shell theme source without exposing a runtime-specific type. */
+/** Theme-source values shared with the native shell. */
 export type ThemeSource = "system" | "light" | "dark";
 
 /** Pi runtime metadata shown by package management and the application client. */

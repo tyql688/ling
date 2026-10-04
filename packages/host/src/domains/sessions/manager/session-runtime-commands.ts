@@ -204,8 +204,8 @@ export function createSessionRuntimeCommands({
 		if (mode !== "prompt" && mode !== "steer" && mode !== "followUp") invalidSendMode();
 		if (fileReferences !== undefined) stripFileReferenceTargets(text, fileReferences);
 		const interaction = requireManagedSession(ref);
-		// prompt / steer / followUp all append to the same JSONL — block every mode when
-		// the CLI advanced the file, not only a fresh prompt turn.
+		// Block prompt, steer and followUp when an external writer advances the session JSONL.
+
 		if (await interaction.fileSync.hasExternalDivergence()) {
 			interaction.fileSync.scheduleExternalCheck();
 			throw createLingError({
@@ -358,10 +358,7 @@ export function createSessionRuntimeCommands({
 		return interaction.session.getModelState();
 	}
 
-	/** Both writes append to the session file, so the accepted baseline has to move with them.
-	 * Without that the file watcher reads Ling's own append as an outside edit and refreshes the
-	 * whole session from disk: the runtime rolls over, every projection bound to it is dropped and
-	 * refetched, and the transcript, model controls and extension dock all blink. */
+	/** Accept model and thinking writes into the file-sync baseline. The watcher can then recognize Ling's appends and retain the current runtime. */
 	async function setSessionModel(request: SetSessionModelRequest): Promise<ModelState> {
 		const interaction = requireRuntimeRequestInteraction(request);
 		const state = await interaction.session.setModel(request.provider, request.modelId);
@@ -401,8 +398,7 @@ export function createSessionRuntimeCommands({
 		}
 	}
 
-	/** Drops the branch that starts at `entryId` from the active path. The leaf switch is in-memory
-	 * only — the next send appends a sibling branch, so nothing is rewritten or lost on disk. */
+	/** Moves the in-memory branch leaf before entryId. The next send creates a sibling branch; saved history retains both paths. */
 	async function rewindSession(ref: SessionRef, entryId: string): Promise<void> {
 		await requireManagedSession(ref).session.rewindToEntry(entryId);
 	}
@@ -432,11 +428,7 @@ export function createSessionRuntimeCommands({
 		return await requireManagedSession(ref).session.getBranchLeafEntryId();
 	}
 
-	/**
-	 * Reads one attachment out of a live session for the authenticated `/api/media/attachment` route. Answers
-	 * null for a session that is not bound rather than throwing: a transcript can outlive its runtime,
-	 * and an unreachable picture is a placeholder, not a failure.
-	 */
+	/** Reads a live session attachment for `/api/media/attachment`. Returns null after runtime retirement so the transcript can display an image placeholder. */
 	async function readSessionImage(ref: SessionRef, source: SessionImageSource): Promise<ImageAttachment | null> {
 		const managed = findManagedSession(ref);
 		if (!managed) return null;

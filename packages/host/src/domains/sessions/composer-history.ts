@@ -13,22 +13,15 @@ import { datasetCorruption, inspectDatasetVersion, parseDatasetJson } from "@lin
 import { join } from "node:path";
 import type { HostDatabase } from "../../storage/database";
 
-/** Persistent file name under userData; decoupled from the dataset schema — renaming loses history. */
+/** Composer-history filename under userData. Renaming it changes where saved history is found. */
 const COMPOSER_HISTORY_FILE = "composer-history.jsonl";
-/** Dataset schema identifier; validated when reading from disk to prevent cross-reading other JSONL. */
+/** Schema identifier for composer-history JSONL. */
 const COMPOSER_HISTORY_DATASET_ID = "ling/composer-history";
 /** Current envelope version; a version bump needs a migration or old files must be rejected. */
 const COMPOSER_HISTORY_VERSION = 1;
-/**
- * Max entries read per parse. The history UI only shows a recent window; 10k covers years
- * of heavy use — more only stretches cold-start disk reads.
- */
+/** Parse at most 10,000 entries to bound cold-start reads. The history UI displays a recent window. */
 const COMPOSER_HISTORY_PARSE_ENTRY_LIMIT = 10_000;
-/**
- * Total file byte cap. A single legal message with full escaping costs ~6× UTF-16 code
- * units worst case; 8MiB holds that worst message + the longest cwd header + the
- * newest-first truncated window — beyond the cap, compaction drops the oldest.
- */
+/** Limit the file to 8 MiB, including escaped message text, the cwd header and recent history. JSON escaping can use about six bytes per UTF-16 code unit. Compaction drops the oldest entries when the file exceeds this cap. */
 const COMPOSER_HISTORY_MAX_BYTES = 8 * 1024 * 1024;
 
 interface ComposerHistoryHeader {
@@ -37,11 +30,7 @@ interface ComposerHistoryHeader {
 	writtenAt: number;
 }
 
-/**
- * Max header-line bytes: measured by serializing once with the max writtenAt; read/write
- * split header/body at exactly this boundary instead of truncating a legal header at a
- * guessed fixed size.
- */
+/** Calculates header bytes with the maximum writtenAt value so read/write splitting retains every valid header. */
 const COMPOSER_HISTORY_MAX_HEADER_BYTES = Buffer.byteLength(
 	`${JSON.stringify({
 		schema: COMPOSER_HISTORY_DATASET_ID,
@@ -192,7 +181,7 @@ export function createComposerHistory({ userDataDir, database }: { userDataDir: 
 	/** In-memory cache of durable entries; invalidated on every successful write. */
 	let durableComposerHistoryCache: ComposerHistoryEntry[] | null = null;
 	function publish(entries: readonly ComposerHistoryEntry[]) {
-		// The retained history keeps its existing count, text and encoded byte budgets.
+		// Bound history by entry count, text length and encoded bytes.
 		serializeComposerHistoryJsonl(entries);
 		database.transaction(() => {
 			database.run("DELETE FROM composer_history");

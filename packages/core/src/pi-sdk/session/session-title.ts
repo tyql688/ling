@@ -11,10 +11,7 @@ import type { PiAgentSessionServices, PiCreateAgentSessionOptions, PiModel, PiRe
 /** Truncation suffix appended when a title exceeds SESSION_TITLE_MAX_CHARS; a three-character ellipsis, consistent with common UI. */
 const TITLE_ELLIPSIS = "...";
 
-/**
- * System prompt dedicated to auto-titling. The SDK has no built-in summarization; the standalone in-memory session
- * returns only a short title, in the language of the source message, with no markdown/punctuation noise.
- */
+/** Generates a short title in the source message's language using a dedicated system prompt. */
 const TITLE_SYSTEM_PROMPT = [
 	"You generate concise UI thread titles for a coding assistant.",
 	"Return only the title text.",
@@ -24,11 +21,7 @@ const TITLE_SYSTEM_PROMPT = [
 	"No markdown, quotes, labels, or trailing punctuation.",
 ].join("\n");
 
-/**
- * The SDK has no built-in title/summarization helper (see AGENTS.md) — this spins up a throwaway,
- * unpersisted, tool-less session with a dedicated system prompt to generate one. Never persisted,
- * never attached to `managedSessions`.
- */
+/** Creates an in-memory, tool-free session for title generation. The session remains outside managedSessions and disk persistence. */
 function createTitleResourceLoader(): PiResourceLoader {
 	return {
 		getExtensions: () => ({ extensions: [], errors: [], runtime: createExtensionRuntime() }),

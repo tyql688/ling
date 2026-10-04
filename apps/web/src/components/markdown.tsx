@@ -32,7 +32,7 @@ setCustomComponents(MARKDOWN_COMPONENT_SCOPE, {
 	code_block: MarkdownCode,
 	inline_code: MarkdownInlineCode,
 	mermaid: MarkdownCode,
-	// These languages remain code until Ling deliberately exposes their preview features.
+	// Render these languages as code until Ling provides a preview for them.
 	d2: MarkdownCode,
 	d2lang: MarkdownCode,
 	infographic: MarkdownCode,
@@ -40,7 +40,7 @@ setCustomComponents(MARKDOWN_COMPONENT_SCOPE, {
 
 const configureMarkdown: NonNullable<NodeRendererProps["customMarkdownIt"]> = (parser) => {
 	// Astryx exposes named inline rules; Markstream's narrowed MarkdownIt type omits them.
-	// Wrap only image normalization so file links and literal code keep their original URLs.
+	// Normalize image URLs through this wrapper. File links and literal code use their authored URLs.
 	type ImageState = { md: { normalizeLink: (url: string) => string } };
 	const ruler = parser.inline.ruler as typeof parser.inline.ruler & {
 		getNamedRules(): { name: string; fn(state: ImageState, silent: boolean): unknown }[];
@@ -78,7 +78,7 @@ const configureMarkdown: NonNullable<NodeRendererProps["customMarkdownIt"]> = (p
 			heading.attrSet("id", id);
 		}
 	});
-	// Keep emoji aliases without turning ordinary punctuation into emoticons.
+	// Expand emoji aliases and keep ordinary punctuation literal.
 	return parser.use(emoji, { shortcuts: {} });
 };
 

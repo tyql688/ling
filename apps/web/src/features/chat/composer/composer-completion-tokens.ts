@@ -1,7 +1,7 @@
 /** Completion token under the cursor, shared by the session and quick-start composers. */
 export interface ComposerCompletionToken {
 	start: number;
-	/** Text between the trigger character and the cursor — the filter query. */
+	/** Text between the trigger character and cursor, used as the filter query. */
 	query: string;
 	/** Exclusive end of the whole token; extends past the cursor so a mid-token selection replaces the full token. */
 	end: number;

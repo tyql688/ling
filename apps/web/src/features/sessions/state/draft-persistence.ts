@@ -21,9 +21,9 @@ import {
 } from "./drafts";
 
 const LEGACY_KEY = "ling:composer-drafts";
-/** Only unacknowledged writes remain here; authoritative drafts belong to Host, independently of its port. */
+/** Stores unacknowledged writes locally until Host persists them. Saved drafts remain available across Host port changes. */
 const RECOVERY_KEY = "ling:draft-recovery";
-/** Preserve the previous typing cadence while checkpointing continuous input every five seconds. */
+/** Checkpoints continuous typing every five seconds using the draft write cadence. */
 const DEBOUNCE_MS = 1000;
 const MAX_WAIT_MS = 5000;
 type DraftApi = HostApi["draft"];

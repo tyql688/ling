@@ -6,7 +6,7 @@ import {
 import { boundedString, strictObject } from "./schema-primitives";
 import { portableAbsolutePathSchema } from "./path-validation";
 import { z } from "zod";
-/** Native hosts supply their path rules here; all request fields keep one definition. */
+/** Builds file-operation schemas with the Host's path validation. */
 export function createProjectFileSchemas(absolutePathSchema = portableAbsolutePathSchema, windowsPaths = false) {
 	const projectPathSchema = absolutePathSchema("Project path");
 	const projectFileReferencePathSchema = boundedString(PROJECT_RELATIVE_PATH_MAX_CHARS, "Project file path")

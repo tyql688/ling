@@ -12,7 +12,7 @@ import type { ExtensionUiStateSnapshot } from "./session-extension-ui";
 import type { CompactionSummarySessionMessage, ImageAttachment, SessionMessage } from "./session-messages";
 import type { SessionRef } from "./session-ref";
 
-/** Thinking-level closed set (shallow → deep), aligned with Pi capabilities; the selector renders in this order and free strings are rejected. */
+/** Supported thinking levels ordered from shallow to deep for the selector. */
 export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
 export type ThinkingLevel = (typeof THINKING_LEVELS)[number];
 export type SendMode = "prompt" | "steer" | "followUp";
@@ -23,10 +23,9 @@ export type SendMode = "prompt" | "steer" | "followUp";
 export const SESSION_MESSAGE_TEXT_MAX_CHARS = 1_048_576;
 /** 1K-char cap on a session title, shared by sidebar/list display and the rename IPC so an overlong title can't distort the UI. */
 export const SESSION_TITLE_MAX_CHARS = 1_024;
-// SessionSummary.preview is a command-palette search hint, not transcript data.
-// 8 Ki covers the largest first message (5,456 chars) in the 2026-07-12 local
-// 59-session audit while bounding every retained list/event projection.
-/** 8 Ki cap on a summary preview — the command-palette search hint (not the full transcript); covers the largest local-audit first entry while bounding the list projection. */
+// SessionSummary.preview supplies the command-palette search hint.
+
+/** Caps the command-palette preview at 8 Ki characters to bound retained session summaries. */
 export const SESSION_SUMMARY_PREVIEW_MAX_CHARS = 8_192;
 // Main persists and returns this many deduplicated entries; Renderer retains the
 // same navigation window so loaded and newly submitted history cannot diverge.
@@ -40,9 +39,9 @@ export const SESSION_COMPOSER_HISTORY_MAX_ITEMS = 100;
 export const SESSION_IMAGE_MAX_ITEMS = 10;
 /** 16 MiB cap on a single decoded image, bounding per-attachment structured-clone cost (drafts/IPC may briefly hold larger images). */
 export const SESSION_IMAGE_MAX_BYTES = 16 * 1_024 * 1_024;
-/** 32 MiB cap on total images per send; bounds the combined payload — the renderer encoding policy may be stricter. */
+/** Caps decoded images at 32 MiB per send. The renderer may apply a stricter encoded-data limit. */
 export const SESSION_IMAGE_TOTAL_MAX_BYTES = 32 * 1_024 * 1_024;
-/** Pi owns image format conversion; this boundary only admits an image media type. */
+/** Accepts image media types for Pi to convert. */
 export const sessionImageMimeTypeSchema = z
 	.string()
 	.max(128)
@@ -137,15 +136,7 @@ export interface SessionSummary {
 	relation?: SessionRelation;
 }
 
-/**
- * A subagent/child session linked to its parent through the SDK session model
- * (the `parentSession` header field; see `core/session-relations.ts`). Surfaced
- * read-only: Ling lists these and opens their transcripts. It deliberately does
- * NOT model live run state or control actions — those are specific to whichever
- * third-party subagent plugin produced the session, and a persisted session file
- * cannot report whether a run is still active. Stopping a run is done through the
- * parent turn's own abort, which cascades to in-process subagents.
- */
+/** Child session linked by the SDK parentSession header; Host session relations track this link. Ling lists these sessions and opens their saved transcripts for reading. The creating plugin controls execution and reports live activity. Aborting the parent turn cascades to its in-process subagents. */
 export type SetSessionArchivedRequest = z.infer<RequestSchemasShape["setSessionArchivedRequestSchema"]>;
 
 export type SetSessionPinnedRequest = z.infer<RequestSchemasShape["setSessionPinnedRequestSchema"]>;
@@ -438,11 +429,7 @@ export interface DialogDismissEvent {
 
 export type ReadArchivedTranscriptRequest = z.infer<RequestSchemasShape["readArchivedTranscriptRequestSchema"]>;
 
-/**
- * A persisted transcript read without a runtime, for a session whose project folder is gone. The
- * Pi worker response frame and the transcript item cap already bound it; a further cut here would
- * silently drop history instead of failing visibly.
- */
+/** Reads a persisted transcript when its project folder is gone. The Pi worker frame limit and transcript item cap bound the response; an oversized response fails visibly. */
 export interface ArchivedTranscript {
 	messages: SessionMessage[];
 }

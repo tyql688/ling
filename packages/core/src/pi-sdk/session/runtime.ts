@@ -372,9 +372,9 @@ export function createPiSessionRuntimeHandle(
 				ownedReplacement.replace("fork", null, () => ownedRuntime.fork(entryId, options), true),
 			navigateTree: (targetId, options) => ownedSessionActions.navigateTree(targetId, options),
 			switchSession: async (sessionPath, options) => {
-				// Probe identity without SessionManager.open — the real switch opens the file
-				// once inside replace(). A retained probe manager would double-open and leak
-				// on busy/lifecycle rejection.
+				// Read the header to reserve the target identity. replace() opens the SessionManager
+				// after admission so rejected switches leave no extra manager to dispose.
+
 				const identity = await probeSessionIdentity(sessionPath);
 				const rawCwd = options?.cwdOverride ?? identity.headerCwd ?? ownedRuntime.cwd;
 				const targetRef = {
@@ -457,7 +457,7 @@ export function createPiSessionRuntimeHandle(
 	function refreshFromDisk(): Promise<void> {
 		const sessionFile = ownedRuntime.session.sessionFile;
 		if (!sessionFile) {
-			// Nothing persisted yet — the in-memory session is the only copy.
+			// The session is held in memory until its first persisted entry.
 			return Promise.resolve();
 		}
 		return ownedReplacement.replace("refresh", ownedReplacement.ref, async () => {

@@ -180,7 +180,7 @@ export function createSessionEventBridgeHost(options: CreateSessionEventBridgeHo
 			// Every acquisition below can reject: both registry subscriptions throw
 			// SESSION_NOT_FOUND once the ref has left managedSessions, which a host loss racing
 			// a replacement can do mid-bind. Unwind in reverse so a partial bind strands
-			// neither a listener nor a dialog requester — nothing else would ever release them.
+			// neither a listener nor a dialog requester; nothing else would ever release them.
 			const releases: Array<() => void> = [];
 			const unwind = (): unknown[] => {
 				subscribed = false;

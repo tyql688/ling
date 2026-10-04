@@ -17,8 +17,7 @@ export function useWorkspaceReviewActions() {
 		sessionController: { selectSession },
 	} = useWorkspaceOwner(workspaceSelectionAtom);
 	const workbenchPanel = useWorkspaceOwner(workspacePanelAtom);
-	/** Project menu → "show changes": the Changes tab is session-bound, so land on the project's most
-	 * recent session first when it isn't already active. */
+	/** Opens Changes in the project's most recent session when the active session belongs to another project. */
 	const handleShowProjectChanges = useCallback(
 		(project: OpenProjectInfo) => {
 			if (activeSession?.cwd === project.cwd) {

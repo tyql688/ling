@@ -30,14 +30,7 @@ function straightLanePath(x: number, fromY: number, toY: number): string {
 	return `M ${x} ${fromY} V ${toY}`;
 }
 
-/**
- * A lane that steps sideways because a lane to its left closed on this row.
- *
- * Drawn as VS Code does it — down, quarter turn, across the row's middle, quarter turn, down —
- * rather than as one bezier spanning the whole row. At this size an S-curve reads as a smear:
- * the orthogonal run keeps every lane on an exact column except within the corner radius, so
- * parallel lanes stay visually parallel.
- */
+/** Draws a lane's sideways step with vertical segments, quarter turns and a horizontal middle segment. The path stays on its assigned columns outside the corners, keeping adjacent lanes parallel. */
 function steppedLanePath(fromX: number, toX: number): string {
 	const radius = GIT_GRAPH_CURVE_RADIUS;
 	// Sweep direction flips with the step direction; lanes usually shift left, but a lane that
@@ -57,12 +50,7 @@ function steppedLanePath(fromX: number, toX: number): string {
 	].join(" ");
 }
 
-/**
- * The commit's own lane arrives in a column the node does not occupy, so the lane curves in
- * from above and runs across to the node. VS Code draws this with a single quarter ellipse
- * whose radii are the lane gap and the row's half height, which keeps the curve inside one row
- * regardless of how tall the row is.
- */
+/** Curves the incoming lane to a node in another column using a quarter ellipse. Its radii are the lane gap and half the row height, keeping the curve inside one row. */
 function inboundNodePath(fromX: number, nodeX: number): string {
 	const goingLeft = nodeX < fromX;
 	const arcEndX = goingLeft ? fromX - GIT_GRAPH_LANE_GAP : fromX + GIT_GRAPH_LANE_GAP;
@@ -170,11 +158,7 @@ function graphConnections(row: GitGraphRow): GraphConnection[] {
 	return connections;
 }
 
-/**
- * Nodes are stroked with the surface color rather than their lane color: that ring is what keeps
- * a node readable when other lanes pass directly behind it. VS Code gets the same effect from a
- * CSS rule on every circle; stating it here keeps the shape independent of cascade order.
- */
+/** Strokes each node with the surface color so it stays distinct from lanes behind it. */
 function GraphNode({ x, color, kind }: { x: number; color: string; kind: "head" | "merge" | "commit" }) {
 	const surface = "var(--color-surface)";
 	const outerRadius =

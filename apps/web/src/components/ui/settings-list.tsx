@@ -6,10 +6,7 @@ interface SettingsCollectionProps {
 	className?: string;
 }
 
-/**
- * Settings collections share one boundary and one row rhythm. Feature pages own
- * their row contents, while this primitive owns the visual list contract.
- */
+/** Provides the shared list border and row spacing. Feature pages supply the row content. */
 export function SettingsCollection({ children, className }: SettingsCollectionProps) {
 	return (
 		<div
@@ -114,7 +111,7 @@ interface SettingsFieldRowProps {
 	children: (ids: SettingsFieldIds) => ReactNode;
 	className?: string;
 	group?: boolean;
-	/** Long option groups use the whole row instead of competing with their description. */
+	/** Gives long option groups a full row below their description. */
 	layout?: "default" | "stacked";
 }
 

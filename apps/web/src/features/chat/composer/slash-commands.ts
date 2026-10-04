@@ -1,4 +1,4 @@
-/** Everything a command may do — provided by the workspace shell. */
+/** Command actions supplied by the workspace shell. */
 export interface SlashCommandContext {
 	renameSession(title: string): Promise<void>;
 	compactSession(customInstructions?: string): Promise<void>;
@@ -7,7 +7,7 @@ export interface SlashCommandContext {
 }
 
 export interface SlashCommandDefinition {
-	/** pi's command name — Ling keeps the CLI vocabulary. */
+	/** Pi command name used in the CLI. */
 	name: string;
 	needsArg: boolean;
 	/** i18n key for the one-line description in the popover. */

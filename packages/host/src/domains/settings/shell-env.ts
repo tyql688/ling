@@ -12,14 +12,7 @@ const execFileAsync = promisify(execFile);
  */
 const MARKER = "__LING_SHELL_ENV__";
 
-/**
- * The pi CLI always runs inside the user's login shell, so it inherits every terminal
- * export — http_proxy/https_proxy, the real PATH, API keys. A Dock-launched GUI app gets
- * none of that, which is exactly why "pi works in my terminal but not in Ling". Importing
- * the login shell's environment at startup makes Ling behave identically to `pi` run from
- * a terminal. Missing keys are merged; PATH is adopted outright (the Dock PATH is a stub
- * that would also break pi's bash tool and npm-based plugin installs).
- */
+/** Imports missing login-shell environment variables at GUI startup, including proxies and API keys, and replaces PATH with the shell's value. This gives Dock-launched tool and package operations the terminal toolchain. */
 export async function importLoginShellEnv(): Promise<void> {
 	if (process.platform !== "darwin") return;
 	const shell = process.env.SHELL ?? "/bin/zsh";
@@ -56,7 +49,7 @@ export async function importLoginShellEnv(): Promise<void> {
 		}
 		log.info(`imported ${merged} env vars from login shell (${shell})`);
 	} catch (error) {
-		// Startup must not die on a broken rc file — but say so loudly.
+		// Report login-shell failures and continue startup.
 		log.warn(`could not import login shell env from ${shell}:`, error);
 	}
 }

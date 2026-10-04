@@ -80,12 +80,7 @@ function toolStepPresentation(call: ToolStep["call"]): ToolStepPresentation {
  */
 const EDIT_TOOL_NAMES = new Set(["write", "edit", "write_file", "edit_file"]);
 
-/**
- * Item components below are memoized on their data props only. Their callbacks are inline
- * closures over per-row stable identities (`onDisclosureChange`, `rowId`, a call id), so a
- * fresh function identity per parent render carries no new information — and a running
- * activity row re-renders on every stream tick with hundreds of settled items inside it.
- */
+/** Memoizes items by their data props. Inline callbacks capture stable row and call identities, so a new callback carries the same action. This keeps settled items cached while the parent updates on each stream tick. */
 const ToolStepView = memo(
 	function ToolStepView({
 		step,
@@ -96,7 +91,7 @@ const ToolStepView = memo(
 		onOpenFileReview,
 	}: {
 		step: ToolStep;
-		/** The run ended without this call's result — crash, abort, or kill mid-turn. */
+		/** The run ended during this call, leaving its result unavailable after a crash, abort or kill. */
 		interrupted: boolean;
 		toolsExpanded: boolean;
 		manualExpanded: boolean | undefined;
@@ -252,7 +247,7 @@ function ReviewFileButton({ onClick }: { onClick: () => void }) {
 			onClick={onClick}
 			aria-label={t("session.reviewFile")}
 			title={t("session.reviewFile")}
-			// Always reserve width — toggling display:none→flex on hover shoves the row (jitter).
+			// Reserve action width on hover so the row stays in place.
 			className="flex size-6 shrink-0 items-center justify-center rounded-sm text-text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-text-primary group-hover/toolstep:opacity-100 group-focus-within/toolstep:opacity-100 focus-visible:opacity-100"
 		>
 			<GitCompareArrows className="size-3.5" aria-hidden="true" />
@@ -434,9 +429,7 @@ export function ActivityGroup({
 	);
 }
 
-/** One failed attempt of the turn, as Pi's TUI shows it: the partial reply (if any) and a
- * single muted error line. The live retry itself is reported by the working-status row and
- * a turn that ends failed is flagged by its fold header, so no danger block is needed here. */
+/** Shows one failed attempt's partial reply and a muted error line. The working-status row reports retries, and the fold header marks a turn that ends in failure. */
 function FailedAttemptLine({ failure, streaming }: { failure: ActivityFailureItem; streaming: boolean }) {
 	const { t } = useTranslation();
 	const hasText = failure.message.content.some((part) => part.type === "text" && part.text.trim().length > 0);

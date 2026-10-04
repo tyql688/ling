@@ -15,7 +15,7 @@ import { createPortal } from "react-dom";
 import { Button } from "./button";
 import { menuContentClass } from "./menu-styles";
 
-/** Anchored selection never participates in its field's layout or traps page focus. */
+/** Positions the picker outside the field's layout while page focus remains available. */
 export function PickerPopover({
 	anchorRef,
 	placement,
@@ -61,7 +61,7 @@ export function PickerPopover({
 	);
 }
 
-/** A bounded choice surface. Result counts never move its search field or footer. */
+/** Keeps the search field and footer in fixed positions as result counts change. */
 export function PickerPanel({
 	className,
 	id,

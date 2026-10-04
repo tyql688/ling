@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import type { ShellSidebarController } from "./use-shell-sidebar";
 
-/** Sidebar surface data selector: shared by the focus trap and click-outside close, so magic strings don't diverge. */
+/** Shared selector for the sidebar focus trap and click-outside handler. */
 const SIDEBAR_SURFACE_SELECTOR = "[data-shell-sidebar-surface]";
 /** Sidebar trigger button selector: returns focus to the trigger when the sheet closes. */
 const SIDEBAR_TRIGGER_SELECTOR = "[data-shell-sidebar-trigger]";
@@ -95,8 +95,7 @@ export function ShellFrame({
 	return (
 		// Percentage sizing follows the browser shell's CSS zoom; viewport units remain unscaled.
 		<div className="relative flex h-full w-full text-text-primary">
-			{/* The window has exactly two first-level regions. Each region owns its own
-			    44px safe row, so native dragging never becomes a third visual layer. */}
+			{/* The window's two top-level regions each include a 44px row for native dragging. */}
 			{sidebarController.presentation === "docked" ? (
 				<div
 					className={cn(

@@ -113,9 +113,8 @@ function resolvePersistedMessage(
 		occurredAt: identity.identity.occurredAt,
 	});
 	if (normalized.role !== "custom") return normalized;
-	// Same projection as session-message-projector: an extension's registered message
-	// renderer must apply live, not only after a reload, or the same message shows its
-	// model-facing content during the run and its TUI rendering afterwards.
+	// Apply registered extension renderers to live messages and reloaded history.
+
 	const rendered = renderPiCustomMessage(session, normalized);
 	return rendered === undefined
 		? normalized
@@ -334,7 +333,7 @@ export function createPiSessionEventAdapter(options: PiSessionEventAdapterOption
 				}
 
 				case "message_start": {
-					// System messages persist model instructions/tool changes, not conversation rows.
+					// System messages persist model instructions and tool changes.
 					if (event.message.role === "system") return null;
 					const occurredAt = Date.now();
 					const messageId = startMessage(event.message);
@@ -398,13 +397,13 @@ export function createPiSessionEventAdapter(options: PiSessionEventAdapterOption
 				}
 
 				case "bash_execution_update":
-					// Ling does not expose Pi's direct/RPC bash command surface. Built-in
-					// tool streaming continues through tool_execution_update.
+					// Direct/RPC bash events have no Ling command entry point.
+					// Built-in tool output arrives through tool_execution_update.
 					return null;
 
 				case "queue_update":
-					// Pi's queue_update is text-only; PiQueueMirror emits the authoritative queue with
-					// draft text, images and file references, so this event carries nothing to add.
+					// PiQueueMirror publishes queued text, images and file references.
+					// Its queue snapshot includes the text carried by Pi's queue_update event.
 					return null;
 
 				case "session_info_changed":

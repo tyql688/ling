@@ -41,11 +41,7 @@ function fallbackFocusTarget(): HTMLElement | null {
 	return null;
 }
 
-/**
- * Radix restores focus to DialogTrigger, but Ling also opens controlled dialogs from global
- * shortcuts and controller callbacks. Remember the real opener so those surfaces get the same
- * focus restoration without introducing invisible trigger elements.
- */
+/** Records the focused opener so dialogs opened by shortcuts or callbacks restore focus as DialogTrigger does. */
 function Dialog(props: DialogPrimitive.DialogProps) {
 	const initiallyOpen = props.open === true || (props.open === undefined && props.defaultOpen === true);
 	// Most Ling dialogs are mounted only after their opener is activated. Capture that opener
@@ -88,7 +84,7 @@ const dialogContentVariants = {
 		"fixed data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-dvh w-[min(24rem,calc(100vw-3rem))] max-w-none border-r",
 	"right-sheet":
 		"fixed data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-dvh w-[min(32rem,calc(100vw-3rem))] max-w-none border-l",
-	// Large panels don't zoom (zooming re-rasterizes the whole layer texture every frame); fade + small rise stay on the compositor.
+	// Large panels fade and rise on the compositor. Scaling them would re-rasterize the whole layer texture each frame.
 	workspace:
 		"absolute data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom-1 data-[state=open]:slide-in-from-bottom-2 top-1/2 left-1/2 h-[min(44rem,calc(100%-1.5rem))] w-[min(64rem,calc(100%-1.5rem))] max-w-none -translate-x-1/2 -translate-y-1/2 rounded-dialog border duration-200 ease-out",
 };

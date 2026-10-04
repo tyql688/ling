@@ -241,8 +241,8 @@ export function useExtensionTerminalInput(options: {
 			if (!(event.target instanceof Element)) return;
 			if (event.target.closest("[data-extension-custom-panel]")) return;
 			if (!event.target.closest("[data-session-composer]")) return;
-			// Plain typing keys stay local: only shortcut chords are worth the extension
-			// round-trip, and routing every keystroke made deletion and IME feel laggy.
+			// Send shortcut chords through the extension round trip and handle plain typing locally to keep deletion and IME responsive.
+
 			if (!isExtensionShortcutKey(event)) return;
 			const data = extensionKeyData(event);
 			if (data === null) return;

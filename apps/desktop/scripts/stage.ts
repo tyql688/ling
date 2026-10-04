@@ -10,11 +10,7 @@ const hostBuild = join(repositoryRoot, "packages/host/dist/index.js");
 const webBuild = join(repositoryRoot, "apps/web/dist/index.html");
 const appIcon = join(repositoryRoot, "resources/icon.png");
 
-/**
- * The official Node release the Host and its workers run on. Native Pi dependencies require this
- * Node ABI, not Electron's ABI; user-installed native addons still need a compatible Node build.
- * Bump it for Node security releases together with the checksums below from SHASUMS256.txt.
- */
+/** Node release used by Host and its workers. Native Pi dependencies and user-installed addons need this Node ABI. Update the version and SHASUMS256.txt checksums together for Node security releases. */
 const HOST_NODE_VERSION = "24.21.0";
 const HOST_NODE_ARCHIVES: Record<string, { archive: string; sha256: string }> = {
 	"darwin-arm64": {
@@ -85,7 +81,7 @@ async function stageHostNode(runtimeStage: string): Promise<void> {
 	const executableName = process.platform === "win32" ? "node.exe" : "node";
 	const executableMember = process.platform === "win32" ? `${root}/node.exe` : `${root}/bin/node`;
 	const licenseMember = `${root}/LICENSE`;
-	// Windows' own bsdtar reads zip archives; a Git or MSYS tar earlier on PATH may not.
+	// Use Windows' bsdtar for ZIP support; Git or MSYS tar may appear earlier on PATH.
 	const tar =
 		process.platform === "win32" ? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe") : "tar";
 	const extracted = mkdtempSync(join(stageRoot, "node-"));

@@ -16,7 +16,7 @@ function withPanel(state: ReadingWorkspace, panel: Partial<WorkbenchPanelState>)
 	return { ...state, panel: { ...state.panel, ...panel } };
 }
 
-/** File browsing has its own empty reader instead of attaching the tree to another tool page. */
+/** File browsing opens the tree beside its own empty reader. */
 function withFileTree(state: ReadingWorkspace): ReadingWorkspace {
 	return withPanel(withFeatureTab(state, "files"), { treeOpen: true });
 }

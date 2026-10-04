@@ -15,11 +15,7 @@ import {
 	terminalHostRequestSchema,
 } from "./terminal-host-protocol";
 
-/**
- * High watermark for un-ACKed output chars. Past it, pause PTY reads so the host does not
- * back up without bound when the renderer falls behind. 100k chars is a few screens of
- * fast output — enough buffering without dragging down the terminal host.
- */
+/** Pause PTY reads above 100,000 unacknowledged output characters to bound buffering while the renderer catches up. */
 const HIGH_WATERMARK_UNACKED_CHARS = 100_000;
 const HIGH_WATERMARK_UNACKED_CHUNKS = 256;
 /**
@@ -28,10 +24,7 @@ const HIGH_WATERMARK_UNACKED_CHUNKS = 256;
  */
 const LOW_WATERMARK_UNACKED_CHARS = 5_000;
 const LOW_WATERMARK_UNACKED_CHUNKS = 128;
-/**
- * Output batching delay. Flush to the parent once per 8ms — fewer IPC calls while
- * interactions still feel fluid.
- */
+/** Batches output for 8 ms before sending it to the parent, reducing IPC calls. */
 const OUTPUT_BATCH_DELAY_MS = 8;
 /** Paused PTYs can still deliver a short native backlog. Drain a normal burst first;
  * only an already-backpressured stream that remains above this emergency ceiling is

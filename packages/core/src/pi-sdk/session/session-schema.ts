@@ -3,20 +3,7 @@ import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
 import type { FileHandle } from "node:fs/promises";
 import { open } from "node:fs/promises";
 
-/**
- * Session-file schema skew detection.
- *
- * Pi session files carry a header version. The bundled SDK migrates older files up, but a
- * file written by a NEWER pi (a globally installed CLI ahead of the bundled SDK) is
- * consumed as-is: entry types the bundled SDK does not know are silently dropped during
- * projection, so transcript content disappears with no signal. We cannot render what the
- * bundled SDK cannot parse — instead the skew is detected up front and surfaced as a
- * session diagnostic so the user knows some content may not display.
- *
- * Detection is conservative: only a header version strictly greater than the bundled
- * SDK's flags. Missing, unreadable, or older versions never flag, so existing sessions
- * see zero behavior change.
- */
+/** Detects session files written with a newer schema than the bundled SDK understands. Unknown entry types can disappear during SDK projection, so a newer header version produces a session diagnostic. Missing, unreadable, current and older versions produce no skew diagnostic. Pi migrates older files when loading them. */
 
 /** Session schema version the bundled SDK writes/understands; compared against the on-disk header version for skew. */
 const RUNTIME_SESSION_SCHEMA_VERSION: number = CURRENT_SESSION_VERSION;
@@ -40,9 +27,7 @@ function schemaVersionFromHeaderLine(line: string): number | undefined {
 	return typeof header.version === "number" ? header.version : 1;
 }
 
-/** Reads just the header line of a session JSONL and returns its schema version.
- * `undefined` when the file is missing, unreadable, or has no parseable header — skew
- * cannot be determined then and is treated as absent. */
+/** Reads the schema version from the first JSONL line. Returns undefined for a missing file, failed read or unparseable header. */
 export async function readSessionFileSchemaVersion(sessionFilePath: string): Promise<number | undefined> {
 	let handle: FileHandle;
 	try {
@@ -57,7 +42,7 @@ export async function readSessionFileSchemaVersion(sessionFilePath: string): Pro
 		const chunk = buffer.subarray(0, bytesRead).toString("utf8");
 		const newlineIndex = chunk.indexOf("\n");
 		// No newline within the probe: either a header far larger than pi ever writes, or a
-		// truncated file — both are "cannot determine".
+		// truncated file; both are "cannot determine".
 		if (newlineIndex < 0) return undefined;
 		return schemaVersionFromHeaderLine(chunk.slice(0, newlineIndex));
 	} catch {

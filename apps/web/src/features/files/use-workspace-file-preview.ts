@@ -12,7 +12,7 @@ export interface FilePreviewOutcome {
 	error: string | null;
 }
 
-/** A failed refresh keeps the last complete document available, but never borrows another file's content. */
+/** Retains the same file's last complete document when refresh fails. A file switch starts its own preview. */
 export function failedFilePreview(
 	current: FilePreviewOutcome | null,
 	target: Pick<FilePreviewOutcome, "cwd" | "path" | "refreshRevision">,

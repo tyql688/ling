@@ -46,10 +46,7 @@ export const AssistantMarkdownPart = memo(function AssistantMarkdownPart({
 	return <Markdown text={text} streaming={streaming} />;
 });
 
-/** Height cap for an expanded disclosure in the transcript (thinking, compaction summary, tool
- * detail, extension message). Past this the block scrolls in place instead of pushing the rest
- * of the turn off-screen; `overscroll-contain` keeps that wheel scroll from chaining out to the
- * timeline. Assistant prose is deliberately not capped — it is the answer, not a disclosure. */
+/** Caps expanded transcript disclosures such as thinking, compaction summaries, tool details and extension messages. Taller disclosures scroll in place, and `overscroll-contain` keeps wheel scrolling inside them. Assistant prose uses its full content height. */
 export const EXPANDED_DETAIL_SCROLL_CLASS = "max-h-[60vh] overflow-y-auto overscroll-contain";
 
 export function AssistantContent({

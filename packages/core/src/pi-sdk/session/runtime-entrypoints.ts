@@ -152,7 +152,7 @@ export function createPiSessionRuntimes({
 			sessionId: sessionManager.getSessionId(),
 		};
 		try {
-			// Do not delete the on-disk session on failure — resume must never destroy user history.
+			// Preserve the session file on resume failure so the user can retry with the same history.
 			await options.beforeBind?.(ref);
 			const runtime = await createRuntimeForSession(ref, sessionManager);
 			const handle = await initializeRuntimeHandle(ref, runtime, createdAt);

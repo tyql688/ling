@@ -11,13 +11,9 @@ import type { OperationExecutionHandle, OperationExecutionRecord } from "../../o
 
 import { createOperationRegistry, ownerMismatchError } from "../../operations/operation-registry";
 
-// ── Change-review diff (bound to session + snapshotId) ────────────────────────
+// Change-review diff operations bind to a session and snapshotId.
 
-/**
- * Max deadline for a change-review diff operation. A single-file diff is usually
- * seconds; 60s covers large patches — cancel on timeout so the UI stops spinning and
- * the Git write queue is not held.
- */
+/** Allow up to 60 seconds for large review diffs, then cancel to release the Git write queue and report the timeout. */
 const CHANGE_REVIEW_MAX_DEADLINE_MS = 60_000;
 
 interface DiffOperationRecord {

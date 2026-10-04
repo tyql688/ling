@@ -25,10 +25,10 @@ interface ApprovalRequest {
 	options?: ExtensionUiPromptOptions;
 }
 
-/** ctx.ui.confirm — boolean approve/deny dialog. */
+/** ctx.ui.confirm approval dialog. */
 export type ApprovalRequester = (request: ApprovalRequest) => Promise<boolean>;
 
-/** ctx.ui.select / ctx.ui.input — choice and text-input dialogs. */
+/** ctx.ui.select and ctx.ui.input choice and text-input dialogs. */
 type ExtensionUiPrompt =
 	| { kind: "select"; title: string; options: string[]; promptOptions?: ExtensionUiPromptOptions }
 	| { kind: "input"; title: string; placeholder: string | null; promptOptions?: ExtensionUiPromptOptions }
@@ -294,7 +294,7 @@ export function createExtensionUiBridge() {
 						].slice(-5),
 					}
 				: applyStateEvent(state, event);
-		// A reset must free the map slot like clearExtensionUiState, not pin an empty snapshot.
+		// A reset frees the session's map slot.
 		if (event.type === "reset") clearExtensionUiState(ref);
 		else stateBySession.set(sessionKey(ref), next);
 		for (const listener of stateListeners) listener(ref, next, event);
@@ -321,9 +321,7 @@ export function createExtensionUiBridge() {
 		editorTextMirrorBySession.delete(sessionKey(ref));
 	}
 
-	/** Clears like clearExtensionUiState, but as an observable "reset" event: the Pi worker
-	 * forwards it to Main, whose mirror of this module would otherwise keep the previous
-	 * generation's snapshot (e.g. stale notifications surviving an extension reload). */
+	/** Clears UI state and emits a reset event to Main so its copy drops the retired generation's snapshot. */
 	function resetExtensionUiState(ref: SessionRef): void {
 		emitExtensionUiState(ref, { type: "reset" });
 	}

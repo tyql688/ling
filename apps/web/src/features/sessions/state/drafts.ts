@@ -279,17 +279,7 @@ function normalizeDraftStore(
 
 const baseDraftsAtom = atom<Record<string, SessionDraft>>({});
 
-/** Per-session composer drafts (text + pending image/file attachments).
- *
- * Without this, switching sessions wipes a half-typed message: the Composer's `text` and
- * `attachments` were plain `useState`, so any route through the empty home screen
- * (`activeSessionRef` → null → `EmptyState` renders instead of Composer) unmounted it and
- * discarded the lot — and switching directly between two sessions bled one draft into the
- * other. Keyed by `sessionKey(ref)` so each conversation keeps (and only shows) its own draft,
- * restored on return. Implicitly cleared when the message is sent (Composer resets both
- * fields back to empty).
- *
- * Durable content is synchronized by the renderer-owned Host draft connection; images stay transient. */
+/** Stores each session's text and pending file/image attachments by sessionKey(ref), restoring its draft when the user returns. Sending clears the submitted text and attachments. The renderer's Host connection persists durable content; images remain transient. */
 export const draftsAtom = atom(
 	(get) => get(baseDraftsAtom),
 	(
@@ -321,7 +311,7 @@ export function createSessionDraftAtom(key: string) {
 
 export const NEW_CONVERSATION_DRAFT_KEY = "new-conversation";
 
-/** The durable projection deliberately excludes images and their inline positions. */
+/** Persists text and file context. Images and their inline positions remain in memory. */
 export function persistSessionDraft(draft: SessionDraft): PersistedDraft | null {
 	if (isEmptyPersistedDraft(draft)) return null;
 	return {

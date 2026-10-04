@@ -199,12 +199,7 @@ export function useTranscriptHistory(
 		[hostSessionApi, key, ref, safeRefresh, store, t, updateHistoryState],
 	);
 
-	/**
-	 * Product rule: open a session → load the entire timeline into renderer memory.
-	 * Historical tool results carry summaries; disclosures fetch their bodies separately.
-	 * Pages are fetched over IPC, but atoms are written once when the attempt settles
-	 * so rendering stays linear and a later failed page does not discard earlier pages.
-	 */
+	/** Loads the full timeline into renderer memory when a session opens. Historical tool results carry summaries, and disclosures fetch their bodies separately. IPC pages accumulate until the attempt settles, then update atoms once to keep rendering linear. Completed pages remain available if a later page fails. */
 	const hydrateFullHistory = useCallback(async (): Promise<boolean> => {
 		if (!ref) return false;
 		const stateToken = captureRendererSessionState(key);
@@ -287,7 +282,7 @@ export function useTranscriptHistory(
 		} finally {
 			if (activeLoadRef.current?.binding === binding) activeLoadRef.current = null;
 			if (!pagesCommitted && pages.length > 0) commitLoadedPages();
-			// Success or failure: never leave this binding stuck behind the loading gate.
+			// Release the loading state when this attempt settles, including after failure.
 			store.set(sessionTranscriptStateFamily(key), (latest) => {
 				if (!isRendererSessionStateCurrent(key, stateToken) || !matchesChain(latest)) return latest;
 				return { ...latest, hydrationSettled: true, historyLoading: false };

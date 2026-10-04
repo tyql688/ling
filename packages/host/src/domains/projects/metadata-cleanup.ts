@@ -65,8 +65,8 @@ function defaultOwners({
 			id: "sessionCatalog",
 			async cleanup(fact) {
 				if (fact.type === "sessionDeleted") await removeSessionFromCatalog(fact.ref);
-				// Removing a project is not deleting its Pi sessions. Catalog metadata is retained
-				// so reopening the same canonical project can reattach it.
+				// Keep session catalog metadata after project removal so reopening the same canonical
+				// project reconnects its saved sessions.
 			},
 		},
 		{

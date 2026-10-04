@@ -5,7 +5,7 @@ import {
 } from "@renderer/lib/preferences/renderer-preferences";
 import { atom } from "jotai";
 
-/** Sidebar collapsed-state preference key; same source as the renderer-preferences table — renaming it loses user preference. */
+/** Sidebar collapsed-state key shared with renderer-preferences. Renaming it resets the saved preference. */
 const SIDEBAR_STORAGE_KEY = RENDERER_PREFERENCE_KEYS.sidebarCollapsed;
 
 const baseSidebarCollapsedAtom = atom<boolean>(

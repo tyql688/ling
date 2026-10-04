@@ -126,15 +126,14 @@ interface ChatTimelineProps {
 	toolsExpanded: boolean;
 	hiddenThinkingLabel: string | null;
 	extensionUi: Pick<ExtensionUiStateSnapshot, "headerLines" | "workingMessage" | "workingVisible" | "workingIndicator">;
-	/** Undelivered steering/follow-up texts — rendered as a pinned overlay. */
+	/** Undelivered steering and follow-up texts displayed in a pinned overlay. */
 	queue: SessionQueue;
 	/** Completed review turns from the live snapshot; null while a run is in flight. */
 	changeReviewTurns: ChangeReviewTurn[] | null;
 	/** Requests reverting a turn's file changes; the shell confirms before executing. */
 	onRevertTurn: (turnId: string) => void;
 	onOpenTurnReview: (turnId: string | null, path?: string) => void;
-	/** Opens a file's session-scope diff — the landing for an inline-code path that any
-	 * turn in this session changed, so a mention from an older turn still resolves. */
+	/** Opens a file's diff for this session, including inline mentions of files changed by earlier turns. */
 	onOpenSessionFileReview: (path: string) => void;
 	queueActions: QueueActions;
 	onRetryTurn?: ((entryId: string) => void) | undefined;
@@ -142,8 +141,7 @@ interface ChatTimelineProps {
 	onEditMessage: (entryId: string, newText: string) => void;
 	/** Transient UI anchored above the measured footer instead of assuming a fixed composer height. */
 	footerOverlay: ReactNode;
-	/** Composer area, rendered sticky INSIDE the scroller so the scrollbar runs the full
-	 * card height past it (instead of stopping above the composer). */
+	/** Composer inside the scroller. Its sticky layout lets the scrollbar span the full card height. */
 	footer: ReactNode;
 }
 
@@ -359,9 +357,9 @@ export function ChatTimeline({
 		return () => window.removeEventListener("keydown", keydown);
 	}, [floating?.historyOpen, timelineRootRef, toggleFloatingHistory]);
 	return (
-		// The inner div is the library's scroll element — vertical only; blocks that need width
-		// (code, tables, formulas) scroll inside their own containers instead of panning the
-		// whole transcript. break-words keeps long unbreakable tokens (URLs, hashes) wrapping.
+		// Scroll the transcript vertically. Code, tables and formulas handle horizontal overflow in their own containers.
+		// Use break-words to wrap long URLs and hashes.
+
 		<SessionImageRefContext.Provider value={imageRef}>
 			<MarkdownFileMentionsContext.Provider value={fileMentions}>
 				<div
@@ -414,10 +412,7 @@ export function ChatTimeline({
 							layout={timelineResources.virtualLayout}
 							interactionRootRef={timelineRootRef}
 						/>
-						{/* scrollClassName lands on the library's scroll element itself — vertical only;
-			    wide blocks (code, tables) scroll inside their own containers instead of
-			    panning the transcript. min-h-full lets mt-auto dock the sticky footer to the
-			    card bottom even when the transcript is shorter than the viewport. */}
+						{/* scrollClassName applies to the library’s scroll element and permits vertical scrolling. Wide code and tables scroll inside their own containers. min-h-full lets mt-auto keep the sticky footer at the card bottom when the transcript is shorter than the viewport. */}
 						<TranscriptContent historyHidden={historyHidden}>
 							<div className="transcript-extension-header" inert={historyHidden} aria-hidden={historyHidden}>
 								<ExtensionTranscriptHeader lines={extensionUi.headerLines} />
@@ -452,15 +447,7 @@ export function ChatTimeline({
 									/>
 								)}
 							</div>
-							{/* Sticky INSIDE StickToBottom.Content — the library renders any other children
-				    in its outer (non-scrolling) wrapper, where sticky silently degrades into an
-				    overlay that hides the transcript's tail and the scrollbar's bottom. In here
-				    it occupies real scroll space, so the last message always clears the composer
-				    and the scrollbar track runs the full card height. mt-auto docks it to the
-				    bottom on short transcripts. Messages and composer share the same responsive
-				    side gutters. The sticky box is a positioned ancestor, so the
-				    jump-to-bottom button floats just above it. The top padding keeps a full
-				    spacing step between the last tool row and the composer in every activity state. */}
+							{/* Place the sticky footer inside StickToBottom.Content so it occupies scroll space and the last message clears the Composer. The library places other children in a non-scrolling wrapper, where an overlay would hide the transcript tail and scrollbar bottom. mt-auto docks the footer on short transcripts. Messages and Composer share responsive side gutters. The positioned footer anchors the jump button above it, and top padding separates the last tool row from the Composer. */}
 							<div
 								ref={footerRef}
 								data-timeline-footer=""
@@ -493,8 +480,7 @@ export function ChatTimeline({
 								{footer}
 							</div>
 						</TranscriptContent>
-						{/* Overlay, never a flow child: the gate's scroll height belongs to the reserve block.
-				    Sits below the sticky footer so the composer stays visible while hydrating. */}
+						{/* The reserve block supplies the loading gate's scroll height. Render the gate as an overlay below the sticky footer to keep the Composer visible during hydration. */}
 						{hydrationOverlay && !transcriptReady && (
 							<LoadingTransition
 								label={t("session.loadingTranscript")}
@@ -502,8 +488,7 @@ export function ChatTimeline({
 								className="pointer-events-none absolute inset-0 min-h-0 bg-loading-veil px-6"
 							/>
 						)}
-						{/* Pending queue, PINNED to the top of the conversation viewport — it must not
-				    scroll away with the streaming transcript. Steering delivers first. */}
+						{/* Pin pending messages to the conversation viewport so they stay visible during streaming. Steering delivers first. */}
 						{(queue.steering.length > 0 || queue.followUp.length > 0) && (
 							<div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex w-full flex-col items-end gap-1.5 px-6">
 								{queue.steering.map((message, index) => (
@@ -599,7 +584,7 @@ function useTranscriptTimelineState({
 		else if (heldTurnsRef.current.sessionKey !== sessionKey) heldTurnsRef.current = { sessionKey, turns: [] };
 	}, [changeReviewTurns, sessionKey]);
 
-	// eslint-disable-next-line react-hooks/exhaustive-deps -- the dependency is deliberately the narrowed value, not the expression it came from
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- track the narrowed value as the dependency
 	const reviewTurns =
 		changeReviewTurns ?? (heldTurnsRef.current.sessionKey === sessionKey ? heldTurnsRef.current.turns : []);
 	const reviewTurnsById = useMemo(() => new Map(reviewTurns.map((turn) => [turn.id, turn])), [reviewTurns]);

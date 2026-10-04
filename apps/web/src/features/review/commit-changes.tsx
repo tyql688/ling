@@ -22,13 +22,7 @@ const STATUS_LETTER: Record<string, string> = {
 	copied: "C",
 };
 
-/**
- * The files one commit changed, fetched only when the user opens that commit.
- *
- * The graph deliberately carries nothing but commit ids and parents, so a history of thousands
- * of commits costs one `git log`. Everything below is a second, per-commit read — the same split
- * VS Code makes between its history items and `provideHistoryItemChanges`.
- */
+/** Fetches changed files when the user opens a commit. The graph loads commit IDs and parents with one git log request; each open commit fetches its own changes. */
 export function CommitChanges({ cwd, sha }: { cwd: string; sha: string }) {
 	const hostGitApi = useDomainApi("git");
 
@@ -114,7 +108,7 @@ function CommitChangedFileRow({ cwd, sha, file }: { cwd: string; sha: string; fi
 				<span className="min-w-0 flex-1 truncate font-mono text-text-primary" title={file.path}>
 					{file.path}
 				</span>
-				{/* A binary file reports no counts; showing nothing beats showing a misleading zero. */}
+				{/* Omit line counts for binary files, whose changes have no text-line totals. */}
 				{file.additions !== undefined && <span className="shrink-0 font-mono text-success">+{file.additions}</span>}
 				{file.deletions !== undefined && <span className="shrink-0 font-mono text-danger">−{file.deletions}</span>}
 			</button>

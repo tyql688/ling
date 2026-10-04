@@ -22,7 +22,7 @@ export interface WorkspaceDirectoryState {
 	loaded: boolean;
 	loading: boolean;
 	error: string | null;
-	/** The folder is gone rather than unreadable; callers present the folder itself as deleted. */
+	/** The folder was deleted. Callers display its deleted state. */
 	directoryMissing: boolean;
 }
 
@@ -190,7 +190,7 @@ export function useWorkspaceExplorer(
 		return () => {
 			mountedRef.current = false;
 			generationRef.current += 1;
-			// eslint-disable-next-line react-hooks/exhaustive-deps -- the cleanup deliberately reads the ref as it stands at teardown, not the value captured at setup
+			// eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup uses the ref's current value
 			requestIdsRef.current.clear();
 		};
 	}, []);

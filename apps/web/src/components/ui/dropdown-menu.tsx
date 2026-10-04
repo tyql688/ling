@@ -7,7 +7,7 @@ function DropdownMenu(props: DropdownMenuPrimitive.DropdownMenuProps) {
 	return <DropdownMenuPrimitive.Root {...props} />;
 }
 
-/** base-ui-era `render={<button/>}` call sites map onto radix `asChild`. */
+/** Maps `render={<button/>}` to Radix `asChild`. */
 function DropdownMenuTrigger({
 	render,
 	children,

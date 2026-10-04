@@ -138,7 +138,7 @@ export const nativeMenuCopy: Record<UiLanguage, typeof en> = {
 	},
 };
 
-/** Explicit labels follow Ling's language; native roles retain OS actions and shortcuts. */
+/** Custom labels use Ling's language. Native roles provide OS actions and shortcuts. */
 export function setDesktopMenuLanguage(
 	language: UiLanguage,
 	actions: { openSettings(): void; checkForUpdates(): void },

@@ -20,9 +20,7 @@ interface CodePreviewSettings {
 	fontSizePx: number;
 }
 
-/**
- * Fixed product defaults for code highlighting; these are not persisted user settings.
- */
+/** Product defaults for code highlighting. */
 export const CODE_PREVIEW_DEFAULTS: CodePreviewSettings = {
 	showLineNumbers: true,
 	wrapLongLines: false,

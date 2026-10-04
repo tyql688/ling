@@ -71,9 +71,7 @@ async function applyCheckedTurnPatch(cwd: string, patch: string, reverse: boolea
 	await runGitApply(cwd, ["apply", ...direction, "--whitespace=nowarn", "-"], patch);
 }
 
-/** Reverse-applies a combined per-turn patch. The dry run must pass in full before any
- * file is touched, so a workspace that has since diverged is rejected without partial
- * application. `git apply` works in plain directories too — no repository required. */
+/** Dry-runs the complete reverse patch before applying it, rejecting divergent files. git apply also works in plain directories. */
 export function reverseApplyTurnPatch(cwd: string, patch: string): Promise<void> {
 	return applyCheckedTurnPatch(cwd, patch, true);
 }

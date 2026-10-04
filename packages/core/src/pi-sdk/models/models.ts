@@ -150,18 +150,10 @@ export function createPiModels({
 		return enqueueModelMutation(() => removeProjectProviderAuthMutation(cwd, provider));
 	}
 
-	/** Only one interactive provider-auth flow can run at a time — it owns the login dialog. */
+	/** Serializes interactive provider login through one dialog. */
 	let activeLogin: ActiveLogin | null = null;
 
-	/**
-	 * Runs Pi's provider-owned login flow, translating its neutral interaction protocol into
-	 * ModelLoginEvents for the renderer. Never rejects after the flow starts: success and
-	 * failure are both reported through a final `{ type: "done" }` event so the dialog is
-	 * the single place that renders outcomes.
-	 *
-	 * `openUrl` is injected by the host adapter, which forwards the validated URL to Main,
-	 * so this module stays shell-agnostic at the Core boundary.
-	 */
+	/** Runs Pi's provider login and forwards its interactions as ModelLoginEvents. After startup, both success and failure arrive through a final `{ type: "done" }` event. The Host-supplied openUrl callback forwards validated URLs to Main. */
 	async function runLogin(
 		flowId: string,
 		provider: string,
@@ -366,7 +358,7 @@ export function createPiModels({
 			emit({ type: "done", ok: false, error: message, credentialSynchronization: null });
 		} finally {
 			// Settle whatever the flow left hanging (e.g. the optional manual-code input that
-			// raced a completed callback server — the SDK .catch()es these rejections).
+			// raced a completed callback server; the SDK .catch()es these rejections).
 			for (const reply of login.pending.values()) reply.reject(new Error("Login flow ended"));
 			login.pending.clear();
 			if (activeLogin === login) activeLogin = null;
@@ -379,9 +371,7 @@ export function createPiModels({
 		return enqueueModelMutation(listProvidersNow);
 	}
 
-	/** Rebuilds the credential-dependent model snapshot from canonical auth.json after
-	 * a committed SDK login reported incomplete local synchronization. This is a second,
-	 * serialized recovery pass used only before the UI upgrades `pending` to `recovered`. */
+	/** Rebuilds the credential-dependent catalog from auth.json after a committed login reports incomplete synchronization. This serialized recovery completes before the UI changes pending to recovered. */
 	function reconcileProviderCredentialRuntime(cwd: string | null): Promise<void> {
 		return enqueueModelMutation(async () => {
 			if (cwd === null) {
@@ -436,8 +426,7 @@ export function createPiModels({
 		activeLogin.pending.clear();
 	}
 
-	/** A stale dialog cancellation is intentionally a no-op: it must never abort the
-	 * provider flow owned by the currently mounted dialog. */
+	/** Cancels a login when the dialog still owns that flow. */
 	function cancelLogin(flowId: string): void {
 		if (activeLogin?.flowId !== flowId) return;
 		cancelActiveLogin();

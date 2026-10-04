@@ -1,17 +1,10 @@
 import type { PiResourceReloadSummary } from "./session";
-/** The three global prompt files Pi loads from `~/.pi/agent/` at session startup.
- *
- * - `agents` → `AGENTS.md`: appended instructions layered on top of the default system prompt.
- * - `system` → `SYSTEM.md`: replaces the default system prompt entirely.
- * - `append-system` → `APPEND_SYSTEM.md`: appended to the default system prompt without replacing it.
- *
- * Ling only manages these global files; project-scoped context files stay untouched.
- */
+/** Pi loads three global prompt files from `~/.pi/agent/` at session startup: `agents` (`AGENTS.md`) appends instructions, `system` (`SYSTEM.md`) replaces the default system prompt, and `append-system` (`APPEND_SYSTEM.md`) appends to it. Ling edits these global files; project context stays under Pi's project configuration. */
 export type GlobalInstructionKind = (typeof GLOBAL_INSTRUCTION_KINDS)[number];
 
 export const GLOBAL_INSTRUCTION_KINDS = ["agents", "system", "append-system"] as const;
 
-/** Fixed filename for each kind. Kept in shared so renderer and main agree without re-deriving. */
+/** Filenames shared by renderer and main. */
 export const GLOBAL_INSTRUCTION_FILE_NAMES: Readonly<Record<GlobalInstructionKind, string>> = {
 	agents: "AGENTS.md",
 	system: "SYSTEM.md",
@@ -41,5 +34,5 @@ export interface GlobalInstructionLocation {
 	dir: string;
 }
 
-/** Upper bound on a single file write, guarding the renderer→main boundary. */
+/** Caps bytes written to a global prompt file through IPC. */
 export const GLOBAL_INSTRUCTION_MAX_BYTES = 512 * 1024;

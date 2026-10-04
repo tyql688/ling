@@ -3,7 +3,7 @@ import { cn } from "@renderer/lib/utils";
 import { useTranslation } from "react-i18next";
 import { changedFileLabel, splitChangedPath } from "./changed-file-label";
 
-/** Git status → badge palette classes; aligned with the workspace tree/diff color tokens. */
+/** Maps Git status to the badge colors shared with the workspace tree and diff. */
 const STATUS_TONE: Record<ChangeReviewFile["status"], string> = {
 	modified: "border-git-modified/35 bg-git-modified/10 text-git-modified",
 	added: "border-git-added/35 bg-git-added/10 text-git-added",

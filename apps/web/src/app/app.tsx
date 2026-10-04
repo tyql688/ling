@@ -49,13 +49,7 @@ const SettingsShell = lazy(() =>
 	import("@renderer/features/settings/settings-shell").then(({ SettingsShell }) => ({ default: SettingsShell })),
 );
 
-/**
- * The session on screen, kept in sessionStorage so a renderer reload lands back on it. A
- * renderer crash makes Main reload the window (see main/index.ts render-process-gone), and
- * without this the reader finds the home view with their running session "gone". sessionStorage
- * is per window lifetime: it survives reloads but not an app relaunch, which keeps this
- * strictly a recovery path rather than a "reopen last session on launch" feature.
- */
+/** Stores the visible session in sessionStorage so a renderer reload restores it after a crash. The browser retains this value for the window's lifetime and clears it when the app relaunches. */
 const RELOAD_VIEWED_SESSION_KEY = "ling.reload.viewedSession";
 
 function readReloadViewedSession(): SessionRef | null {
@@ -72,7 +66,7 @@ function readReloadViewedSession(): SessionRef | null {
 			return { cwd: (parsed as SessionRef).cwd, sessionId: (parsed as SessionRef).sessionId };
 		}
 	} catch {
-		// A corrupt value is just no recovery target.
+		// A corrupt value clears the recovery target.
 	}
 	return null;
 }
@@ -114,8 +108,8 @@ function ReadyApp({
 		if (openProjects.some((project) => !known.has(project.cwd))) void refreshSessions();
 	}, [openProjects, refreshSessions]);
 
-	// Notification routing follows what is actually on screen, not merely the last runtime
-	// resumed in Main. Settings and the empty workspace therefore count as background views.
+	// Route notifications using the session visible on screen. Settings and an empty workspace count as background views.
+
 	useEffect(() => {
 		void hostSessionApi.setViewedSession(viewedSessionRef).catch((error: unknown) => {
 			showFeedback({
@@ -148,7 +142,7 @@ function ReadyApp({
 				dedupeKey: "session-reload-restore",
 			});
 		});
-		// eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: later selection changes are the user's, not a recovery
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- restore once on mount; later selections come from user actions
 	}, []);
 	useEffect(() => {
 		if (sessionController.activeSessionRef)
@@ -236,11 +230,7 @@ function ReadyApp({
 
 	return (
 		<AppNavigationContext value={navigation}>
-			{/*
-			 * Preserve both shells and their viewport geometry. display:none reports zero-sized
-			 * transcript rows to the virtualizer and bottom follower, losing the reading position.
-			 * Inert hidden shells cannot receive focus or expose off-screen controls.
-			 */}
+			{/* Keep both shells mounted with their viewport geometry. `display:none` gives the virtualizer zero-sized rows and loses the reading position. Mark hidden shells inert to exclude their controls from focus and accessibility navigation. */}
 			<div
 				className={cn("h-full w-full", mode !== "workspace" && "invisible absolute inset-0")}
 				inert={mode !== "workspace"}
@@ -282,9 +272,9 @@ export function App() {
 	const { themeController } = skinBackdrop;
 	const restoringProjects = projectController.loading && projectController.projects.length === 0;
 
-	// A file dropped outside a drop zone must not navigate the renderer to file://.
-	// Zones call preventDefault themselves during bubbling, so this window-level guard
-	// only changes what happens to strays (Chromium's default is full navigation).
+	// Cancel file drops outside a drop zone to prevent Chromium from navigating the renderer to file://.
+	// Drop zones cancel their own events during bubbling; this window handler handles the remaining drops.
+
 	useEffect(() => {
 		const preventNavigation = (event: globalThis.DragEvent) => event.preventDefault();
 		window.addEventListener("dragover", preventNavigation);
@@ -314,8 +304,7 @@ export function App() {
 										motion={skinBackdrop.motion}
 										className="fixed z-auto"
 									/>
-									{/* Gate on absent data, not on a request in flight: refresh() re-runs on a store
-							    retry, and blanking here remounts the entire workspace. */}
+									{/* Show the loading view when data is absent. Store retries retain the mounted workspace while refresh() is pending. */}
 									{restoringProjects ? (
 										<SkinLoadingState label={t("common.loading")} />
 									) : projectController.projects.length === 0 && appMode !== "settings" ? (

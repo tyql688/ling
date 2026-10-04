@@ -14,7 +14,7 @@ import {
 import type { OperationExecutionHandle, OperationExecutionRecord } from "../../operations/operation-execution";
 
 import { createOperationRegistry, ownerMismatchError } from "../../operations/operation-registry";
-// ── Plugin mutations (same-kind mutations are mutually exclusive; bound to a revision derived from action + source + scope) ──
+// Plugin mutations are mutually exclusive by kind and use a revision derived from action, source and scope.
 
 interface PluginOperationRecord {
 	operation: PluginMutationOperationRequest["operation"];

@@ -74,7 +74,7 @@ function PanelErrorFallback({
 	);
 }
 
-/** Panel boundary wrapper: wraps the subtree directly at shell/panel wiring, saving a fallback closure layer. */
+/** Wraps a shell or panel subtree with the shared error fallback. */
 export function PanelBoundary({
 	resetKeys,
 	fallbackClassName,
@@ -94,7 +94,7 @@ export function PanelBoundary({
 	);
 }
 
-/** Inline fallback: placeholder for a single transcript message that failed to render, without affecting the rest of the timeline. */
+/** Renders a placeholder for one failed transcript message while the other rows remain visible. */
 export function InlineErrorFallback({ error, onRetry }: { error: Error; onRetry: () => void }) {
 	const { t } = useTranslation();
 	return (

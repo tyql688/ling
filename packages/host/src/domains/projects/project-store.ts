@@ -10,7 +10,7 @@ import type { HostDatabase } from "../../storage/database";
 
 const log = createLogger("project-store");
 
-/** Dataset schema identifier; validated when reading from disk to prevent cross-reading other userData JSON. */
+/** Schema identifier for the persisted project list. */
 const PROJECT_DATASET_ID = "ling/project-metadata";
 /** Current envelope version; a version bump must migrate the open-project list structure. */
 const PROJECT_STORE_VERSION = 2;

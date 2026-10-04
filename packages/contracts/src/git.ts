@@ -18,24 +18,23 @@ export const GIT_SELECTED_PATHS_TOTAL_MAX_CHARS = 8 * 1_024;
 /** Max number of selected paths; aligns with the `:(literal)` batch size (512) and keeps the argv array from growing unbounded. */
 export const GIT_SELECTED_PATHS_MAX_ITEMS = 512;
 
-// Branch and revision are used in short commands without a path batch. These caps
-// preserve the existing public contract while remaining well below the process limit.
-/** Max characters for a branch name; used in short commands, keeps the public contract and stays well under the process command-line limit. */
+// Branch and revision commands have their own length caps because their arguments
+// fit within the process limit independently of path batches.
+/** Caps branch-name characters within the process command-line limit. */
 export const GIT_BRANCH_MAX_CHARS = 1_024;
 /** Max characters for a revision/ref; allows longer ref expressions while staying well under the total CreateProcess budget. */
 export const GIT_REVISION_MAX_CHARS = 4 * 1_024;
 
-// Cwd is process metadata rather than an argv entry and follows Ling's long-path IPC boundary.
-/** Max characters for the working-directory path; cwd is not an argv entry and aligns with Ling's 32 KiB long-path IPC boundary. */
+// Cwd is process metadata with Ling's long-path limit.
+/** Caps the working-directory path at Ling's 32 KiB IPC path limit. */
 export const GIT_CWD_MAX_CHARS = 32 * 1_024;
 
 export interface GitStatus {
 	isRepository: boolean;
 	currentBranch: string | null;
-	/** Short HEAD sha, only resolved while HEAD is detached (currentBranch === null in a repo) —
-	 * the branch pill then labels itself "HEAD@<sha>" instead of disappearing. */
+	/** Short HEAD SHA for a detached HEAD (currentBranch === null). The branch pill displays "HEAD@<sha>". */
 	detachedHeadSha: string | null;
-	/** Number of changed files inside the selected project cwd, not the entire containing repository. */
+	/** Number of changed files inside the selected project cwd. */
 	changedFiles: number;
 	ahead: number;
 	behind: number;
@@ -74,7 +73,7 @@ export interface GitGraph {
 export type GitChangedFileStatus = "modified" | "added" | "deleted" | "renamed" | "copied" | "untracked" | "conflicted";
 
 export interface GitChangedFile {
-	/** Project-cwd-relative Git path. Never repository-root-relative for a nested project. */
+	/** Git path relative to the project cwd, including projects nested inside a repository. */
 	path: string;
 	status: GitChangedFileStatus;
 	from?: string;
@@ -94,9 +93,7 @@ export interface ChangeReviewFile {
 	from?: string;
 	additions?: number;
 	deletions?: number;
-	/** Opaque fingerprint of the file's current change content (truncated content hash).
-	 * Any content change produces a new tag — reviewed-state invalidation keys off it so
-	 * two different edits with coincidentally equal line counts cannot be confused. */
+	/** Truncated content hash used to invalidate reviewed state when file content changes, including edits with equal line counts. */
 	contentTag?: string;
 }
 
@@ -143,8 +140,7 @@ export interface ChangeReviewSnapshot {
 		id: string;
 		startedAt: number;
 		endedAt: number;
-		/** Durable entry id of the user message that initiated the turn; links a review
-		 * turn to its transcript position without fragile timestamp matching. */
+		/** Entry id of the user message that initiated the turn, linking review results to that transcript entry. */
 		userMessageEntryId: string | null;
 		tracking: ChangeReviewTrackingState;
 		summary: ChangeScopeSummary;
@@ -221,7 +217,7 @@ export type SwitchBranchRequest = z.infer<RequestSchemasShape["switchBranchReque
 
 export type CreateBranchRequest = z.infer<RequestSchemasShape["createBranchRequestSchema"]>;
 
-/** Commits every change inside cwd while leaving sibling repository paths untouched. */
+/** Commits all changes inside cwd. Paths outside cwd retain their current state. */
 export type CommitAllRequest = z.infer<RequestSchemasShape["commitAllRequestSchema"]>;
 
 export interface GitCommitResult {

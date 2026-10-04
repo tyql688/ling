@@ -3,8 +3,7 @@ import type { AssistantContentPart, SessionMessage, UserContentPart } from "@lin
 import type { PiAgentSession, PiBranchProjectionSource } from "../types";
 
 const DEFAULT_MARKDOWN_WIDTH = 88;
-/** Display-only extensions may expand text, but must not turn one bounded message into
- * an unbounded IPC payload. The original normalized text is never shortened here. */
+/** Caps display-transform growth within the IPC message budget while retaining the complete normalized input. */
 const MAX_TRANSFORMED_MESSAGE_GROWTH_BYTES = 1024 * 1024;
 const TRUNCATION_SUFFIX = "\n[truncated]";
 
@@ -48,9 +47,9 @@ function applyTransformers(
 		try {
 			const next = transformer(transformed, context);
 			if (typeof next === "string") {
-				// The budget is shared by every Markdown section in this message. A per-section
-				// ceiling still allowed hundreds of individually valid blocks to amplify one
-				// normalized message far beyond the transcript/IPC boundary.
+				// Every Markdown section shares the message budget, so many small blocks have the
+				// same aggregate growth limit as one large block.
+
 				const previousBytes = Buffer.byteLength(transformed, "utf8");
 				const maxBytes = previousBytes + growthBudget.remainingBytes;
 				const nextBytes = Buffer.byteLength(next, "utf8");
@@ -161,8 +160,8 @@ export function transformPiMarkdownMessage(
 			content.push(...run);
 			continue;
 		}
-		// Pi renders each consecutive thinking run as one Markdown section and invokes
-		// the chain once for that section, rather than once per raw content part.
+		// Pi groups consecutive thinking parts into one Markdown section and runs the transform
+		// chain once for that section.
 		const source = thinkingBlocks.join("\n\n");
 		const thinking = applyTransformers(
 			source,

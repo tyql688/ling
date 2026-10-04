@@ -53,7 +53,7 @@ export function draftWithProjectFileReference<T extends { fileReferences: Pendin
 	return { draft: { ...draft, fileReferences: [...draft.fileReferences, reference] }, issue: null };
 }
 
-/** File chips only affect draft display; the send boundary projects them into the existing @path text protocol. */
+/** Displays file-reference chips in drafts and converts them to @path text during submission. */
 export function mergeFileReferences(
 	submitted: string | null,
 	references: readonly PendingFileReference[],

@@ -10,9 +10,9 @@ const CELL_DELAYS = Array.from({ length: GRID_SIDE * GRID_SIDE }, (_, index) => 
 	const column = index % GRID_SIDE;
 	return { id: `${row}:${column}`, delay: (column + Math.abs(row - 1)) * CELL_DELAY_MS };
 });
-/** Tenths match the requested live timer without driving the transcript's render loop. */
+/** Refresh the elapsed label in tenths of a second independently of transcript rendering. */
 const CLOCK_INTERVAL_MS = 100;
-/** Milliseconds per second and seconds per minute for the elapsed label. */
+
 const SECOND_MS = 1_000;
 const MINUTE_SECONDS = 60;
 

@@ -4,7 +4,7 @@ import { isWindows } from "@renderer/lib/platform";
 import { useCallback, useContext } from "react";
 
 const FILE_URL_PREFIX = "file://";
-/** The two source kinds the CSP's img-src can load directly; http is deliberately absent. */
+/** Source schemes allowed by CSP for direct image loading. */
 const HTTPS_URL_PREFIX = "https://";
 const DATA_IMAGE_PREFIX = "data:image/";
 /** Any scheme but a Windows drive letter, which needs two or more characters to match. */
@@ -17,9 +17,7 @@ function isAbsolutePath(value: string): boolean {
 	return value.startsWith("/") || (isWindows && (value.startsWith("\\") || WINDOWS_ABSOLUTE.test(value)));
 }
 
-/** Markdown URLs are percent-encoded by spec, so `docs/my%20shot.png` names a file with a
- * space in it. A `%` that is not a valid escape means the author wrote a literal path
- * instead — that is a parse outcome, not a failed decode, so keep the string as written. */
+/** Decodes percent-encoded Markdown URLs, such as `docs/my%20shot.png`. An invalid escape denotes a literal path, which is returned unchanged. */
 function decodePath(value: string): string {
 	if (!value.includes("%")) return value;
 	try {
@@ -63,16 +61,12 @@ function projectRelativeImagePath(src: string, root: string): string | null {
 	return segments.join("/");
 }
 
-/**
- * What the browser should load for this source, or null when Ling has nothing to serve — a
- * scheme the CSP refuses, or a file outside the workspace. Remote https images load straight
- * from their origin, which also means viewing the message tells that host it was viewed.
- */
+/** Returns an image URL, or null for a scheme blocked by CSP or a file outside the workspace. Remote HTTPS images load from their origin, so that server receives the image request when the message is viewed. */
 function resolveImageUrl(source: string | null, root: string | null): string | null {
 	if (source === null) return null;
 	if (source.startsWith(HTTPS_URL_PREFIX) || source.startsWith(DATA_IMAGE_PREFIX)) return source;
-	// Everything else carrying a scheme is a URL with no loader here, and must not be mistaken
-	// for a workspace path — `data:text/html,a/b` otherwise reads as a plausible relative path.
+	// Reject unsupported schemes before resolving workspace paths; `data:text/html,a/b` otherwise resembles a relative path.
+
 	if (URL_SCHEME.test(source) && !source.startsWith(FILE_URL_PREFIX)) return null;
 	if (root === null) return null;
 	const path = projectRelativeImagePath(source, root);

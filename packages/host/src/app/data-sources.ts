@@ -4,7 +4,7 @@ import type { HostBusinessHandlersOptions } from "./business-handlers";
 import { createDraftStore } from "../domains/data/draft-store";
 import { createUserStateStore } from "../domains/data/user-state-store";
 
-/** Composition supplies recovery ports; data handlers do not reach into other domains or request handlers. */
+/** Connects data recovery handlers to the corresponding domain recovery functions. */
 export function createDataSources(options: HostBusinessHandlersOptions) {
 	const { database, projects, sessions, settings, piWorker, projectsRestored } = options;
 	const drafts = createDraftStore(database),

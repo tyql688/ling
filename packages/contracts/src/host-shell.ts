@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { sessionRefSchema, type SessionRef } from "./session-ref";
 
-/** Host event channel consumed by product-specific Shell adapters, never by feature state. */
+/** Host event channel for product-specific Shell adapters. */
 export const HOST_SHELL_EVENT_CHANNEL = "host:shell-event";
 export const HOST_SHELL_STATE_METHOD = "host:getShellState";
-/** Native notification titles are intentionally short and never contain transcript-scale content. */
+/** Caps native notification titles at a short label length. */
 const HOST_NOTIFICATION_TITLE_MAX_CHARS = 256;
 /** Notification previews remain useful while staying bounded well below OS-specific delivery limits. */
 const HOST_NOTIFICATION_BODY_MAX_CHARS = 2_000;

@@ -14,8 +14,7 @@ export type PiDiagnosticSource =
 
 type PiDiagnosticDetail = null | boolean | number | string;
 
-/** Stable, serializable diagnostic projection. Pi may change its internal diagnostic
- * objects; only this bounded contract crosses into Ling application/Renderer owners. */
+/** Serializable diagnostics passed from the Pi adapter to Ling and the renderer, with bounded message lengths. */
 export interface PiDiagnostic {
 	protocolVersion: 1;
 	code: PiDiagnosticCode;

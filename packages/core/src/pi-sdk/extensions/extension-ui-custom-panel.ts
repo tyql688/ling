@@ -391,8 +391,7 @@ export function createPiExtensionCustomPanels({
 		if (customPanelRegistrationsBySession.has(key)) closePanel(ref, undefined);
 	}
 
-	/** Viewport geometry belongs to the retained Ling session, not one reloadable
-	 * extension generation. Clear it only when that session identity is released. */
+	/** Retains viewport geometry across extension reloads and clears it when the Ling session is released. */
 	function disposePiExtensionUiViewport(ref: SessionRef): void {
 		forgetExtensionUiViewport(ref);
 	}

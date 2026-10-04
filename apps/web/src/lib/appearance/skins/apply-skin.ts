@@ -57,6 +57,6 @@ export function writeSkinBootCache(resolved: ResolvedSkin): void {
 			}),
 		);
 	} catch {
-		// The boot cache is only a first-paint hint; the authoritative manifest still applies after mount.
+		// Apply the loaded manifest after mount, replacing the first-paint cache hint.
 	}
 }

@@ -131,23 +131,23 @@ export function createPiModelProviderMutations({
 		const builtIns = await getBuiltInProviderIds();
 		if (!PROVIDER_ID_PATTERN.test(id))
 			throw new Error(`Invalid provider id "${id}" — use lowercase letters, digits, ".", "_" or "-"`);
-		// Mirrors Pi's validateConfig: custom models require a baseUrl and an api.
+		// Custom model definitions require baseUrl and api.
 		if (!CUSTOM_PROVIDER_APIS.includes(request.api)) throw new Error(`Unknown api "${request.api}"`);
 		if (request.apiKey !== null && !apiKey) throw new Error("API key must not be empty");
 		if (builtIns.has(id)) throw new Error(`"${id}" is a built-in Pi provider — pick another id`);
 		const provider: ModelsJsonProvider = { ...(name ? { name } : {}), baseUrl, api: request.api, models: [] };
 		if (request.compat !== null) provider.compat = structuredClone(request.compat);
 		if (request.api === "openai-completions") {
-			// pi's compat heuristic assumes unknown OpenAI-compatible endpoints accept the
-			// "developer" role and sends it for reasoning models — most relays/self-hosted
-			// servers reject it ("Unexpected message role"). Custom endpoints get the safe
-			// default via pi's own compat switch; the built-in OpenAI provider is unaffected.
+			// Unknown OpenAI-compatible endpoints can reject the developer role on reasoning models.
+			// Set Pi's compatibility option to a safe default for custom endpoints.
+			// The built-in OpenAI provider keeps its own compatibility settings.
+
 			applyOpenAiCompletionsCompatibility(provider);
 		}
 		const label = `add provider "${id}"`;
 		const transaction = await commitModelsConfigMutation((config) => {
 			if (Object.hasOwn(config.providers, id)) throw new Error(`Provider "${id}" already exists in models.json`);
-			// `name` is optional in Pi's schema — omitted, the provider displays as its id.
+			// An omitted provider name displays as the provider id.
 			config.providers[id] = structuredClone(provider);
 		});
 		const credentialMutation = { value: null as PiStoredCredentialMutation | null };
@@ -165,8 +165,8 @@ export function createPiModelProviderMutations({
 		try {
 			const runtime = await reloadGlobalModelRuntimeForMutation(label, transaction, observeCredentialMutation);
 			if (attemptedCredential) {
-				// auth.json, not models.json's apiKey field: Pi resolves auth.json first, and this
-				// keeps the key manageable through the same UI as every other provider.
+				// Store the key in auth.json, which Pi reads before models.json's apiKey field,
+				// so the credentials UI can manage it.
 				await assertModelsConfigMutationCurrent(label, transaction);
 				await storeDirectApiKey(runtime, id, attemptedCredential.key, async () => {
 					await reloadGlobalModelRuntimeForMutation(label, transaction, observeCredentialMutation);
@@ -227,7 +227,7 @@ export function createPiModelProviderMutations({
 			if (models.some((model) => model.id === modelId)) {
 				throw new Error(`Model "${modelId}" already exists for provider "${request.provider}"`);
 			}
-			// Omitted fields stay omitted — Pi supplies its own defaults (name=id, 128k ctx, 16k out).
+			// Omitted fields use Pi defaults: name=id, 128k context and 16k output.
 			const model: ModelsJsonModel = { id: modelId, ...structuredClone(options) };
 			if (name) model.name = name;
 			if (request.contextWindow !== null) model.contextWindow = request.contextWindow;
@@ -363,7 +363,7 @@ export function createPiModelProviderMutations({
 					delete model[key];
 				Object.assign(model, structuredClone(options));
 			}
-			// Full-state edit: cleared fields are REMOVED so Pi's own defaults apply again.
+			// Clear submitted fields by removing them so Pi supplies their defaults.
 			if (name) {
 				model.name = name;
 			} else {

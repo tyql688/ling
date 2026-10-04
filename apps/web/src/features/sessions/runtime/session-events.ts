@@ -111,7 +111,7 @@ export function applySessionEvent(messages: SessionMessage[], event: LingSession
 	}
 }
 
-/** Agent-turn busy/error only — lifecycle/file-sync runFinished must not mask agent state. */
+/** Tracks agent-turn busy and error state independently of lifecycle/file-sync runFinished events. */
 function isAgentRunEvent(event: LingSessionEvent): boolean {
 	return (event.type === "runStarted" || event.type === "runFinished") && "runId" in event && event.runId === "agent";
 }

@@ -44,7 +44,7 @@ export function createPiToolOrigins(sessionManager: Pick<PiSessionManager, "getS
 		if (cache.has(key)) return cache.get(key) ?? undefined;
 		let current: string | null = leaf;
 		let origin: PiToolOrigin | undefined;
-		// Provenance belongs between an assistant call and its result, never an unbounded transcript scan.
+		// Look for provenance between the assistant call and its result.
 		for (let remaining = 1024; current !== null && remaining > 0; remaining--) {
 			const entry = sessionManager.getEntry(current);
 			if (!entry) break;

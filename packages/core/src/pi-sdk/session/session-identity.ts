@@ -27,11 +27,7 @@ function identityFromHeaderLine(line: string): ProbedSessionIdentity | null {
 	};
 }
 
-/**
- * Reads only the session header so callers can reserve a replacement target without
- * `SessionManager.open` (which would race a later open). Fail-fast: no filename fallback
- * and no soft-swallow of I/O errors — a bad/missing header is an explicit failure.
- */
+/** Reads the session header before reserving a replacement target. Missing or malformed headers and I/O failures propagate to the caller. SessionManager opens the file after the reservation. */
 export async function probeSessionIdentity(sessionFilePath: string): Promise<ProbedSessionIdentity> {
 	let handle: FileHandle;
 	try {

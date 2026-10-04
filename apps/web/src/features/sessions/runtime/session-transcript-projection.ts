@@ -66,22 +66,9 @@ export function applyTranscriptTail(
 	tail: TranscriptPage,
 ): SessionTranscriptProjection {
 	const bindingMatches = sameBinding(currentState, tail);
-	/**
-	 * Both arguments come from one session's own atoms, so a binding mismatch is a runtime rollover,
-	 * never a different session: the entries are the same file's and merging them is exact. Replacing
-	 * instead truncated the projection to the tail page and dropped `hydrationSettled` with it, which
-	 * unmounted the whole timeline for any transcript longer than one page. Messages the previous
-	 * generation never persisted are dropped — Pi's re-read from disk does not carry them either, and
-	 * keeping them would leave a row that no longer exists anywhere.
-	 */
+	/** Both states belong to this session's atoms. A binding mismatch therefore means runtime replacement within the same session file. Merge persisted history and keep hydrationSettled so long transcripts stay mounted. Drop the previous generation's unpersisted messages, which Pi's disk snapshot cannot restore. */
 	const carried = bindingMatches ? currentMessages : currentMessages.filter((message) => message.entryId !== null);
-	/**
-	 * `hasOlder: false` means "this projection is the whole history" only when hydration actually
-	 * settled — `emptySessionTranscriptState` defaults it to false too. Without the settled check,
-	 * a `transcriptInvalidated` (compaction, reload, tree navigation) that cleared the projection
-	 * and then had live events land before its snapshot resolved looked like a rollover carrying a
-	 * complete history, which pinned `hasOlder: false` and left the timeline stuck on the tail page.
-	 */
+	/** Interpret hasOlder:false as complete history after hydration settles. The empty state also defaults to false, and live events can arrive before its snapshot. Checking hydration prevents those events from marking an incomplete tail as the full history. */
 	const carriedAcrossRollover = !bindingMatches && carried.length > 0 && currentState.hydrationSettled;
 	const historyAlreadyComplete = (bindingMatches || carriedAcrossRollover) && !currentState.hasOlder;
 	const sameHydrationAttempt =

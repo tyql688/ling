@@ -14,5 +14,5 @@ export type OperationTerminalState =
 	| { status: "unknown"; reason: string; recoveryAction: LingErrorUserAction }
 	| { status: "orphaned"; reason: string };
 
-/** Canonical lifecycle state for Ling-owned long operations. */
+/** Lifecycle states for long-running Ling operations. */
 export type OperationState = OperationNonTerminalState | OperationTerminalState;

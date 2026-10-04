@@ -79,7 +79,7 @@ export function prepareComposerMessage(draft: SessionDraft): ComposerMessagePrep
 	return {
 		status: "ready",
 		message: {
-			// Image-only submissions retain the existing empty text request field.
+			// Image-only submissions use an empty text request field.
 			text: text ?? "",
 			images: toImageAttachments(draft.attachments),
 			fileReferences,
@@ -88,7 +88,7 @@ export function prepareComposerMessage(draft: SessionDraft): ComposerMessagePrep
 	};
 }
 
-/** Restore whole unsent messages without overwriting newer input or silently trimming their context. */
+/** Restores unsent messages alongside newer draft input and retains their full context. */
 export function appendUnsentMessages(
 	current: SessionDraft,
 	messages: readonly SessionQueuedMessage[],

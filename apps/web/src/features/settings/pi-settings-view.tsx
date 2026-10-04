@@ -72,11 +72,7 @@ function ProxyRow() {
 	);
 }
 
-/**
- * The GUI face of pi's /settings, curated to agent behavior (the CLI panel's TUI-only
- * entries — terminal themes, image cells, cursor — stay in the CLI). Controls persist
- * to Pi's global settings.json and refresh every open project's SettingsManager.
- */
+/** Edits Pi's global settings.json for agent behavior and refreshes open projects' SettingsManager instances. Terminal themes, image-cell settings and cursor options are edited in Pi's CLI. */
 export function PiSettingsView({ projects }: { projects: OpenProjectInfo[] }) {
 	const { t } = useTranslation();
 	const [{ scope, mode }, setLocation] = useAtom(piSettingsLocationAtom);

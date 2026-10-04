@@ -11,7 +11,7 @@ import type { Interactions } from "../interactions/interactions";
 const log = createLogger("questions");
 const failure = (value: unknown) => toError(value).message;
 
-/** Keep the question context and the user's actual labels/text in the conversation, not transport IDs. */
+/** Includes the question context and user-facing labels and text in the conversation. */
 function formatQuestionReply(
 	request: Pick<QuestionsInput, "title" | "questions">,
 	answer: NonNullable<QuestionRecord["answer"]>,

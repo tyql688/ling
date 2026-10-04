@@ -6,8 +6,8 @@ import TypeScriptWorker from "monaco-editor/language/typescript/ts.worker?worker
 import { json, typescript } from "monaco-editor";
 import { editorJsonSchemas } from "@ling/contracts/editor-json-schemas";
 
-// Project semantics belong to Host's language server. The local worker keeps syntax feedback
-// available during startup without producing competing project-free completion and diagnostics.
+// Host's language server supplies project completions and diagnostics. The local worker provides syntax feedback during startup.
+
 for (const defaults of [typescript.typescriptDefaults, typescript.javascriptDefaults]) {
 	defaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false });
 	defaults.setModeConfiguration({

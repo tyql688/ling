@@ -113,7 +113,7 @@ function afterSettled<T>(promise: Promise<T>, task: () => Promise<void>): Promis
 }
 
 type PiProjectServicesStateDependencies = {
-	/** Session workers load extensions only in their runtime, not in a second catalog graph. */
+	/** Session workers load extensions in the session runtime. */
 	loadCatalogResources: boolean;
 	readAdapterPlan(cwd: string): Promise<PiAdapterPlan>;
 	openVoiceSettings?: (ui: PiExtensionUiContext) => void;
@@ -267,9 +267,7 @@ export function createPiProjectServices({
 	};
 }
 
-/** Project lifecycle and resource reloads can change effective provider ownership
- * without touching models.json. Main subscribes once and projects this as the
- * renderer's existing models-changed event. */
+/** Reports catalog changes caused by project lifecycle and resource reloads. Main forwards them through the renderer's models-changed event. */
 function onPiModelCatalogChanged(owner: PiProjectServicesState, listener: () => void): () => void {
 	owner.modelCatalogChangedListeners.add(listener);
 	return () => {
@@ -635,10 +633,9 @@ function acquirePiRuntimeServices(
 		if (!isCurrentOpen(slot, generation, projectServices)) {
 			throw projectLifecycleError(projectServices.cwd, slot.state);
 		}
-		// A clean resource reconstruction uses a new ResourceLoader. Unlike calling
-		// reload() on an already-loaded loader, Pi will otherwise reuse the cwd-scoped
-		// compiled extension factories. Switch through an inert cwd first so ctx.reload()
-		// observes extension file edits even when no main-process project reload ran.
+		// Clear Pi's cwd-scoped compiled factories before constructing the new ResourceLoader
+		// so ctx.reload() imports edited extensions.
+
 		if (options.extensionFlagValues && (options.mode ?? "full") === "full") {
 			await prepareFreshProjectExtensionGeneration(projectServices.cwd, projectServices.agentDir);
 			if (!isCurrentOpen(slot, generation, projectServices)) {
@@ -854,8 +851,8 @@ async function reloadProjectSettingsNow(
 			try {
 				if (!isCurrentOpen(slot, generation, services)) continue;
 				if (mode === "adapters") {
-					// Ling switches cannot change user extensions, models or skills. Only their
-					// bundled selection changes here; live sessions rebuild below the Host barrier.
+					// Ling switches update bundled feature selection. User extensions, models and skills retain
+					// their Pi configuration. Host coordinates the live-session rebuilds.
 					if (owner.loadCatalogResources) {
 						const adapters = await preparePiAdapters({
 							cwd: services.cwd,

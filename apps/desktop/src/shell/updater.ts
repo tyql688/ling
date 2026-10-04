@@ -75,7 +75,7 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 
 	// Ling owns the full check/download task so shutdown can cancel and drain either phase.
 	autoUpdater.autoDownload = false;
-	// Both explicit installation and quit-time installation must pass Ling's drain barrier.
+	// Drain Host before installation, both for an install request and for normal quit.
 	autoUpdater.autoInstallOnAppQuit = false;
 	const cleanups: Array<() => void> = [];
 	function listen<Event extends Parameters<typeof autoUpdater.on>[0]>(
@@ -173,7 +173,7 @@ export function createDesktopUpdater(options: DesktopUpdaterOptions) {
 			started = true;
 			scheduleCheck(STARTUP_CHECK_DELAY_MS);
 		},
-		/** Stop requests before draining Host, but retain installation events until Electron exits. */
+		/** Stop update requests before draining Host. Keep installation listeners until Electron exits. */
 		stop() {
 			if (stopPromise) return stopPromise;
 			stopped = true;

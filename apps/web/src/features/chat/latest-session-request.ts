@@ -75,9 +75,7 @@ export function createSessionMutationBarrier(): SessionMutationBarrier {
 	};
 }
 
-/** A failed latest mutation may follow an older mutation that did commit. Wait for
- * the complete mutation tail, then reconcile from the authoritative main-process
- * state without allowing a stale session/request to write back into React. */
+/** A failed mutation may follow an earlier saved mutation. Wait for all queued mutations, then read the saved Host state. Apply it only if the original session and request are still current. */
 export async function reconcileFailedSessionMutation<State>(
 	options: ReconcileFailedSessionMutationOptions<State>,
 ): Promise<FailedSessionMutationReconciliation<State>> {

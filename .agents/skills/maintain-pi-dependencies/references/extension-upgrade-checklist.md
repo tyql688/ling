@@ -2,17 +2,17 @@
 
 Use this after establishing the published current-to-target delta in the [parent workflow](../SKILL.md). Select affected rows and record concrete before/after behavior; do not claim unexecuted checks. [Architecture](../../../../docs/architecture.md) owns the runtime map and [AGENTS.md](../../../../AGENTS.md) owns product boundaries and test selection.
 
-Use the feature-coverage table and `adapt`, `expose`, `inherited` and `defer` decision rules in the [Pi upgrade checklist](../../update-pi-dependency/references/upgrade-checklist.md), including when dependency pins are already current. The rows below add extension-specific migration and acceptance checks. Record the upstream behavior, original extension owner, Ling projection and visible interaction together so a working tool cannot conceal an incomplete presentation.
+Use the feature-coverage table and `adapt`, `expose`, `inherited` and `defer` decision rules in the [Pi upgrade checklist](../../update-pi-dependency/references/upgrade-checklist.md), including when dependency pins are already current. The rows below add extension-specific migration and acceptance checks. Record the upstream behavior, extension identity, Ling data mapping and visible interaction together. Verify tool execution and presentation separately.
 
 ## Shared extension behavior
 
 | Changed surface | Migration and acceptance evidence |
 | --- | --- |
-| Extension exports and dependency layout | Load the exact published `pi.extensions` entries through the installed SDK. Inspect transitive runtime dependencies and staged resources, not just type declarations or source archives. |
+| Extension exports and dependency layout | Load the exact published `pi.extensions` entries through the installed SDK. Inspect type declarations, transitive runtime dependencies and staged resources, then load the published entries. |
 | Loading, identity and versions | Confirm bundled identity, supported recorded provenance and user-installed precedence. An unrelated extension with the same tool name must retain Pi rendering and must not gain Ling's trusted projection or automatic mutations. |
 | Enable/disable and resource reload | Change the built-in feature switch while idle and busy. Verify admission and deferred reload, preserved configuration, no duplicate registrations and no obsolete tools after settlement/restart. A Ling switch must not uninstall the user's separate Pi package. |
 | SDK events, queues and replacement | Exercise changed start/end/settled behavior, cancellation, retry and affected fork/tree/replacement flows. Check session identity, busy state, dialogs and cleanup across reload; no continuation may escape to another session. |
-| UI and configuration | Inspect actual dialogs, selections, keyboard focus, localized copy and read-only/history states in Web and Desktop. Apply [Design's interaction acceptance](../../../../docs/design.md#acceptance) to switches, saves, connection actions and reloads, including slow operations, repeated clicks, failure rollback and editable drafts during background refresh. Unsupported TUI APIs must remain typed failures. Reuse upstream files and Ling controls rather than creating another settings format or UI kit. |
+| UI and configuration | Inspect actual dialogs, selections, keyboard focus, localized copy and read-only/history states in Web and Desktop. Apply [Design's interaction acceptance](../../../../docs/design.md#acceptance) to switches, saves, connection actions and reloads, including slow operations, repeated clicks, failure rollback and editable drafts during background refresh. Unsupported TUI APIs must remain typed failures. Use upstream configuration files and Ling’s shared controls. |
 
 ## Todo
 
@@ -48,11 +48,11 @@ Use the feature-coverage table and `adapt`, `expose`, `inherited` and `defer` de
 
 | Changed surface | Migration and acceptance evidence |
 | --- | --- |
-| Configuration and precedence | Verify official global/project sources against the published config types, including complete-entry replacement and invalid-entry isolation and transport-bound credentials. Preserve comments, unknown options, corrupt files and concurrent edits. Never call an upstream writer that silently replaces a failed read with an empty document. |
+| Configuration and precedence | Verify official global/project sources against the published config types, including project overrides that inherit a global connection, complete-entry replacement, invalid-entry isolation and transport-bound credentials. Preserve comments, unknown options, corrupt files and concurrent edits. Never call an upstream writer that silently replaces a failed read with an empty document. |
 | OAuth discovery and credentials | Trace metadata URL overrides through editable drafts, complete-entry validation, persistence and the official client. Test incomplete typing, invalid destinations, failure focus and sibling option preservation. Check server identity, callback issuer and step-up scope semantics in published source; report a completed external login separately from configuration acceptance. |
 | Runtime and tool use | Use a real stdio or HTTP server and a real model turn with an actual approval. Verify startup discovery, Codemode, deferred/direct tools, nested permissions and resources, reconnection, resource reload, resume, shutdown and child cleanup. Keep OAuth and connection ownership upstream. |
 | Deferred tool restoration | Discover a deferred tool, execute it, reload resources, fully restart the same session and fork it. Verify the restored active loadout after asynchronous registration through the Host's actual session factory and execute the tool again without another search. Confirm explicit deactivation remains authoritative and pending restoration ends when its runtime generation or branch loadout changes, or the first agent run begins. |
 | Native presentation | Audit the public command status output before changing its projection. Confirm status timestamps and cached catalogs are distinct from connections, and session replacement rejects old status. Test supported community-installed precedence and native command adaptation. |
 | Published assets | Verify the public built-in factory/config exports, MCP SDK closure and Codemode WASM assets in fresh standalone staged resources. Record platform and external OAuth gaps. |
 
-Keep the evidence with the update or release task. These rows guide source review and real acceptance; they do not justify architecture tests, DOM snapshots, mocks standing in for SDK interactions, or a new maintenance enforcement framework.
+Keep the evidence with the update or release task. Use these rows for source review and real acceptance. Select tests under AGENTS.md, keep runtime checks on the actual SDK, and keep one-off probes outside the repository.

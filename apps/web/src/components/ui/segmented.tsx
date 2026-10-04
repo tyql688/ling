@@ -27,7 +27,7 @@ export function Segmented<T extends string>({
 	ariaLabel?: string | undefined;
 	ariaLabelledBy?: string | undefined;
 	ariaDescribedBy?: string | undefined;
-	/** Plain groups stay on their owner's material, such as the usage reading plane. */
+	/** Plain groups use their parent’s background, including the usage reading surface. */
 	variant?: "surface" | "plain";
 }) {
 	const pillId = useId();

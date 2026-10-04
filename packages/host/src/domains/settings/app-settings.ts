@@ -21,7 +21,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import type { HostDatabase } from "../../storage/database";
 
-/** Settings file name under userData; decoupled from the dataset schema — renaming loses local preferences. */
+/** Application-settings filename under userData. Renaming it changes where saved preferences are found. */
 const APP_SETTINGS_FILE = "settings.json";
 
 /** Dataset schema identifier; validated when reading from disk to prevent cross-reading Pi's or another settings.json. */
@@ -76,7 +76,7 @@ const BOOLEAN_APP_SETTING_KEYS = [
 /** All writable setting keys (boolean + object); aligned with the DEFAULT/snapshot shape for strict merging. */
 const APP_SETTING_KEYS = [...BOOLEAN_APP_SETTING_KEYS, "projectLaunchers", "integratedTerminalProfileId"] as const;
 
-/** Closed set of project launcher kinds; one-to-one with shared target ids — parsing rejects illegal kinds. */
+/** Accepted project launcher kinds, each matching one shared target ID. */
 const PROJECT_LAUNCH_KINDS = ["file-manager", "editor", "terminal"] as const;
 
 interface StoredAppSettings {
@@ -220,7 +220,7 @@ export function createAppSettingsStore({ userDataDir, database }: { userDataDir:
 	let cachedAppSettings: AppSettingsSnapshot | null = null;
 
 	function replace(settings: AppSettingsSnapshot) {
-		// Preserve the historical settings acceptance and byte budget while moving publication into one transaction.
+		// Serialize settings publication within the accepted format and byte budget.
 		serializeAppSettings(settings);
 		database.transaction(() => {
 			database.run("DELETE FROM app_settings");
@@ -254,11 +254,7 @@ export function createAppSettingsStore({ userDataDir, database }: { userDataDir:
 		return settings;
 	}
 
-	/**
-	 * Hot-path read for per-keystroke IPC handlers: serves the cached snapshot without touching
-	 * disk. Falls back to defaults on a corrupt file — that is the documented boundary default;
-	 * the settings page still surfaces the corruption via readAppSettings.
-	 */
+	/** Returns the cached settings for frequent requests. Uses the documented defaults after a corrupt-file read; readAppSettings reports that corruption on the settings page. */
 	function getAppSettingsFast(): AppSettingsSnapshot {
 		if (cachedAppSettings === null) {
 			try {

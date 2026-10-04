@@ -88,7 +88,7 @@ async function localFolderHash(dir: string): Promise<LocalFolderHash> {
 	}
 }
 
-/** One trees-API call per repository; returns path → tree sha for every directory in it. */
+/** Returns each directory's tree SHA from one repository trees-API request. */
 async function fetchRepoTreeShas(source: string, ref: string | null): Promise<Map<string, string>> {
 	const url = `https://api.github.com/repos/${source}/git/trees/${encodeURIComponent(ref ?? "HEAD")}?recursive=1`;
 	const response = await fetch(url, {
@@ -166,8 +166,8 @@ export async function checkGlobalSkillUpdates(globalSkillsDir: string): Promise<
 		}
 		for (const entry of group) {
 			const local = await localFolderHash(join(globalSkillsDir, entry.name));
-			// Not installed into Pi's global skills directory (the CLI may have installed it
-			// for another agent only) — nothing Ling can meaningfully offer to update.
+			// Offer updates for skills installed in Pi's global directory.
+
 			if (local.kind === "missing") continue;
 			if (local.kind === "error") {
 				statuses.push({

@@ -13,10 +13,7 @@ import type {
 	SessionRuntimeTranscriptProjectionReason,
 } from "./runtime-types";
 
-/**
- * Application-owned view of the Pi runtime. It intentionally excludes raw Pi models,
- * session managers, resource loaders, extension runners, and lifecycle implementation state.
- */
+/** Pi runtime operations available to Ling. SDK models, resource loaders and session lifecycle state stay inside the adapter. */
 export interface SessionRuntimePort extends Omit<
 	PiRuntimeClient,
 	"getSnapshot" | "getStateSnapshot" | "generateTitle" | "dispose"

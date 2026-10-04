@@ -61,10 +61,7 @@ export type PiStoredCredentialMutationObserver = (providerId: string, mutation: 
  * before the credential map changes. */
 export type PiStoredCredentialRestoreTarget = PiStoredCredentialSnapshot | (() => PiStoredCredentialSnapshot);
 
-/** Internal profile store capabilities that deliberately stay outside Pi's public
- * CredentialStore contract. Raw reads preserve `$ENV`/`!command` references for
- * the explicit reveal UI, and checked deletes revalidate scoped ownership while
- * holding the canonical auth.json transaction lock. */
+/** Profile credential operations for the reveal UI and guarded deletion. Raw reads return `$ENV` and `!command` references. Deletes recheck provider ownership while holding auth.json's transaction lock. */
 export interface PiCredentialProfileStore extends PiCredentialStore {
 	dispose(): Promise<void>;
 	readStored(providerId: string, options?: PiCredentialOperationOptions): Promise<PiCredential>;
@@ -83,9 +80,7 @@ export interface PiCredentialProfileStore extends PiCredentialStore {
 		assertAllowed: () => void,
 		options?: PiCredentialOperationOptions,
 	): Promise<PiStoredCredentialSnapshot>;
-	/** Compensates a higher-level transaction without becoming a general unguarded
-	 * write path. Unknown future credential shapes are preserved structurally as parsed
-	 * JSON instead of being collapsed to an absent public credential. */
+	/** Restores the exact parsed JSON for a compensating transaction, including unknown future credential shapes. */
 	restoreSnapshotChecked(
 		providerId: string,
 		attempted: PiStoredCredentialSnapshot,
@@ -242,11 +237,7 @@ async function executeConfigCommand(commandConfig: string, signal: AbortSignal):
 	return runDefaultShellCommand(command, signal);
 }
 
-/**
- * One profile-owned implementation of pi-ai's public CredentialStore contract.
- * Every read observes canonical auth.json, while writes reuse Ling's bounded,
- * locked, atomic file boundary. ModelRuntime continues to own auth orchestration.
- */
+/** Implements Pi's CredentialStore with reads from auth.json and bounded, locked, atomic writes. ModelRuntime coordinates authentication. */
 export function createPiCredentialStore(agentDir: string): PiCredentialProfileStore {
 	const lifetime = new AbortController();
 	const pendingCommands = new Set<Promise<string | undefined>>();

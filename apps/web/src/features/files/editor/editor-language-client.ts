@@ -285,7 +285,7 @@ function createEditorLanguageClient(api: LingApi["editorLanguage"]) {
 			const loaded = new Set<string>(),
 				unique = [...new Set(uris)];
 			let characters = 0;
-			// Peek needs models, but a repository-wide reference query must not retain every source file.
+			// Bound the models retained for peek views when a reference query spans the repository.
 			if (unique.length > 50) setError(doc, new Error("Only the first 50 referenced files can be previewed at once"));
 			for (const uri of unique.slice(0, 50)) {
 				try {

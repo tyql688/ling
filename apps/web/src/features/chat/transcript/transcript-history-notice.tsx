@@ -3,7 +3,7 @@ import { FeedbackNotice } from "@renderer/components/ui/feedback";
 import { useTranslation } from "react-i18next";
 import type { TranscriptHistoryLoad } from "./use-transcript-history";
 
-/** A failed page never conceals already loaded messages or claims the transcript is complete. */
+/** Shows page-load failures beside retained messages and keeps the incomplete-history status visible. */
 export function TranscriptHistoryNotice({ history }: { history: TranscriptHistoryLoad }) {
 	const { t } = useTranslation();
 	if (history.error === null && !history.loading) return null;

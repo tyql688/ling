@@ -6,11 +6,7 @@ interface ReplacedRuntimeRefTombstone {
 	expiresAt: number;
 }
 
-/**
- * How long a replaced-ref tombstone is retained. Covers the upper bound of in-flight companion/snapshot requests
- * (IPC on the order of minutes); after expiry the old key stops being rewritten — any longer would make
- * tombstones quasi-persistent state.
- */
+/** Retain replaced references long enough for in-flight companion and snapshot requests to settle. Expiry ends reference rewriting and bounds tombstone retention. */
 const REPLACED_REF_RETENTION_MS = 5 * 60 * 1000;
 export function createReplacedRuntimeRefIndex() {
 	const tombstones = new Map<string, ReplacedRuntimeRefTombstone>();

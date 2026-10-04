@@ -24,9 +24,7 @@ interface TurnSegment {
 	endTimestamp: number | undefined;
 }
 
-/** Dividers stay visible: they carry context (model switches, compactions) that folding
- * a turn's work must not hide. Turn-change cards are review state rather than process
- * output, so they stay visible as well. */
+/** Keep model switches, compaction dividers and turn-change review cards visible when the turn's work is folded. */
 function isFoldCandidate(row: TranscriptRow): row is TimelineRow {
 	if (row.kind === "activity") return true;
 	if (row.kind !== "plain") return false;

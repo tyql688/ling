@@ -82,7 +82,7 @@ interface WorkspaceSidebarSessionActions {
 	rename: (ref: SessionRef, title: string) => void;
 	fork: (ref: SessionRef) => Promise<void>;
 	requestDelete: (ref: SessionRef, title: string) => void;
-	/** Compact for the ACTIVE session only — the runtime command needs its live binding. */
+	/** Compaction requires the active session's live runtime binding. */
 	compactActive?: (() => void) | undefined;
 }
 

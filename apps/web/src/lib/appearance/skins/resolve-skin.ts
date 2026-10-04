@@ -402,7 +402,7 @@ function resolveVariables(
 		"--color-scene-danger": sceneSemantic.danger,
 		"--color-scene-warning": sceneSemantic.warning,
 		"--color-scene-success": sceneSemantic.success,
-		// One 80% reading plane protects chart labels, rather than stacking opaque chart cards.
+		// Use one 80% opaque reading background to keep chart labels readable.
 		"--color-scene-reading": translucent(sceneBase, glass ? Math.max(80, sceneProtection.opacity) : 100),
 		"--color-today-usage": windowScene ? translucent(sceneBase, sceneProtection.opacity) : "transparent",
 		"--color-scene-code-block": translucent(sceneCodeSurface, sceneCodeOpacity),
@@ -475,7 +475,7 @@ function resolveVariables(
 		"--shadow-reading-surface": readingShadow,
 		"--shadow-floating": floatingShadow,
 		"--shadow-control": controlShadow,
-		// Fields are recessed with a static, low-contrast inner shadow, never a focus glow.
+		// Fields use a static inner shadow with low contrast.
 		"--shadow-input":
 			elevation === "flat" ? "none" : `inset 0 1px 2px ${skinColorWithAlpha("#000000", dark ? 0.12 : 0.04)}`,
 		// Choice controls use a 1px offset / 2px blur; flat skins remove this elevation entirely.
@@ -504,8 +504,8 @@ function resolveArtwork(
 	forceOpaque: boolean,
 	override: SkinSceneOverride,
 ): ResolvedSkinArtwork | null {
-	// Reduced transparency is also a compositor preference: do not leave hidden images or
-	// ambient video decoding behind the fully opaque reading and chrome surfaces.
+	// Reduced transparency uses opaque readers and chrome. Disable their hidden images and
+	// ambient video decoding as well.
 	if (artwork === null || forceOpaque) return null;
 	return {
 		scope: override.scope ?? artwork.scope ?? "window",
@@ -517,7 +517,7 @@ function resolveArtwork(
 		posterUrl: artwork.poster === null ? null : assetUrl(artwork.poster),
 		gradient: artwork.gradient,
 		opacity: artwork.opacity,
-		// Authored edge shading follows the same restraint as the scene material, never a second fixed veil.
+		// Authored edge shading shares the scene material's strength.
 		washOpacity: 1 - SKIN_SCENE_VISIBILITY[expression] / 100,
 		blur: artwork.blur,
 		brightness: artwork.brightness,

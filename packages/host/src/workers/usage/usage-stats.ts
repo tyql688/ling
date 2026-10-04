@@ -13,18 +13,9 @@ import {
 	type UsageRecord,
 } from "@ling/host/workers/usage/usage-scan";
 
-/**
- * Aggregated token-usage statistics over Pi's session files, computed read-only. Covers
- * every session on the machine — Ling's and the pi CLI's alike, since they share the same
- * agent dir. File scanning and parse caching live in usage-scan.ts; this file owns the
- * date windowing and the aggregation accumulator.
- */
+/** Aggregates dated token usage from Ling and Pi CLI sessions in the shared agent directory. usage-scan.ts reads and caches files; this module applies date windows and totals. */
 
-/**
- * Usage heatmap week count. 53 ≈ one year plus a boundary week, on the same order as GitHub's contribution
- * graph; a longer grid would not fit the UI. It also sets the scan floor for every fixed range — the
- * all-time range deliberately scans past it and pays the full-history cost.
- */
+/** The heatmap spans 53 weeks, about a year plus a boundary week. Fixed ranges scan this window; all-time scans the complete history. */
 const HEATMAP_WEEKS = 53;
 
 function dateKeyOf(date: Date): string {
@@ -61,17 +52,7 @@ interface UsageAccumulator {
 	snapshot(): UsageStatsSnapshot;
 }
 
-/**
- * Streaming accumulator over session-file JSONL lines. Boundary policies (each deliberate —
- * the on-disk format grows across SDK versions, so unknown shapes must not break the page):
- * - Entries without recognized usage are skipped; malformed JSON makes its file an explicit scan failure.
- * - Messages are deduped globally by `entryId:messageTimestamp` — forking a session copies
- *   the shared history verbatim into the new file, and without dedupe every fork would
- *   double-count its parent's usage.
- * - Assistant/tool/summary entries without a numeric `usage.totalTokens` are ignored.
- * - A file counts as a session only once it contributes a non-duplicate in-range message,
- *   mirroring the SDK's own "a session exists once it has a first turn" semantics.
- */
+/** Accumulates usage from session JSONL. Skips entries without recognized numeric usage.totalTokens and reports malformed JSON as a file-scan failure. Deduplicates copied fork history by entryId:messageTimestamp. Counts a session after its first nonduplicate message within the selected range. */
 function createUsageAccumulator(now: Date, rangeDays: UsageRangeDays): UsageAccumulator {
 	const today = startOfDay(now);
 	const todayKey = dateKeyOf(today);
@@ -80,7 +61,7 @@ function createUsageAccumulator(now: Date, rangeDays: UsageRangeDays): UsageAccu
 	const heatmapStartMs = heatmapStart.getTime();
 	// Ingestion floor: the heatmap window normally bounds it, but the all-time range must see everything.
 	const ingestStartMs = Math.min(heatmapStartMs, rangeStartMs);
-	// End of today — messages timestamped in the future (clock skew) are ignored entirely.
+	// Exclude messages timestamped after the end of today, including those caused by clock skew.
 	const endMs = addDays(today, 1).getTime();
 
 	const seenMessages = new Set<string>();
@@ -102,7 +83,7 @@ function createUsageAccumulator(now: Date, rangeDays: UsageRangeDays): UsageAccu
 		const ts = record.timestampMs;
 		// Drop what no output can observe, before dedupe: for a fixed range that is everything
 		// older than the 53-week heatmap, which keeps years of copied fork history out of this
-		// Set. The all-time range has no such floor — it must see every message, so the Set
+		// Set. The all-time range has no such floor; it must see every message, so the Set
 		// grows with the whole on-disk history (tens of thousands of entries on a busy machine).
 		if (ts < ingestStartMs || ts >= endMs) return;
 		if (seenMessages.has(record.dedupeKey)) return;

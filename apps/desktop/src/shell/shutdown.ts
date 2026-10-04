@@ -1,6 +1,6 @@
 import { toError } from "@ling/contracts/ling-error";
 import { app, BaseWindow, dialog, type BrowserWindow } from "electron";
-/** Allow Host's ten-second drain plus process cleanup; a broken shell must not wait indefinitely. */
+/** Bound shell shutdown to Host's ten-second drain plus process cleanup. */
 const FATAL_EXIT_TIMEOUT_MS = 20_000;
 interface ShutdownOptions {
 	getWindow(): BrowserWindow | null;
@@ -42,7 +42,7 @@ export function createDesktopShutdown(options: ShutdownOptions) {
 	function reportFatalFailure(error: unknown): void {
 		const failure = toError(error);
 		console.error(`Electron shell ${startupComplete ? "runtime" : "startup"} failed`, failure);
-		// A second failure is logged, but cannot start another dialog, shutdown, update or relaunch.
+		// Log subsequent failures while the first failure's dialog and exit sequence remain in progress.
 		if (fatalFailure !== null) return;
 		shutdownComplete = false;
 		fatalFailure = failure;
@@ -87,8 +87,8 @@ export function createDesktopShutdown(options: ShutdownOptions) {
 				buttons: ["Quit Ling"],
 			});
 		});
-		// Fatal cleanup never resumes normal operation or installs a pending update. The native
-		// notice remains visible until acknowledged or the same bounded exit deadline expires.
+		// Fatal cleanup exits the application. Keep the native notice visible until acknowledgment or the exit deadline.
+
 		void Promise.allSettled([cleanup, notice]).then((outcomes) => {
 			for (const outcome of outcomes) {
 				if (outcome.status === "rejected") console.error("Ling fatal shutdown failed", outcome.reason);

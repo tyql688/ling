@@ -75,7 +75,7 @@ function queryScore(tokens: readonly string[], text: string): number | null {
 	return score;
 }
 
-/** Provider lookup searches identities, never the names of models they happen to serve. */
+/** Searches provider identities and display names. */
 export function filterModelPickerProviders(providers: readonly ModelPickerProvider[], query: string) {
 	const tokens = query
 		.trim()

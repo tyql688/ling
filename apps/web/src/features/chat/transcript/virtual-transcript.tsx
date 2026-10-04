@@ -5,8 +5,7 @@ import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { useStickToBottomContext } from "use-stick-to-bottom";
 import type { TranscriptVirtualLayout } from "./transcript-virtual-layout";
 
-/** Row spacing matches the timeline's former `gap-5`; keeping it in the layout model makes
- * estimated offsets and measured DOM positions use the same geometry. */
+/** Uses 20px row spacing in both estimated offsets and measured DOM positions. */
 const TIMELINE_ROW_GAP_PX = 20;
 /** Six rows covers roughly one viewport above and below on ordinary prose turns without
  * mounting hundreds of Markdown trees during a fast scroll. */

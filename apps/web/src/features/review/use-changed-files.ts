@@ -9,11 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
  * sidebar "changes" badge to track manual edits without flooding IPC when idle.
  */
 const IDLE_REFRESH_MS = 4_000;
-/**
- * Poll interval while the agent is busy. Tool turns touch disk continuously; 1.5s
- * keeps footer counts and the explorer tree responsive — shorter would contend with the main
- * process Git write queue.
- */
+/** Poll every 1.5 seconds while the agent is busy to update counts and the explorer. Shorter intervals would compete with the main-process Git write queue. */
 const BUSY_REFRESH_MS = 1_500;
 
 interface ChangedFilesSnapshot {
@@ -57,8 +53,8 @@ export function useChangedFiles(cwd: string | null, busy: boolean): ChangedFiles
 			setError(null);
 			return;
 		}
-		// Poll/focus/visibility events are invalidations, not independent reads. Keep at
-		// most one IPC/Git process live and collapse any burst into one follow-up pass.
+		// Coalesce poll, focus and visibility invalidations into one active IPC/Git read and one follow-up pass.
+
 		if (refreshInFlightRef.current !== null) {
 			refreshQueuedRef.current = true;
 			return;

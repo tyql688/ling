@@ -2,7 +2,7 @@ import { formatRequestError } from "@renderer/lib/errors";
 import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { createFeatureSnapshot } from "./feature-snapshot";
 
-/** Shares refresh and action ownership without retaining another session's data or callbacks. */
+/** Runs refreshes and actions for the current session and releases its data and callbacks when the session changes. */
 export function useFeatureSnapshot<Value>(options: {
 	load(): Promise<Value>;
 	subscribe(refresh: () => void): () => void;

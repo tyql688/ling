@@ -20,7 +20,7 @@ const ComposerContextNode = Node.create({
 	selectable: true,
 	draggable: true,
 	addOptions() {
-		// Headless Markdown conversion has no clipboard boundary; the mounted editor supplies its parser.
+		// The mounted editor supplies the clipboard parser; headless Markdown conversion has no clipboard input.
 		return {
 			parseContext: (_raw: string, _cwd: string | null): DraftContext | null => null,
 			projectCwd: () => null as string | null,
@@ -89,7 +89,7 @@ export const composerExtensions = [
 	ComposerContextNode,
 ];
 
-/** Source editing shares context and history, without marks, formatting commands or input rules. */
+/** Source editing shares context and undo history. It uses plain text, with marks, formatting commands and input rules disabled. */
 export const plainComposerExtensions = [
 	StarterKit.configure({
 		undoRedo: { depth: 50 },

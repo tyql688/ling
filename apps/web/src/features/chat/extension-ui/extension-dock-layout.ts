@@ -1,18 +1,10 @@
 /** Initial width advertised before the extension dock mounts and can be measured. */
 const DEFAULT_DOCK_WIDTH = 320;
 
-/**
- * Horizontal chrome between the dock's outer width and a widget's text: the body's padding, the
- * widget card's padding, and the card borders. Extension components render to an exact column
- * count, so this is what separates "fits" from "clipped mid-line".
- */
+/** Combined body padding, widget-card padding and borders between the dock's outer edge and widget text. Subtract this width before computing the extension's column count. */
 const EXTENSION_DOCK_CONTENT_INSET = 2 * 12 + 2 * 10 + 2;
 
-/**
- * Type styles for a line of extension output in the dock. Shared so the column count reported to
- * the extension host is measured in the same cell the lines are drawn in — if these drift, every
- * component renders to the wrong width.
- */
+/** Text styles shared by dock rendering and column measurement so extensions receive the width of the cells displayed on screen. */
 export const EXTENSION_DOCK_LINE_CLASS = "font-mono text-xs leading-4";
 
 export function readExtensionDockContentWidth(): number {

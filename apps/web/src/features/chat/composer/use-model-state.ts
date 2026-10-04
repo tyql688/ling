@@ -80,7 +80,7 @@ export function useModelState(ref: SessionRef | null, binding: SessionModelRunti
 			})();
 		};
 		fetchState();
-		// Credentials changed in settings (login/API key) — the available-model list is stale.
+		// Refresh the available-model list after credential changes in Settings.
 		const unsubscribeModels = hostModelsApi.onChanged(fetchState);
 		// Package/skill reloads can register extension-owned providers without changing
 		// global models.json. Refresh from the session runtime after its catalog rebuilds.
@@ -160,10 +160,10 @@ export function useModelState(ref: SessionRef | null, binding: SessionModelRunti
 		[hostSessionApi, runModelMutation],
 	);
 
-	// Gate on the session, not the runtime binding: a rollover (sessionReplaced) mints a new
-	// identity key while the model and thinking level are unchanged, and dropping to null there
-	// unmounts the toolbar's model/thinking controls, so the row collapses and re-expands around
-	// the re-fetch. A real session switch still clears it, because the session key differs.
+	// Retain model state for the session during runtime replacement. Its new binding gets a new identity key,
+	// while retaining the last model and thinking level keeps the toolbar's height stable during the fetch.
+	// Clear the state when the session key changes.
+
 	const currentSessionKey = ref ? sessionKey(ref) : null;
 	const currentView = view !== null && view.sessionKey === currentSessionKey ? view : null;
 	return {

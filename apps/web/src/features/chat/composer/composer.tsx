@@ -220,8 +220,8 @@ export function Composer({
 		prepare: prepareComposerMessage,
 		onPreparationError: (cause) => onCommandError(formatRequestError(cause)),
 		onLimitError: () => onCommandError(t("session.messageTextLimit", { count: SESSION_MESSAGE_TEXT_MAX_CHARS })),
-		// useSessionChat.send already owns the session error banner + sidebar Failed flag.
-		// Do not also toast here — that produced two identical danger surfaces.
+		// useSessionChat.send reports failures in the session error banner and sidebar status.
+
 		submit: (message, _snapshot, mode) => {
 			const { text: outgoingText, images, fileReferences } = message;
 			return onSend(outgoingText, mode, images.length > 0 ? images : undefined, fileReferences);

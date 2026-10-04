@@ -2,12 +2,7 @@ import type { SessionRef } from "@ling/contracts/session-ref";
 import { sessionKey } from "@ling/contracts/session-ref";
 import { EXTENSION_UI_RENDER_WIDTH, type ExtensionOverlayViewport } from "./extension-ui-overlay-layout";
 
-/**
- * The renderer's surfaces measured in monospace columns. A TUI component is asked to draw at an
- * exact width, so each surface reports its own: an overlay spans the window, the header sits in
- * the transcript column, and widgets/footer live in the extension dock. Rendering everything at
- * one width is what clips dock content mid-line.
- */
+/** Each displayed area reports its width in monospace columns for TUI rendering: window width for overlays, transcript width for the header, and dock width for widgets and footer. */
 export interface ExtensionUiViewport extends ExtensionOverlayViewport {
 	markdownColumns: number;
 	dockColumns: number;
@@ -37,7 +32,7 @@ export function createExtensionUiViewports() {
 		return viewportBySession.get(sessionKey(ref))?.dockColumns ?? EXTENSION_UI_RENDER_WIDTH;
 	}
 
-	/** Width for the header, which renders inline at the top of the transcript rather than in the dock. */
+	/** Column width of the header at the top of the transcript. */
 	function headerRenderColumns(ref: SessionRef): number {
 		return viewportBySession.get(sessionKey(ref))?.markdownColumns ?? EXTENSION_UI_RENDER_WIDTH;
 	}

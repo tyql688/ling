@@ -1,7 +1,7 @@
 import type { DiagnosticCorrelation, DiagnosticLogLevel, DiagnosticLogRecord } from "@ling/contracts/diagnostics";
 import { writeSync } from "node:fs";
 
-/** Truncation cap for a single structured-log message; 1 Ki is enough for a diagnostic sentence — longer bloats IPC/disk logs. */
+/** Cap each structured-log message at 1 Ki characters to bound IPC payloads and disk logs. */
 const STRUCTURED_LOG_MAX_MESSAGE_LENGTH = 1_024;
 
 /** Max length of the component field; 64 covers module names and keeps abnormally long strings from polluting the correlation dimension. */

@@ -1,7 +1,4 @@
-/**
- * Pre-save connectivity probe for custom OpenAI-compatible endpoints: surfaces failures at
- * configuration time instead of "first conversation". Advisory only — never a save gate.
- */
+/** Probes a custom OpenAI-compatible endpoint before saving and reports connectivity feedback. The result is advisory; saving remains available. */
 
 type EndpointProbeResult =
 	| { ok: true; modelCount: number | null }

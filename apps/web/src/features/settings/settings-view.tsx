@@ -290,8 +290,8 @@ export function SettingsView() {
 	);
 
 	return (
-		// Project management lives in the sidebar (right-click a project group) — the settings
-		// page only carries app-level preferences.
+		// App preferences are edited here. Project actions are in the sidebar project group's context menu.
+
 		<SettingsPage title={t("settings.general")}>
 			<SettingsSection title={t("settings.appBehavior")}>
 				{appSettingsError && (

@@ -11,7 +11,7 @@ function createFixture(prepareInstall?: () => Promise<void>, supported = true) {
 	const events = new EventEmitter();
 	const received: UpdateEvent[] = [];
 	const backend = {
-		// The real updater's typed emitter returns its full instance; only its event port is needed here.
+		// The updater emitter returns its instance; this fixture implements the event methods used by the shell.
 		on: events.on.bind(events) as AppUpdater["on"],
 		off: events.off.bind(events) as AppUpdater["off"],
 		autoDownload: true,

@@ -33,7 +33,7 @@ function ComposerDropOverlay({ active }: { active: boolean }) {
 	);
 }
 
-/** Inline error/warning inside the input area: unified FeedbackNotice, replacing scattered text-danger paragraphs. */
+/** Displays inline errors and warnings with FeedbackNotice inside the input area. */
 export function ComposerInlineAlert({
 	id,
 	message,
@@ -76,7 +76,7 @@ export function ComposerCard({
 			data-composer-card=""
 			data-session-composer={variant === "session" ? true : undefined}
 			{...(dropHandlers ?? {})}
-			// The completion popover must escape the frame; never clip the card's overflow.
+			// Keep the card overflow visible so the completion popover can extend beyond it.
 			className={cn(COMPOSER_FRAME_CLASSNAME, variant === "home" && "max-w-(--reading-measure) shrink-0", className)}
 		>
 			{variant === "session" && <span className="composer-working-edge" aria-hidden="true" />}

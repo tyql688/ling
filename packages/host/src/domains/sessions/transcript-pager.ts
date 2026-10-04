@@ -4,24 +4,16 @@ import { type SessionRef, sameSessionRef, sessionKey } from "@ling/contracts/ses
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-/** Paging protocol/cursor version; bumping invalidates old cursors (deliberately, to prevent cross-generation reads). */
+/** Paging protocol version. Incrementing it invalidates existing cursors to prevent reads across incompatible generations. */
 const PROTOCOL_VERSION = 1 as const;
-/**
- * Default page size. Opening a session hydrates the full timeline (with deferred tool bodies), so paging is IPC slicing rather than
- * UX segmentation: take the schema maximum of 200 to reduce round trips; each page is still truncated by
- * DEFAULT_PAGE_MAX_BYTES.
- */
+/** Uses pages of up to 200 messages to hydrate the full timeline with deferred tool bodies. DEFAULT_PAGE_MAX_BYTES also bounds each page. */
 const DEFAULT_PAGE_LIMIT = 200;
 /**
  * Serialized byte limit per page. 8MiB stays manageable alongside large messages/image metadata; oversized pages are
  * truncated so one read cannot crush the renderer process.
  */
 const DEFAULT_PAGE_MAX_BYTES = 8 * 1024 * 1024;
-/**
- * TTL of a pinned paging view. Opening a session hydrates many pages; 2min was too tight — cursors expired easily
- * on long sessions, cold disks, or mid-hydration snapshotChanged→invalidate→re-pin cycles. 30min covers hydration
- * plus browsing, with maxViews still reclaiming views.
- */
+/** Keeps pinned views for 30 minutes to cover long-session hydration, slow disks and snapshot re-pinning. maxViews separately bounds retained views. */
 const DEFAULT_PIN_TTL_MS = 30 * 60 * 1000;
 /**
  * Max simultaneously pinned views. 8 ≈ a small window each for multiple tabs/sessions; more would hold memory unboundedly.
@@ -99,12 +91,7 @@ function bindingKey(binding: TranscriptBinding): string {
 	return `${binding.runtimeId}\0${binding.generation}\0${sessionKey(binding.ref)}\0${binding.transcriptRevision}`;
 }
 
-/**
- * Deterministic view id from the transcript binding. randomUUID made every
- * invalidate()+createTail cycle mint a new id, so in-flight olderCursors from the
- * previous pin died with TRANSCRIPT_CURSOR_EXPIRED mid full-hydrate. Stable ids let a
- * re-pin after snapshotChanged serve the same cursor when revision is unchanged.
- */
+/** Derives a stable view id from the transcript binding. Re-pinning after snapshotChanged can reuse in-flight cursors when the revision is unchanged. */
 function stableViewId(binding: TranscriptBinding): string {
 	return createHash("sha256").update(bindingKey(binding)).digest("base64url");
 }

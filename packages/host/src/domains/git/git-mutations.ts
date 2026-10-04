@@ -72,9 +72,7 @@ function normalizeRevision(value: unknown): string {
 	return revision;
 }
 
-/** Checks out an existing local branch. Fails fast — a dirty tree, a missing branch, or
- * any other git error throws, and the renderer surfaces the message rather than the
- * caller guessing at a fallback. */
+/** Checks out an existing local branch. Dirty trees, missing branches and other Git failures propagate to the renderer. */
 export async function switchBranch(cwd: string, branch: string, signal?: AbortSignal): Promise<GitStatus> {
 	const repo = createGitClient(cwd, signal);
 	const normalized = await normalizeBranchName(repo, branch);
@@ -266,10 +264,7 @@ export async function listWorktreeBranchOptions(cwd: string, signal?: AbortSigna
 		.map((name) => ({ name, checkedOutPath: checkedOutPaths.get(name) ?? null }));
 }
 
-/** Tracked + untracked files, repo-relative with forward slashes — the completion corpus for
- * @-mentions. respectGitignore=true excludes .gitignore'd files; false keeps them reachable
- * (dist/, generated code) while still skipping node_modules, matching the non-repo walk's
- * omissions. Bounded: gigantic repos are cut at the cap, which a prefix query then narrows. */
+/** Lists tracked and untracked repository-relative paths for @-mentions. respectGitignore excludes .gitignore matches when true; false includes generated files such as dist/. Both modes skip node_modules. Results stop at the corpus cap, with prefix filtering narrowing subsequent queries. */
 export async function listRepositoryFiles(
 	cwd: string,
 	respectGitignore: boolean,
@@ -392,12 +387,7 @@ export async function createWorktree(
 	return created;
 }
 
-/**
- * Rolls back a worktree this call just created (transactional creation). The worktree —
- * and, when `branchName` was passed, its branch — are brand-new artifacts of the failed
- * call, so force-removal touches nothing pre-existing. Best-effort: failures are
- * reported to the caller's logger, never thrown over the original error.
- */
+/** Rolls back the worktree and optional branch created by a failed call. Reports cleanup failures to the caller's logger while preserving the original failure. */
 export async function destroyCreatedWorktree(
 	rootCwd: string,
 	options: { path: string; branchName?: string },
@@ -414,8 +404,8 @@ export async function destroyCreatedWorktree(
 	}
 	if (options.branchName !== undefined) {
 		try {
-			// Plain -d: refuses anything unmerged. A branch that gained no commits deletes
-			// cleanly; anything else is left behind — a leaked branch beats a lost commit.
+			// Plain -d rejects unmerged branches. A branch with added commits remains available
+			// for user recovery.
 			await repo.raw(["branch", "-d", "--", await normalizeBranchName(repo, options.branchName)]);
 		} catch (error) {
 			failures.push(`branch ${options.branchName}: ${errorMessage(error)}`);

@@ -12,8 +12,8 @@
 # application replacement on the signing identity. A new certificate silently resets
 # existing privacy grants.
 #
-# It does not make either platform trust the app: macOS still needs `xattr -cr` until the
-# app is notarized with an Apple Developer ID.
+# Platform trust requires additional signing steps. macOS needs `xattr -cr` until
+# the app is notarized with an Apple Developer ID.
 
 set -euo pipefail
 
@@ -28,8 +28,7 @@ CERT_PATH="$OUT_DIR/signing.crt"
 P12_PATH="$OUT_DIR/signing.p12"
 B64_PATH="$OUT_DIR/signing.p12.base64"
 
-# CA:FALSE marks this an end-entity certificate, matching what Windows' own
-# New-SelfSignedCertificate -Type CodeSigningCert produces.
+# CA:FALSE marks this as an end-entity code-signing certificate.
 openssl req \
   -x509 \
   -newkey rsa:2048 \
@@ -43,11 +42,10 @@ openssl req \
   -addext "keyUsage=critical,digitalSignature" \
   -addext "extendedKeyUsage=codeSigning"
 
-# TripleDES_SHA1 is what Windows itself writes when exporting a PFX, and signtool reads it
-# on every Windows version. It is also the only family macOS accepts: SecPKCS12Import rejects
-# a SHA-256 MAC outright and cannot read PBES2/AES content, so the modern OpenSSL 3 default
-# imports nowhere. 40-bit RC2 would import too, but it is far weaker and needs OpenSSL's
-# legacy provider on both the writing and reading side.
+# TripleDES_SHA1 PFX files support Windows signtool and macOS SecPKCS12Import.
+# The macOS importer rejects the SHA-256 MAC and PBES2/AES content produced by
+# OpenSSL 3 defaults. RC2 also imports, but its 40-bit key is weaker and requires
+# OpenSSL’s legacy provider for both export and import.
 openssl pkcs12 \
   -export \
   -name "$NAME" \

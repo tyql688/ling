@@ -112,9 +112,7 @@ export function useWorkspaceSessionActions(options: {
 		[hostSessionApi, forkSession],
 	);
 
-	/** Editing a message replaces its turn in place: the session rewinds to just before that
-	 * entry and resends, so the conversation continues here instead of in a new session. The
-	 * replaced turns stay in the session file as an abandoned branch. */
+	/** Editing rewinds the session to just before the selected entry and resends its text. The replaced turns remain in the same session file as an abandoned branch. */
 	const handleEditMessage = useCallback(
 		async (entryId: string, newText: string) => {
 			const ref = activeSessionRef;

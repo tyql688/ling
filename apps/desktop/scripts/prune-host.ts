@@ -6,13 +6,10 @@ import ts from "typescript";
 
 const PI_SDK_PACKAGE = "@earendil-works/pi-coding-agent";
 
-/** Pi's bundle; the packages it still imports by name are read from its files. */
+/** Pi bundle path. Its imports identify the packages to retain on disk. */
 const PI_SDK_BUNDLE_DIRECTORY = "dist/bundle";
 
-/**
- * Inside the SDK package only the bundle, the assets its `dist/config.js` getters read (themes,
- * interactive assets, HTML export template) and the documents Pi serves remain.
- */
+/** Retained SDK files: the bundle, themes, interactive assets, HTML export template, and documents served by Pi. The asset paths come from `dist/config.js` getters. */
 const PI_SDK_REQUIRED_PATHS = [
 	"package.json",
 	"README.md",
@@ -25,7 +22,7 @@ const PI_SDK_REQUIRED_PATHS = [
 	"dist/core/export-html",
 ];
 
-/** Written beside the SDK bundle for the packages the staged tree no longer ships. */
+/** License notice written beside the SDK bundle for dependencies removed during staging. */
 const BUNDLED_NOTICES_FILE = "BUNDLED_DEPENDENCY_NOTICES.md";
 
 /** Present in some SDK releases only. */
@@ -75,7 +72,7 @@ function shipsVerbatim(name: string): boolean {
 	return name === "npm" || name.startsWith("@typescript/") || name === PI_SDK_PACKAGE;
 }
 
-/** Package names imported by the bundle; built-ins and relative paths are not dependency edges. */
+/** External package imports from the bundle. Node built-ins and relative imports resolve within the runtime and package. */
 async function readBundleDependencies(directory: string): Promise<Set<string>> {
 	const dependencies = new Set<string>();
 	for (const entry of await readdir(directory, { withFileTypes: true, recursive: true })) {
@@ -113,7 +110,7 @@ async function readBundleDependencies(directory: string): Promise<Set<string>> {
 	return dependencies;
 }
 
-/** A directory without a manifest is not a package; a malformed manifest is a broken deploy. */
+/** Returns null for a directory with no package manifest and throws for a malformed manifest. */
 async function readManifest(directory: string): Promise<PackageManifest | null> {
 	const path = join(directory, "package.json");
 	let source: string;
@@ -158,11 +155,7 @@ async function installedPackages(nodeModules: string): Promise<Map<string, Insta
 	return packages;
 }
 
-/**
- * Resolve every edge from its installed importer, just as Node walks ancestor node_modules.
- * Package names alone are insufficient: extensions can carry different nested dependency versions.
- * Only Pi extension peers supplied by the SDK are virtual; ordinary peers remain runtime edges.
- */
+/** Resolves dependencies from each installed importer using Node's ancestor `node_modules` lookup. This preserves nested versions carried by extensions. The SDK supplies Pi extension peers virtually; ordinary peers resolve on disk. */
 function reachablePackages(
 	hostRoot: string,
 	packages: Map<string, InstalledPackage>,
@@ -294,10 +287,7 @@ async function keepNpmBinLinks(binDirectory: string): Promise<void> {
 	}
 }
 
-/**
- * Licence texts of the packages the staged tree drops: the SDK bundle embeds most of them, the rest
- * are not shipped. Versions are those pnpm resolved for this deploy.
- */
+/** License texts and pnpm-resolved versions for packages removed during staging, including dependencies embedded in the SDK bundle and packages omitted from the application. */
 async function bundledDependencyNotices(packages: readonly InstalledPackage[]): Promise<string> {
 	const sections: string[] = [];
 	for (const { name, directory, manifest } of packages) {
@@ -346,7 +336,7 @@ export async function pruneStagedHost(options: PruneOptions) {
 	const retained = [...packages.values()].filter((pkg) => kept.has(pkg.directory));
 	const target = `${options.platform}-${options.arch}`;
 	await removeSourceOnlyFiles(retained, target);
-	// Windows must not require developer mode or elevation to create file symlinks.
+	// Copy files on Windows so packaging works with standard user privileges and Developer Mode disabled.
 	if (options.platform !== "win32") await linkEsbuildExecutables(hostRoot, retained, target);
 	return {
 		keptPackages: kept.size,

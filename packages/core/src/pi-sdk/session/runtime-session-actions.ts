@@ -80,10 +80,7 @@ interface PiRuntimeSessionActions {
 	navigateTree(targetId: string, options?: NavigateTreeOptions): Promise<NavigateTreeResult>;
 }
 
-/** Messages queued while a manual compaction ran have no agent run to drain them.
- * Mirror the Pi CLI: promote the first queued message to a fresh prompt; the new run
- * then delivers the rest through the normal steering/follow-up queues. Never lets a
- * flush problem mask the compaction result — bootstrap errors are logged, not thrown. */
+/** After manual compaction, promotes the first queued message to a new prompt so the run can deliver the remaining queues. Logs bootstrap failures while retaining the compaction result. */
 function flushQueueAfterCompaction(
 	host: RuntimeSessionActionHost,
 	session: PiAgentSession,
@@ -284,9 +281,9 @@ export function createPiRuntimeSessionActions(host: RuntimeSessionActionHost): P
 						if (state.abortRequested && state.observedEnd && state.aborted) return;
 						throw error;
 					}
-					// Auto-compaction inside a run delivers queued messages via
-					// agent.continue(); manual compaction has no run, so Ling owns the
-					// flush — same contract as the CLI's flushCompactionQueue.
+					// Auto-compaction drains queues through agent.continue(). After manual compaction,
+					// Ling starts the queued prompt.
+
 					flushQueueAfterCompaction(host, session, state);
 				} finally {
 					unsubscribe?.();

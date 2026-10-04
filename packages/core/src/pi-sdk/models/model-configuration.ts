@@ -112,7 +112,7 @@ export function createPiModelConfiguration({
 	const { withOpenProject } = projects;
 	const { readModelsConfigSafe, reloadGlobalModelRuntimeForCatalog } = config;
 
-	/** Read configuration only when a detail/editor is opened, without resolving authentication or making model calls. */
+	/** Loads configuration when the detail view or editor opens. Authentication resolution and model calls use their separate operations. */
 	async function getModelConfiguration(request: ModelConfigurationRequest): Promise<ModelConfiguration> {
 		const read = await readModelsConfigSafe();
 		if (read.error !== null) throw new Error(read.error);

@@ -22,10 +22,7 @@ function Tooltip(props: TooltipPrimitive.TooltipProps) {
 	return <TooltipPrimitive.Root {...props} />;
 }
 
-/**
- * The tooltip's pure visual surface. Both the Radix popover and chart hints that position
- * themselves reuse it, so corner radius, colors, padding, and shadow don't drift across features.
- */
+/** Shared tooltip radius, colors, padding and shadow for Radix popovers and chart hints. Callers position the surface. */
 function TooltipSurface({ className, ...props }: ComponentPropsWithRef<"div">) {
 	return (
 		<div
@@ -39,10 +36,7 @@ function TooltipSurface({ className, ...props }: ComponentPropsWithRef<"div">) {
 	);
 }
 
-/**
- * Keeps the base-ui-era call sites working on radix: `render={<button …/>}` becomes the
- * `asChild` child, with the trigger's children merged into it.
- */
+/** Uses `render={<button .../>}` as the Radix `asChild` child and merges the trigger's children into it. */
 function TooltipTrigger({
 	render,
 	children,
@@ -84,10 +78,9 @@ function TooltipContent({
 				side={side}
 				sideOffset={sideOffset}
 				align={align}
-				// Anchors move without scroll/resize here (the sidebar width animation slides the
-				// whole title bar), and the default "optimized" strategy never re-anchors, leaving
-				// the tooltip floating where the trigger used to be. Tooltips are transient, so
-				// per-frame tracking while open is cheap.
+				// Track the anchor each frame while the tooltip is open. Sidebar width animations move the title bar without scroll or resize events,
+				// so the optimized positioning strategy would leave the tooltip at the trigger's previous position.
+
 				updatePositionStrategy="always"
 				className={cn(
 					"pointer-events-none data-[state=closed]:animate-out data-[state=delayed-open]:animate-in data-[state=closed]:fade-out-0 data-[state=delayed-open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=delayed-open]:zoom-in-95",

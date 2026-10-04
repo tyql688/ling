@@ -1,20 +1,13 @@
-/**
- * Workspace chrome rhythm. Each number states what breaks if it moves.
- */
-
-/** 44px window title strip — shorter overlaps macOS traffic lights. */
+/** The 44px title strip clears the macOS traffic lights; shorter strips overlap them. */
 export const CHROME_TITLEBAR_CLASS = "h-11";
 
-/**
- * 272px docked sidebar. 256px truncates 13px session titles; 280px is Lody's
- * ceiling and starts crowding the composer on a 1280px window.
- */
+/** The docked sidebar is 272px wide. At 256px, 13px session titles truncate; 280px starts crowding the composer in a 1280px window. */
 export const CHROME_SIDEBAR_WIDTH_CLASS = "w-[272px]";
 
 /** The stage reveals native material or artwork; panes and floating controls own their tint. */
 export const CHROME_CONTENT_REGION_CLASS = "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-shell-content";
 
-/** Sidebar is the canvas, not a matching card. Skins tint --color-sidebar. */
+/** Skins tint the sidebar canvas through --color-sidebar. */
 export const CHROME_SIDEBAR_SHEET_CLASS = "flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-sidebar";
 
 /** Floating workbench dialog header (file tree / review when undocked). Two-line title + path. */

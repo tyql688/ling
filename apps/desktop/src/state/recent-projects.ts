@@ -9,7 +9,7 @@ export interface RecentProject {
 	sessionId: string;
 }
 
-/** Taskbar jump lists stay scannable; past a handful of entries the rest is noise. */
+/** Limit the taskbar jump list to a few recent projects for quick scanning. */
 const RECENT_PROJECT_LIMIT = 8;
 const recentProjectsSchema = z
 	.array(

@@ -165,8 +165,8 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 			: t("markdown.copyCode");
 
 	return (
-		// Do NOT use content-visibility here: it reserved ~200px while Pierre's
-		// diffs-container stayed height 0 (CDP: empty shadow, no code text).
+		// Keep this container laid out: content-visibility can reserve ~200px while Pierre's diffs-container remains empty at height 0.
+
 		<div
 			className="md-code-block group relative my-0.5 w-full overflow-hidden rounded-control bg-code-block text-text-primary"
 			data-language={language}
@@ -190,7 +190,7 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 			</div>
 			<div className="min-w-0 p-2 pb-3">
 				{streaming || (!showLineNumbers && codeHighlightLanguage(language) === "text") ? (
-					// Plain text has no grammar to load. Keep it out of the shared highlighter and AST cache.
+					// Plain text renders directly; languages with grammars use the shared highlighter and AST cache.
 					<PlainCode code={code} wrapLongLines={wrapLongLines} streaming={streaming} />
 				) : (
 					<HighlightedMarkdownCode

@@ -15,7 +15,7 @@ import { mergeProviderCatalogs } from "./provider-catalog";
  * instead of flashing raw model ids while the fresh fetch is in flight. */
 const providerCatalogCache = new Map<string | null, ProviderSummary[]>();
 
-/** Drops a removed project's catalog; nothing else ever deletes from the cache. */
+/** Removes the catalog cache entry when its project is removed. */
 export function forgetProjectProviderCatalog(cwd: string): void {
 	providerCatalogCache.delete(cwd);
 }

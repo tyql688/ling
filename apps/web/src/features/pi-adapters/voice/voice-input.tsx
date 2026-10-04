@@ -273,7 +273,7 @@ function VoiceInputControls({
 		}
 	};
 	useEffect(() => {
-		// The shortcut belongs to this visible composer, not settings, terminals or other editors.
+		// Handle the shortcut when focus is in this visible Composer.
 		const composer = button.current?.closest<HTMLElement>("[data-composer-card]");
 		const handle = (event: KeyboardEvent) => {
 			if (!composer?.getClientRects().length || composer.closest('[inert], [aria-hidden="true"]')) return;

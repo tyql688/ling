@@ -21,12 +21,7 @@ import { useSkillDetail } from "./use-skill-detail";
 
 const SKILLS_OVERVIEW_IDENTITY = "skills-overview";
 
-/**
- * Settings surface for skills Pi shares across projects: global directories, the
- * settings-configured extra directories, and skills shipped inside packages.
- * Project-scoped skills deliberately do not appear here — they belong to their
- * project and are browsable from the workspace Skills control.
- */
+/** Lists skills from global directories, configured extra directories and Pi packages. The workspace Skills control lists project-scoped skills. */
 export function SkillsView() {
 	const hostSkillsApi = useDomainApi("skills");
 	const hostPiSettingsApi = useDomainApi("piSettings");

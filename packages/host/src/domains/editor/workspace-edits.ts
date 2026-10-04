@@ -16,7 +16,7 @@ const editSchema = z.object({
 		.max(languageLimits.editFiles)
 		.optional(),
 });
-/** Resource operations are deliberately not advertised: this owner applies reversible text edits only. */
+/** Applies reversible text edits. Resource create, rename and delete operations are unsupported. */
 export async function normalizeWorkspaceEdit(
 	cwd: string,
 	value: unknown,

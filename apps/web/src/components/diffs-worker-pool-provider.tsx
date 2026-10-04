@@ -36,7 +36,7 @@ function DiffsWorkerOptionsSync({ options }: { options: DiffsWorkerRenderOptions
 		let active = true;
 		void pool.setRenderOptions(options).catch((error: unknown) => {
 			// A theme switch or provider replacement can retire this request while it is in flight.
-			// Only the currently authoritative synchronization may surface a failure.
+			// Report failures for the active synchronization request.
 			if (!active) return;
 			showFeedback({
 				tone: "danger",

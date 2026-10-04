@@ -70,7 +70,7 @@ export function reduceSessionView(view: SessionView, input: SessionViewInput): S
 			};
 		}
 		case "clear":
-			// Resync is not a failed turn. Keep its existing error until an authoritative event replaces it.
+			// Retain the current turn error during resync until a later event supplies its replacement.
 			return { ...emptySessionView(view.transcript.epoch + 1), error: view.error, errorMessage: view.errorMessage };
 		case "clearTranscript":
 			return { ...view, messages: [], transcript: emptySessionTranscriptState(view.transcript.epoch + 1) };

@@ -48,7 +48,7 @@ interface ArtSkinSource {
 	hero: string;
 	/** Still frame for the settings preview card when the hero is a video. */
 	poster?: string;
-	/** Subject location in the hero (percent) — anchors the cover crop on the character. */
+	/** Subject location in the hero, in percent, anchors the cover crop on the character. */
 	focus: { x: number; y: number };
 	meta?: SkinManifest["meta"];
 	presentation?: Partial<SkinManifest["presentation"]>;
@@ -112,7 +112,7 @@ const ART_SKINS: ArtSkinSource[] = [
 		focus: { x: 58, y: 26 },
 	},
 	{
-		// Cartethyia's orchard: forest green with the apple's red — already sampled from the art.
+		// Cartethyia's orchard uses forest green and apple red from the artwork.
 		id: "wuthering-cartethyia",
 		appearance: "light",
 		accent: "#3e8257",
@@ -145,7 +145,7 @@ const ART_SKINS: ArtSkinSource[] = [
 		focus: { x: 60, y: 26 },
 	},
 	{
-		// Ada's festival night: star-crown cyan with costume gold — already sampled from the art.
+		// Ada's festival night uses star-crown cyan and costume gold.
 		id: "dna-ada",
 		appearance: "dark",
 		accent: "#4fc8e8",
@@ -378,7 +378,7 @@ export const DEFAULT_SKIN_MANIFEST = skinManifestSchema.parse({
 	},
 });
 
-/** Studio scenes use static, local paint rather than decoded media or animated filters. */
+/** Studio scenes use static local paint. */
 function createStudioArtwork(design: Pick<SkinArtwork, "gradient" | "treatment" | "layers">): SkinArtwork {
 	return {
 		scope: "window",
@@ -396,7 +396,7 @@ function createStudioArtwork(design: Pick<SkinArtwork, "gradient" | "treatment" 
 	};
 }
 
-/** Studio materials have independently authored light/dark surfaces; no image assets are needed. */
+/** Studio materials define light and dark surfaces in code. */
 const STUDIO_SKINS: Extract<SkinManifest, { kind: "studio" }>[] = [
 	{
 		schemaVersion: SKIN_SCHEMA_VERSION,

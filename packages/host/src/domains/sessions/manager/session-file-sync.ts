@@ -28,7 +28,7 @@ function sameSessionFileStamp(left: SessionFileStamp | null, right: SessionFileS
 }
 
 interface RefreshDecisionInput {
-	/** A streaming session is already receiving its own writes — never reload under it. */
+	/** Defers reload while the streaming session receives its own writes. */
 	busy: boolean;
 	/** Current on-disk stamp; `null` when the file is missing or has never been written. */
 	disk: SessionFileStamp | null;
@@ -48,12 +48,7 @@ function shouldRefreshFromDisk(input: RefreshDecisionInput): boolean {
 	return hasDiverged(input.disk, input.baseline);
 }
 
-/**
- * Whether a new prompt must be blocked because the file changed under Ling.
- * While the runtime is busy, JSONL advances are Pi's own appends — same busy
- * fence as shouldRefreshFromDisk. Blocking mid-turn would false-positive on
- * every steer/followUp during streaming.
- */
+/** Blocks a prompt when an idle runtime has external file changes. While busy, Pi appends its own JSONL entries and steer/followUp remain admissible. */
 function sendBlockedByDivergence(
 	disk: SessionFileStamp | null,
 	baseline: SessionFileStamp | null,
@@ -206,7 +201,7 @@ export function createSessionFileSyncController(options: SessionFileSyncOptions)
 				log.warn(`deferred external session-file refresh for ${options.sessionId()} (transient):`, error);
 				if (options.isCurrent()) scheduleExternalCheck();
 			} else {
-				// Fail-closed for unrecoverable refresh — no silent permanent SESSION_FILE_DIVERGED.
+				// Retire the managed session when external refresh cannot recover.
 				failSync("failed to refresh session from disk", error);
 			}
 		} finally {

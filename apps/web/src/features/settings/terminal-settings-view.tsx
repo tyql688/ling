@@ -15,7 +15,7 @@ import { SquareTerminal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-/** Select sentinel value: means follow-the-system / auto-detect, not a real profile id (ids may contain special characters). */
+/** Select value for system auto-detection, separate from profile IDs that may contain special characters. */
 const AUTOMATIC_VALUE = "__automatic__";
 
 interface PreferenceOption {

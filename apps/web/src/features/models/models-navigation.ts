@@ -51,7 +51,7 @@ export function resolveSelectedProvider(
 	return providers.find(isProviderUsable) ?? providers[0] ?? null;
 }
 
-/** A removed provider must return narrow layouts to the list instead of opening a fallback provider. */
+/** Returns a narrow layout to the provider list when its selected provider is removed. */
 export function isModelsDetailPaneActive(navigation: ModelsNavigationState, selected: ProviderSummary | null): boolean {
 	return navigation.pane === "detail" && selected?.id === navigation.selectedId;
 }

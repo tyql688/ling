@@ -94,7 +94,7 @@ export function appendReviewComment(
 	return { comments: [...current, comment], issue: null };
 }
 
-/** Defensive loader/state-boundary projection for localStorage and atom updates. */
+/** Validates review comments read from localStorage or passed to atom updates. */
 export function selectBoundedReviewComments(comments: readonly ReviewCommentDraft[]): ReviewCommentDraft[] {
 	const accepted: ReviewCommentDraft[] = [];
 	for (const comment of comments) {
@@ -126,8 +126,7 @@ function parseAttributes(raw: string): { file?: string; lines?: string } {
 	return attributes;
 }
 
-/** Splits a sent user message back into text and review-comment segments for display.
- * A block missing its required attributes stays visible as plain text — never dropped. */
+/** Splits a sent message into text and review-comment segments. Blocks missing required attributes remain visible as plain text. */
 export function parseReviewCommentSegments(text: string): ReviewCommentSegment[] {
 	const segments: ReviewCommentSegment[] = [];
 	let cursor = 0;

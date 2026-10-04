@@ -116,7 +116,7 @@ export type ModelsLoginDialogProps = {
 	onClose: () => void;
 };
 
-/** Owns the form's asynchronous work, recovery state and submission intent. */
+/** Runs provider login and retains its prompts, progress, errors and cancellation state. */
 export function useModelLogin({ provider, method, onClose }: ModelsLoginDialogProps) {
 	const hostModelsApi = useDomainApi("models");
 	const hostAppApi = useDomainApi("app");
@@ -133,7 +133,7 @@ export function useModelLogin({ provider, method, onClose }: ModelsLoginDialogPr
 	const activeInputLabelId = useId();
 	const ime = useImeGuard();
 	const { resetComposition } = ime;
-	// StrictMode re-runs effects on a simulated remount (refs survive it) — without this
+	// StrictMode re-runs effects on a simulated remount (refs survive it); without this
 	// guard the second run would call loginStart again and trip "already in progress".
 	// Cleanup cancellation is deferred one task so StrictMode's immediate effect replay can revoke it.
 	const started = useRef(false);
@@ -193,7 +193,7 @@ export function useModelLogin({ provider, method, onClose }: ModelsLoginDialogPr
 			void hostModelsApi
 				.loginStart({ flowId: flowId.current, provider: provider.id, method, cwd: provider.projectCwd })
 				.catch((cause: unknown) => {
-					// Pre-flight rejection (another login already running) — no "done" event will come.
+					// Pre-flight rejection (another login already running); no "done" event will come.
 					const message = errorMessage(cause);
 					setFlow((previous) => ({
 						...previous,
@@ -212,7 +212,7 @@ export function useModelLogin({ provider, method, onClose }: ModelsLoginDialogPr
 			if (flowFinished.current || cancelRequested.current) return;
 			clearDeferredCancellation.current = deferLoginCancellation(() => {
 				clearDeferredCancellation.current = null;
-				// eslint-disable-next-line react-hooks/exhaustive-deps -- the cleanup deliberately reads the ref as it stands at teardown, not the value captured at setup
+				// eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup uses the ref's current value
 				void hostModelsApi.loginCancel({ flowId: flowId.current }).catch((cause: unknown) => {
 					console.error("Failed to cancel abandoned model login", cause);
 				});

@@ -23,9 +23,9 @@ interface ProjectLauncherProps {
 	onError: (error: unknown) => void;
 }
 
-/** Launch target group display order: file manager → editor → terminal. */
+/** Launch groups appear in file-manager, editor, terminal order. */
 const TARGET_KIND_ORDER: readonly ProjectLaunchTargetKind[] = ["file-manager", "editor", "terminal"];
-/** Target kind → i18n group title key. */
+/** Maps target kinds to localized group titles. */
 const TARGET_KIND_LABEL_KEYS: Record<ProjectLaunchTargetKind, string> = {
 	"file-manager": "project.launcherFileManagers",
 	editor: "project.launcherEditors",

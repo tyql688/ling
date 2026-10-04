@@ -19,7 +19,7 @@ export interface SkillProvenance {
 export interface SkillInfo {
 	name: string;
 	description: string;
-	/** Absolute path of the SKILL.md (or root .md) file — the reveal target. */
+	/** Absolute path of the SKILL.md or root .md file used by Reveal. */
 	filePath: string;
 	/** Source label from Pi (directory or package the skill came from). */
 	source: string;

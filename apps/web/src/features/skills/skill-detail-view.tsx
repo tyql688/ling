@@ -215,7 +215,7 @@ export function SkillDetailContent({
 	);
 }
 
-/** The resource tree remains beside the skill catalog instead of replacing it. */
+/** Displays the resource tree beside the skill catalog. */
 export function SkillDetailNavigation({
 	detail,
 	onRetry,

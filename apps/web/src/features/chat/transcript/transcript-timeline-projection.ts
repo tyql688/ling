@@ -26,10 +26,7 @@ interface TranscriptTimelineProjection extends TranscriptRowPartition {
 	virtualRows: readonly TranscriptRow[];
 	/** The latest user turn, including its growing assistant tail, stays in normal flow. */
 	tailRows: readonly TranscriptRow[];
-	/**
-	 * Pre-fold timeline rows used for working-status heuristics.
-	 * Live-only updates may omit frozen history here — status only inspects the tail.
-	 */
+	/** Rows used to calculate working status before folding. Live updates can supply the tail because status reads that part. */
 	statusRows: readonly TimelineRow[];
 	outline: readonly TurnOutlineEntry[];
 }
@@ -61,11 +58,7 @@ function splitLatestTurn(rows: readonly TranscriptRow[]): {
 	return { virtualRows: [], tailRows: rows };
 }
 
-/**
- * Whether the open agent turn still owns a live tail after the latest user message.
- * Mirrors the assistant half of {@link partitionLiveTranscriptRows} without needing rows
- * (activity-only residual falls through to a full rebuild — rare).
- */
+/** Tests whether the open turn has an assistant tail after the latest user message, matching partitionLiveTranscriptRows. Activity-only remnants require a full row rebuild. */
 function liveHistoryMessageCount(messages: readonly SessionMessage[], busy: boolean): number | null {
 	if (!busy || messages.length === 0) return null;
 	let latestUserMessageIndex = -1;

@@ -15,8 +15,8 @@ export function createTerminalEmulator(
 	typography: TerminalTypography,
 ) {
 	const xterm = new XTermTerminal({
-		// Required by the official Unicode 11 addon. Keep proposed access scoped
-		// to this xterm instance rather than exposing any renderer capability.
+		// Enable the proposed xterm API on this instance for the Unicode 11 addon.
+
 		allowProposedApi: true,
 		allowTransparency: true,
 		convertEol: false,

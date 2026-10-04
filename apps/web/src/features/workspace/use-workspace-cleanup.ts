@@ -13,7 +13,7 @@ import { useMemo } from "react";
 import { workspaceDialogAtom } from "./use-workspace-dialogs";
 import { sessionWorkbenchesAtom } from "./reading-state";
 
-/** Cross-feature deletion belongs to workspace composition, not to either catalog owner. */
+/** Clears session, project and view state after deletion. */
 export function useWorkspaceCleanup() {
 	const store = useStore();
 	return useMemo(() => {

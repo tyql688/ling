@@ -27,11 +27,7 @@ function fileStateFor(file: GlobalInstructionFile): FileState {
 	return { stored: file.content, draft: file.content ?? EMPTY_DRAFT, loading: false };
 }
 
-/**
- * Manages Pi's three global prompt files (AGENTS.md / SYSTEM.md / APPEND_SYSTEM.md) under
- * `~/.pi/agent/`. These apply to every Pi session Ling embeds. Edits take effect on the
- * resource reconciliation boundary; active runs defer application until they settle.
- */
+/** Edits AGENTS.md, SYSTEM.md and APPEND_SYSTEM.md under `~/.pi/agent/` for Pi sessions in Ling. Resource reload applies the edits after active turns settle. */
 export function GlobalInstructionsSection() {
 	const hostGlobalInstructionsApi = useDomainApi("globalInstructions");
 	const hostUiApi = useDomainApi("ui");

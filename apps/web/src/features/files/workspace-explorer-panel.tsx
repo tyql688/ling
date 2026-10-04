@@ -148,9 +148,8 @@ export function WorkspaceExplorerPanel({
 				</div>
 			)}
 			{explorer.root.directoryMissing ? (
-				// The folder is gone, not unreadable. Keep presenting it as this project's folder
-				// instead of a failed request: a retry cannot succeed until the folder is back, and
-				// the header's refresh already covers that.
+				// Display the deleted project folder until it returns. The header refresh action retries the read.
+
 				<div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
 					<FolderX className="size-6 text-text-muted" aria-hidden="true" />
 					<span className="text-xs text-text-muted">{t("project.directoryMissingDetail")}</span>

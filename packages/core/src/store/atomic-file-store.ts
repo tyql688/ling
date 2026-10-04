@@ -108,9 +108,7 @@ async function readUtf8FileBoundedWithBomPolicy(
 	}
 }
 
-/** Startup-owned metadata sometimes has a synchronous API because the native shell reads it while
- * deciding window behavior. This mirrors the async reader's byte/UTF-8 guarantees instead of
- * letting each synchronous caller reinvent an unbounded `readFileSync`. */
+/** Reads bounded UTF-8 text synchronously for startup decisions such as native window configuration. */
 export function readUtf8FileSyncBounded(filePath: string, maxBytes: number): string | undefined {
 	return readUtf8FileSyncBoundedWithBomPolicy(filePath, maxBytes, false);
 }
@@ -158,7 +156,7 @@ function readUtf8FileSyncBoundedWithBomPolicy(
 }
 
 function reportNonFatal(context: string, error: unknown): void {
-	// Not a logger dependency: this module is imported by early-startup code paths.
+	// Use the console here because this module also runs before logger initialization.
 	console.error(`[atomic-file-store] ${context}:`, error);
 }
 
@@ -182,9 +180,9 @@ export const writeTextFileAtomic = createAtomicTextFileWriter(atomicWriterOption
 
 const mutationQueues = new Map<string, Promise<void>>();
 
-// Deliberately not using the SDK's withFileMutationQueue: it keys the queue by realpath,
-// while this module must support locking the configured path instead of the realpath when
-// coordinating with Pi's SettingsManager.
+// SettingsManager coordinates on the configured pathname. Keep that locking option
+// available alongside realpath locking.
+
 function enqueueMutation<Result>(
 	filePath: string,
 	operation: () => Promise<Result>,
@@ -353,8 +351,8 @@ export function createAtomicFileStore<Value>(options: AtomicFileStoreOptions<Val
 		signal?: AbortSignal,
 	): Promise<{ source: string | undefined; value: Value }> {
 		throwIfOperationAborted(signal);
-		// Preserve a leading BOM in the recovery source, but keep the parse contract
-		// unchanged: callers historically receive decoded JSON text without it.
+		// Return the leading BOM with recovery source text; parsed JSON receives decoded text
+		// with the BOM removed.
 		const source = await readUtf8FileBoundedWithBomPolicy(filePath, options.maxBytes, signal, true);
 		const parseSource = source?.startsWith("\uFEFF") ? source.slice(1) : source;
 		throwIfOperationAborted(signal);

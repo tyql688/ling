@@ -1,4 +1,4 @@
-/** Special keys → byte sequences written directly to the PTY (including CSI function keys). */
+/** Byte sequences for special keys sent to the PTY, including CSI function keys. */
 const SPECIAL_KEY_DATA: Readonly<Record<string, string>> = {
 	Escape: "\x1b",
 	Enter: "\n",
@@ -20,7 +20,7 @@ const SPECIAL_KEY_DATA: Readonly<Record<string, string>> = {
 	F4: "\x1bOS",
 };
 
-/** Arrow keys → CSI final byte (composes `\x1b[A` etc.). */
+/** CSI final bytes for arrow keys, composing sequences such as `\x1b[A`. */
 const ARROW_CODE: Readonly<Record<string, string>> = {
 	ArrowUp: "A",
 	ArrowDown: "B",
@@ -28,7 +28,7 @@ const ARROW_CODE: Readonly<Record<string, string>> = {
 	ArrowLeft: "D",
 };
 
-/** Function keys → CSI numeric code (`\x1b[n~` family). */
+/** CSI numeric codes for function keys in the `\x1b[n~` family. */
 const FUNCTION_KEY_CODE: Readonly<Record<string, string>> = {
 	Insert: "2",
 	Delete: "3",
@@ -46,7 +46,7 @@ const FUNCTION_KEY_CODE: Readonly<Record<string, string>> = {
 	F12: "24",
 };
 
-/** Ctrl+symbol → C0 control character (e.g. Ctrl+[ = ESC). */
+/** C0 control characters for Ctrl+symbol combinations, such as Ctrl+[ for ESC. */
 const CONTROL_BY_SYMBOL: Readonly<Record<string, string>> = {
 	"[": "\x1b",
 	"\\": "\x1c",
@@ -88,15 +88,7 @@ function modifiedFunctionSequence(key: string, modifier: number): string | null 
 	return code ? `\x1b[${code};${modifier}~` : null;
 }
 
-/**
- * True when the key can only be an extension shortcut/control chord, never plain typing.
- * The composer routes only these through the extension round-trip: routing plain typing
- * keys (printables, Backspace, Enter, arrows, shift+arrow selection) made every keystroke
- * wait on an IPC round-trip to the Pi worker, which read as laggy deletion and broken IME.
- * Extension UI panels still route every key — a TUI dialog genuinely consumes arrows and
- * printables. The known ceiling: an extension can no longer consume plain keys typed into
- * the composer (e.g. push-to-talk bound to an unmodified key); modifier chords still work.
- */
+/** Returns true for shortcut/control chords sent to extensions. Composer typing, Backspace, Enter, arrows and selection keys stay local to avoid IPC latency and IME delays. Composer extension shortcuts require a modifier, so unmodified push-to-talk bindings are unavailable there. Extension UI panels receive every key, including printable characters and arrows. */
 export function isExtensionShortcutKey(event: ExtensionKeyboardEvent): boolean {
 	if (event.ctrlKey || event.altKey) return true;
 	if (event.key === "Escape") return true;

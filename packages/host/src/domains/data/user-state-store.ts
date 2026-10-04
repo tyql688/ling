@@ -28,9 +28,9 @@ const LAST_PROJECT_KEY = "user:lastProject";
 const SCOPE_KEY = "user:sidebarScope";
 const PREFERENCE_PREFIX = "user:preference:";
 const SCENE_PREFIX = "user:skinScene:";
-/** These are the preexisting project preference budgets; SQL publication must not grow them without limit. */
+/** Caps retained project preferences. */
 const PROJECT_PREFERENCE_MAX_BYTES = 1024 * 1024;
-/** Match the previous seen-marker cache budget and keep the shared snapshot below the transport frame bound. */
+/** Caps seen markers to keep the shared snapshot within the transport frame limit. */
 const SEEN_MAX_BYTES = 1_900_000;
 function retainSeenRows(rows: ReturnType<HostDatabase["all"]>) {
 	let bytes = 2;

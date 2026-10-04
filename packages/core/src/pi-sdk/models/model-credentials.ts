@@ -27,9 +27,9 @@ async function runCredentialOperation(
 		return { state: "ready", error: null };
 	} catch (error) {
 		if (!(error instanceof CredentialSynchronizationError)) throw error;
-		// The SDK error is a commit marker, not a failed credential mutation. Never
-		// compensate it back to the previous secret: rebuild from canonical auth.json
-		// so every subsequent reader observes the committed provider state.
+		// The credential write committed before SDK synchronization failed. Rebuild from auth.json
+		// so subsequent readers use the committed secret.
+
 		try {
 			await reconcileRuntime();
 			return { state: "recovered", error: null };

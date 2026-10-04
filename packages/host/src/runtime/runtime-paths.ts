@@ -32,7 +32,7 @@ export function getHostRuntimePaths(): Readonly<HostRuntimePaths> {
 	return runtimePaths;
 }
 
-/** Directory of the host runtime's own node_modules binaries — the npm/npx shims installs must resolve. */
+/** Host node_modules binary directory used to resolve npm/npx for installs. */
 export function getHostPackageBinPath(): string {
 	const paths = getHostRuntimePaths();
 	return paths.packaged

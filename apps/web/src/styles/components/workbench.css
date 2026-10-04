@@ -60,8 +60,7 @@
 	}
 }
 .loading-transition-glyph {
-	/* Loading glyph leans into the (skinnable) accent, unlike the neutral empty-state
-	   glyph — so switching skins recolors the loading states too. */
+	/* Loading glyphs use the skin’s accent color; empty-state glyphs use neutral colors. */
 	background: linear-gradient(
 		135deg,
 		color-mix(in srgb, var(--color-accent) 30%, transparent),
@@ -172,7 +171,7 @@
 	}
 }
 
-/* Friendly working pulse: three round dots hop in sequence without moving the status row. */
+/* Three dots hop in sequence while the status row stays in place. */
 @keyframes ling-session-progress-dot {
 	0%,
 	56%,
@@ -195,7 +194,7 @@
 	height: 16px;
 	align-items: center;
 	justify-content: center;
-	/* 2.7px dots with a 1.8px gap centre on 4.5px steps — the SVG circle geometry this replaced. */
+	/* The 2.7px dots and 1.8px gaps place dot centers 4.5px apart. */
 	gap: 1.8px;
 	color: var(--color-accent);
 }
@@ -205,7 +204,7 @@
 	border-radius: 50%;
 	background: currentColor;
 	opacity: 0.55;
-	/* Keeps each dot on its own compositor layer, so the hop below never reaches the main thread. */
+	/* Give each dot a compositor layer for its transform animation. */
 	will-change: transform, opacity;
 }
 .ling-session-progress-dot:nth-child(2) {
@@ -228,10 +227,7 @@
 		transform: rotate(360deg);
 	}
 }
-/* Rotating wrapper for the loading icons that stay on screen for a whole run. The rotation has to
-   sit on an HTML element: Chromium cannot composite a transform on an SVG root, so `animate-spin`
-   on the icon itself repaints on the main thread every vsync. Short-lived spinners (refresh
-   buttons) keep using the utility - the wrapper only pays off while something is on screen. */
+/* An HTML wrapper lets Chromium composite rotation for icons visible throughout a run. Rotating the SVG root repaints it each frame. Brief refresh spinners use the shared animation utility. */
 .ling-spin {
 	display: inline-flex;
 	animation: ling-spin 1s linear infinite;
@@ -264,9 +260,7 @@
 	margin: 0;
 }
 
-/* Files and changes keep the same 16:11 visual canvas: a wide workbench grows smoothly from 64rem
-   up to 80% of the container, capped at 120rem; extremely narrow windows fall back to the original
-   full-width primary/secondary switch so the usable area doesn't get too small. */
+/* Files and changes use a 16:11 workbench, growing from 64rem to 80% of the container up to 120rem. Narrow windows show one pane at a time to preserve usable width. */
 [data-workbench-slot-host] {
 	container-name: workbench-slot;
 	container-type: size;
@@ -294,9 +288,7 @@
 	}
 }
 
-/* Change review lives in a bounded workbench dialog. This container boundary lets the
-   dialog switch to a list -> detail flow from its real width without mirroring panel
-   geometry into the review state machine. */
+/* The review dialog uses its own width to switch between side-by-side panes and a list followed by detail. */
 .change-review-container {
 	container-name: change-review;
 	container-type: inline-size;
@@ -321,9 +313,7 @@
 	}
 }
 
-/* Project files share the workbench dialog shell but own a denser master/detail boundary.
-   At narrow dialog widths the tree becomes a true tree -> preview flow; widening the
-   dialog restores simultaneous navigation and code context. */
+/* Project files use the workbench dialog with a denser split. Narrow dialogs show either the tree or preview; wider dialogs show both. */
 .workspace-explorer-container {
 	container-name: workspace-explorer;
 	container-type: inline-size;
@@ -354,8 +344,7 @@
 	}
 }
 
-/* Models lives beside the settings sidebar, so viewport breakpoints do not describe its
-   usable width. Switch the card itself from master/detail to list -> detail at 42rem. */
+/* The models card switches from side-by-side panes to a list followed by detail at 42rem of card width, accounting for the settings sidebar. */
 .models-container {
 	container-name: models;
 	container-type: inline-size;
@@ -479,8 +468,7 @@
 	--conversation-gutter: clamp(2rem, 5cqi, 5rem);
 }
 
-/* A peer navigator inherits the skin's sidebar material. Headers tint that same plane,
-   while a hairline separates it from the reader without adding another surface layer. */
+/* The reading pane’s navigator uses the skin’s sidebar material. Headers tint that background, and a hairline separates it from the reader. */
 .workspace-side-surface {
 	--color-workbench-chrome: color-mix(in srgb, var(--color-text-primary) 3%, var(--color-workbench-side));
 	box-shadow: inset 1px 0 color-mix(in srgb, var(--color-text-primary) 3%, transparent);
@@ -523,8 +511,7 @@
 	background: var(--color-text-muted);
 }
 
-/* The reader hangs under the shared chrome row instead of behind its own hairline: one soft inset
-   edge carries the depth, so the conversation and the reader read as one surface with a seam. */
+/* The reader sits below the shared chrome row. An inset edge separates it from the conversation. */
 .workbench-reading-seam {
 	box-shadow:
 		inset 1px 0 color-mix(in srgb, var(--color-text-primary) 4%, transparent),

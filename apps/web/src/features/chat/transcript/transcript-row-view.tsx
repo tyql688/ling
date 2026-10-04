@@ -22,7 +22,7 @@ import {
 interface TranscriptRowViewProps {
 	row: TranscriptRow;
 	rowId: string;
-	/** Semantic revision — the primary memo gate for row content. */
+	/** Content revision used to compare memoized rows. */
 	revision: string;
 	busy: boolean;
 	isLastMessage: boolean;
@@ -32,8 +32,7 @@ interface TranscriptRowViewProps {
 	reviewTurn: ChangeReviewTurn | undefined;
 	toolsExpanded: boolean;
 	hiddenThinkingLabel: string | null;
-	/** Backward-looking use only (model-change divider derivation); deliberately outside
-	 * the comparator — see areTranscriptRowPropsEqual. */
+	/** Prior messages used to derive model-change dividers. areTranscriptRowPropsEqual compares the derived row fields. */
 	messages: SessionMessage[];
 	onToggleFold: (turnKey: string, expanded: boolean) => void;
 	onPinViewport: (pin: TranscriptViewportPin) => void;
@@ -45,7 +44,7 @@ interface TranscriptRowViewProps {
 	onBeginUserEdit: (rowId: string, text: string) => void;
 	onUserEditDraftChange: (rowId: string, draft: string) => void;
 	onCancelUserEdit: (rowId: string) => void;
-	/** `entryId` is the durable rewind target — the edited message's own session entry. */
+	/** The edited message's session entry ID, used as the durable rewind target. */
 	onSubmitUserEdit: (entryId: string, newText: string) => void;
 }
 

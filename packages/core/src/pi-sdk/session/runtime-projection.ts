@@ -14,9 +14,7 @@ import { projectPiBranchMessages, summarizePiBranchMessages } from "./session-me
 import { readSessionOrigin } from "./session-origin";
 import { getPiPermissionSource } from "../extensions/pi-adapters";
 
-/** Revision 1 adds initialized stock-renderer themes and nullable branch origins.
- * Bump when Ling's projection semantics change without a Pi or app version bump;
- * derived Host/Web snapshots must then rebuild from the unchanged session entries. */
+/** Version of Ling's transcript projection. Increment it when renderer initialization or normalization changes so Host and Web rebuild cached snapshots from session entries. */
 const TRANSCRIPT_PROJECTION_REVISION = 1;
 
 function updateProjectionFunction(hash: ReturnType<typeof createHash>, label: string, value: unknown): void {
@@ -67,8 +65,8 @@ export function projectPiRuntimeCommandCatalog(session: PiAgentSession): Session
 		description: command.description === undefined ? null : command.description,
 		hasArgumentCompletions: typeof command.getArgumentCompletions === "function",
 	}));
-	// Mirrors Pi's enableSkillCommands: disabled skills stay loaded for the model
-	// but are not offered as /skill:name commands.
+	// enableSkillCommands controls /skill:name visibility. Disabled commands leave the
+	// skills available to the model.
 	const skillCommandsEnabled = session.settingsManager.getEnableSkillCommands();
 	return {
 		extensions: extensionCommands,
@@ -121,8 +119,7 @@ export function createPiRuntimeProjection(modelProjection: PiModelProjection) {
 
 	const projectionEnvironmentKeys = new WeakMap<PiAgentSession, string>();
 
-	/** Fingerprints the loaded projection code, not mutable files after load. A WeakMap freezes the
-	 * identity for this runtime; resource reloads already advance Ling's applied resource revision. */
+	/** Caches the loaded renderer-code fingerprint in a WeakMap for this runtime. Resource reload advances the applied resource revision. */
 	function projectionEnvironmentKey(session: PiAgentSession): string {
 		const existing = projectionEnvironmentKeys.get(session);
 		if (existing) return existing;

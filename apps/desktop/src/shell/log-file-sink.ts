@@ -29,7 +29,7 @@ export function installDesktopLog(directory: string): DesktopLog {
 	for (const [level, original] of originals) {
 		console[level] = (...args: unknown[]) => {
 			original.apply(console, args);
-			// Bound inspected objects; 16 KiB keeps a native stack and causes without dumping payloads.
+			// Limit inspected objects to 16 KiB to retain stack traces and causes while bounding logged payloads.
 			const line = formatWithOptions(
 				{ colors: false, depth: 4, maxArrayLength: 20, maxStringLength: 4_096 },
 				...args,

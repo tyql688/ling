@@ -41,7 +41,7 @@ export function useSessionChat(ref: SessionRef | null) {
 	const extensionUiState = extensionUiSnapshot?.state ?? EMPTY_EXTENSION_UI_STATE;
 	const store = useStore();
 
-	/** Banner text + sidebar "Failed" share one write path so IPC/send failures are not silent in the list. */
+	/** Reports IPC and send failures in both the session banner and sidebar status. */
 	const reportError = useCallback(
 		(message: string | null) => {
 			if (!key) return;
@@ -50,7 +50,7 @@ export function useSessionChat(ref: SessionRef | null) {
 		[key, store],
 	);
 
-	/** Projection refresh is best-effort everywhere it is called; a failure is reported, never thrown. */
+	/** Reports projection-refresh failures through the session error handler and resolves the refresh call. */
 	const safeRefresh = useCallback(
 		(target: SessionRef) => {
 			try {

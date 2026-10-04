@@ -1,7 +1,7 @@
 .ling-diffs-file {
 	color-scheme: light;
 	overscroll-behavior-inline: contain;
-	/* Pierre's shadow :host reads --diffs-font-*, not the outer font-family. */
+	/* Pierre’s shadow :host reads --diffs-font-* for its font settings. */
 	--diffs-font-family: var(--md-code-font);
 	--diffs-font-size: var(--md-code-font-size);
 	--diffs-line-height: var(--md-code-line-height);
@@ -43,15 +43,12 @@
 	color: var(--color-text-primary);
 	color-scheme: var(--md-code-color-scheme, inherit);
 }
-/* Pierre's light-dark() syntax colors must follow this fence, not an unrelated app-mode ancestor. */
+/* Pierre’s light-dark() syntax colors follow this code fence’s color scheme. */
 .md-code-block .ling-diffs-file,
 .md-code-block .ling-diffs-file diffs-container {
 	color-scheme: inherit;
 }
-/* Settings-page code preview cards: fixed light/dark islands decoupled from the app theme. The `dark:`
-   variant matches "any .dark ancestor", so nested wrappers can't pull a light card out of a dark theme —
-   instead pin this variable set and Pierre's color-scheme (shadow host included) inside the card scope.
-   Values stay in sync with the same-named variables on :root / .dark. */
+/* Settings code previews keep a fixed light or dark palette. Pin these variables and Pierre’s color-scheme, including its shadow host, within the card because dark: matches any .dark ancestor. Keep values aligned with the same variables on :root and .dark. */
 .code-preview-island-light,
 .code-preview-island-light .ling-diffs-file diffs-container {
 	color-scheme: light;
@@ -114,10 +111,7 @@
 	min-width: 0;
 	-webkit-font-smoothing: var(--app-font-smoothing);
 }
-/* ── Font smoothing (Settings → Appearance) ───
-   "automatic" (default, no data attribute override): antialiased only on HiDPI displays —
-   on 1x screens antialiased thins grayscale-smoothed glyphs and reads blurry, so they get
-   the system default. The media query re-evaluates when the window moves between displays. */
+/* Automatic font smoothing uses antialiasing on HiDPI displays and the system default on 1x displays, where antialiasing thins glyphs. The media query updates when the window moves between displays. */
 :root {
 	--app-font-smoothing: auto;
 }
@@ -137,7 +131,7 @@
 	visibility: hidden;
 }
 .chat-markdown .markstream-react {
-	/* Compact diagrams reserve 120px instead of the renderer's 360px minimum. */
+	/* Compact diagrams reserve 120px of height; the renderer’s default minimum is 360px. */
 	--ms-size-diagram-min-height: 120px;
 	/* Short opacity fades soften new text without animating transcript geometry. */
 	--fade-duration: 120ms;
@@ -270,7 +264,7 @@
 /* Inline code keeps the designed ink and compact chip; fenced blocks own a separate surface. */
 .md-inline-code {
 	font-family: var(--md-code-font);
-	/* Restore the 88% label and 0.14/0.4em inset without increasing the prose line box. */
+	/* An 88% label size and 0.14/0.4em inset fit inside the prose line box. */
 	font-size: 0.88em;
 	font-weight: 400;
 	padding: 0.14em 0.4em;
@@ -323,8 +317,7 @@
 	padding: 0;
 	border: 0;
 	background: none;
-	/* Not the `font` shorthand: it would also reset the weight the link rules set above.
-	   Without these the chip would size against the button UA font instead of the prose. */
+	/* Set font properties individually to preserve the link’s weight and use surrounding prose metrics for the chip. */
 	font-family: inherit;
 	font-size: inherit;
 	line-height: inherit;
@@ -351,8 +344,7 @@
 	width: auto;
 	object-fit: contain;
 }
-/* Sources Ling cannot serve (remote URLs, files outside the workspace, unreadable paths)
-   stay visible as their alt text rather than collapsing to a broken-image glyph. */
+/* For remote URLs, paths outside the workspace and unreadable images that Ling cannot serve, show the alt text. */
 .chat-markdown .md-image-missing {
 	display: inline-flex;
 	align-items: center;
@@ -363,7 +355,7 @@
 	color: var(--color-text-muted);
 	font-size: 0.9em;
 }
-/* GFM task items carry their own checkbox — a disc marker on top reads as a double bullet. */
+/* GFM task items supply their own checkbox, so suppress the list marker. */
 .chat-markdown li:has(> input[type="checkbox"]),
 .chat-markdown .list-item:has(> .paragraph-node input[type="checkbox"]) {
 	list-style: none;
@@ -377,8 +369,7 @@
 	width: 0.95em;
 	height: 0.95em;
 }
-/* Tables stay on the prose plane with horizontal rules and a thin wash over artwork;
-   inheriting local ink keeps them consistent in scenes, previews, and settings. */
+/* Tables use horizontal rules, a translucent background over artwork and locally inherited text colors. */
 .chat-markdown .table-node-wrapper {
 	width: 100%;
 	max-width: 100%;
@@ -413,7 +404,7 @@
 .chat-markdown .table-node th {
 	font-weight: 600;
 	font-size: 0.95em;
-	/* Avoid overly wide tracking making Chinese table headers look washed out */
+	/* Use normal tracking to keep Chinese table headers legible. */
 	letter-spacing: 0.01em;
 	text-transform: none;
 	color: var(--color-text-primary);

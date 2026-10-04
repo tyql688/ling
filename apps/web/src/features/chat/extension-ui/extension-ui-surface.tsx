@@ -17,9 +17,7 @@ import { extensionKeyData } from "./extension-terminal-keys";
 import { projectExtensionTerminalText } from "./extension-terminal-text";
 import { createExtensionViewportMeasurer } from "./extension-ui-viewport";
 
-/** Browser projections of Pi's interactive chrome. Headers belong to the transcript;
- * custom panels retain their overlay geometry and input semantics. Persistent status,
- * widgets, footer, and notification history live in the extension dock. */
+/** Displays Pi extension UI in the browser. Headers appear in the transcript. Custom panels handle their overlay layout and input. The extension dock shows persistent status, widgets, footer and notification history. */
 type ExtensionCustomPanelState = NonNullable<ExtensionUiStateSnapshot["customPanel"]>;
 
 export function ExtensionLinesBlock({ lines, className }: { lines: string[]; className: string }) {

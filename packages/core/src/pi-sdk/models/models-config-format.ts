@@ -79,7 +79,7 @@ function stripJsonComments(input: string): string {
 		);
 }
 
-/** Throws with a readable message on malformed JSON — CRUD must not clobber a broken file. */
+/** Throws on malformed JSON so an edit preserves the unreadable file. */
 export function parseModelsConfig(source: string, path: string): ModelsJsonConfig {
 	let parsed: unknown;
 	try {

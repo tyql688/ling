@@ -8,7 +8,7 @@ function modelKey(provider: string, id: string): string {
 	return JSON.stringify([provider, id]);
 }
 
-/** Mirrors Pi AI's getSupportedThinkingLevels without importing its transitive package. */
+/** Returns the model's supported thinking levels. */
 function projectAvailableThinkingLevels(model: RuntimeModel): ThinkingLevel[] {
 	if (!model.reasoning) return ["off"];
 	return THINKING_LEVELS.filter((level) => {
@@ -22,8 +22,7 @@ function projectAvailableThinkingLevels(model: RuntimeModel): ThinkingLevel[] {
 export function createPiModelProjection(modelRuntimes: Pick<PiModelRuntimes, "hasAmbiguousPiProviderCredential">) {
 	const { hasAmbiguousPiProviderCredential } = modelRuntimes;
 
-	/** Projects the SDK's authenticated/available snapshot without flattening away
-	 * extension provider names or slash-bearing model ids. */
+	/** Converts Pi's authenticated model snapshot, retaining extension provider names and model ids containing slashes. */
 	function projectAvailableModels(runtime: ModelRuntime): ModelInfo[] {
 		return runtime.getAvailableSnapshot().flatMap((model) => {
 			const auth = runtime.getProviderAuthStatus(model.provider);

@@ -2,7 +2,7 @@ import { useAtom, useStore } from "jotai";
 import { type Dispatch, type SetStateAction, useCallback, useMemo } from "react";
 import { createSessionDraftAtom, EMPTY_DRAFT, isEmptySessionDraft, type SessionDraft } from "./drafts";
 
-/** Reads, edits and restores one session's draft through the existing bounded draft store. */
+/** Reads, edits and restores a session's draft through the bounded draft store. */
 export function useSessionDraft(key: string) {
 	const draftAtom = useMemo(() => createSessionDraftAtom(key), [key]);
 	const [draft, setDraft] = useAtom(draftAtom);

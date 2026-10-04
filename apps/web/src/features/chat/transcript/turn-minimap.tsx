@@ -15,11 +15,7 @@ import type { TranscriptVirtualLayout } from "./transcript-virtual-layout";
 /** Bound navigation work in long sessions; actual density follows the available height. */
 const MAX_TICKS = 24;
 
-/**
- * Right-edge conversation outline: a quiet rail with one marker per sampled user turn.
- * The current scroll position is always legible, hover previews the question and reply,
- * and only a real click jumps.
- */
+/** Shows one marker per sampled user turn on the right edge. Marks the current turn, previews the question and reply on hover, and jumps on click. */
 export function TurnMinimap({
 	outline,
 	layout,
@@ -38,7 +34,7 @@ export function TurnMinimap({
 			const footerHeight = footer?.offsetHeight ?? 0;
 			const readingHeight = Math.max(0, scroller.clientHeight - footerHeight);
 			const targetHeight = coarsePointer.matches ? 44 : 24;
-			// Leave breathing room above and below the outline and preserve real hit targets.
+			// Reserve space above and below the outline and keep markers large enough to click.
 			const tickLimit = Math.min(MAX_TICKS, Math.floor((readingHeight * 0.65) / targetHeight));
 			setBounds((current) =>
 				current.footerHeight === footerHeight && current.tickLimit === tickLimit
@@ -129,9 +125,8 @@ export function TurnMinimap({
 								? "bottom-0"
 								: "top-1/2 -translate-y-1/2";
 					return (
-						// Hover state lives on the ROW (button + card are its DOM descendants), so
-						// moving the pointer from the tick onto the card never fires a leave — putting
-						// leave on the button unmounts the card before the pointer can reach it.
+						// Track hover on the row containing both button and preview card so the pointer can move between them.
+						// A button-level leave handler would unmount the card before the pointer reaches it.
 
 						<div
 							key={turn.ordinal}

@@ -46,13 +46,13 @@ export interface MetadataCleanupRetryStore {
 	remove(id: string): Promise<void>;
 }
 
-/** Dataset schema identifier; validated when reading from disk to prevent cross-reading other userData JSON. */
+/** Schema identifier for the project cleanup retry file. */
 const DATASET_ID = "ling/metadata-cleanup-retries";
 /** Current envelope version; a version bump needs a migration or the old retry queue must be rejected. */
 const DATASET_VERSION = 2;
 /** Retry queue file byte cap. 2MiB holds hundreds of failure records; beyond that it is treated as corruption/attack and refused. */
 const MAX_DATASET_BYTES = 2 * 1024 * 1024;
-/** Max retained retry records. 256 covers a brief failure storm; more just piles up stale facts and slows startup cleanup. */
+/** Retain at most 256 retry records to bound startup cleanup work after repeated failures. */
 const MAX_RETRY_RECORDS = 256;
 
 const safeString = (max: number) =>

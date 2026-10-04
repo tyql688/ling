@@ -27,14 +27,10 @@ export interface OperationRef {
 	owner: OwnerRef;
 }
 
-/** Source tag for built-in operations: distinguishes them from external owners like piPackage/mcp and marks the operation as owned by Ling itself rather than an extension. */
+/** Identifies a built-in Ling operation. */
 const BUILTIN_SOURCE = "ling:built-in";
 
-/**
- * Owner ids for built-in operations. Main and the renderer must pass the identical string:
- * `isBuiltinOperationRef` compares it as part of the owner identity, so a mismatch is not a
- * type error — it silently fails the ref match and the operation is rejected as another owner's.
- */
+/** Main and renderer use the same built-in operation ids. isBuiltinOperationRef compares these strings at runtime and rejects mismatches as a different owner. */
 export const SESSION_TRANSCRIPT_OWNER_ID = "session.transcript";
 export const SESSION_AUTOCOMPLETE_OWNER_ID = "session.autocomplete";
 export const SESSION_COMMAND_ARGUMENT_COMPLETION_OWNER_ID = "session.commandArgumentCompletion";
@@ -112,9 +108,7 @@ export function isBuiltinOperationRef(
 	return sameOperationRef(operation, createBuiltinOperationRef(operation.requestId, ownerId, binding));
 }
 
-/** Built-in session work is still generation-bound even though it runs in Ling itself.
- * Keeping that binding in the owner identity prevents a replacement runtime from cancelling
- * or completing an operation created by the previous generation. */
+/** Binds built-in session work to its runtime generation. A replacement runtime can cancel or complete work created in its own generation. */
 export function createBuiltinSessionOperationRef(
 	requestId: string,
 	ownerId: string,
@@ -137,13 +131,13 @@ export function isBuiltinSessionOperationRef(
 	return sameOperationRef(operation, createBuiltinSessionOperationRef(operation.requestId, ownerId, ref, generation));
 }
 
-/** OwnerRef.id cap; package/skill ids are bounded — reject prototype-pollution-style oversized keys. */
+/** Caps OwnerRef.id for package and skill identifiers. */
 const MAX_OWNER_ID_LENGTH = 512;
-/** OwnerRef.source cap; path or npm source string magnitude — 2Ki is enough. */
+/** Caps OwnerRef.source at 2 Ki characters for paths or npm specifiers. */
 const MAX_OWNER_SOURCE_LENGTH = 2_048;
-/** OwnerRef.version cap; semver/hash magnitude — 512 covers it. */
+/** Caps OwnerRef.version at 512 characters for versions or hashes. */
 const MAX_OWNER_VERSION_LENGTH = 512;
-/** OwnerRef.revision cap; content hash/generation string — 2Ki keeps revision bounded. */
+/** Caps OwnerRef.revision at 2 Ki characters for content hashes or generation ids. */
 const MAX_OWNER_REVISION_LENGTH = 2_048;
 
 /** Operation request identifiers are short UUIDs; reject unbounded correlation keys. */

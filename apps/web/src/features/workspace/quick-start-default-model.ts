@@ -19,12 +19,7 @@ interface PiModelDefaults {
 	defaultThinkingLevel: ThinkingLevel | null;
 }
 
-/**
- * Mirrors the SDK's findInitialModel step that honors the saved default: it applies only
- * when the configured provider/model exists in the project's authenticated/available
- * model snapshot. When it does not resolve, the SDK picks its own model — we make no
- * guess about that pick and return null so the UI shows the generic label.
- */
+/** Resolves the saved provider/model against the project's authenticated model catalog. Returns null when it is unavailable, so Pi can select a model and the UI can show a generic label until that selection arrives. */
 export function resolveQuickStartDefaultModel(
 	models: readonly ModelInfo[],
 	defaults: PiModelDefaults | null,
@@ -43,8 +38,7 @@ export function resolveQuickStartDefaultModel(
 	};
 }
 
-/** A draft keeps its requested model across folder changes, but only the new project's
- * authenticated catalog can resolve it. Always return current metadata, never the old pick. */
+/** Resolves the draft's requested model against the selected project's authenticated catalog and returns that catalog's metadata. */
 export function resolveQuickStartSelectedModel(
 	selection: QuickStartModelSelection | null,
 	models: readonly ModelInfo[],
@@ -70,7 +64,7 @@ export function resolveQuickStartThinkingLevel(
 		const candidate = THINKING_LEVELS[index];
 		if (candidate && availableLevels.includes(candidate)) return candidate;
 	}
-	// Line-for-line mirror of pi-ai's clampThinkingLevel, including this tail, so the
-	// quick-start preview can never diverge from what the SDK ultimately selects.
+	// Clamp the preview to the supported thinking levels, including the final fallback.
+
 	return availableLevels[0] ?? "off";
 }

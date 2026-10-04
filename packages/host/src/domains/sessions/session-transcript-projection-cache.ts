@@ -25,8 +25,7 @@ export interface SessionTranscriptProjectionCache {
 
 /** Format revision for persisted transcript projections; changing the projected shape invalidates older files. */
 const CACHE_FORMAT_VERSION = 2 as const;
-/** Keep synchronous parsing bounded: a real 108 MiB projection stalled Host for 174–236 ms.
- * Larger projections use the authoritative Pi reader instead of this optional cache. */
+/** Bounds synchronous cache parsing. Larger projections load through the Pi transcript reader. */
 const CACHE_FILE_MAX_BYTES = 16 * 1024 * 1024;
 /** Yield during serialization so a long sequence of small messages cannot monopolize Host. */
 const SERIALIZE_BATCH_ITEMS = 128;

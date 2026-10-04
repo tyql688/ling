@@ -223,9 +223,8 @@ export function createSessionRegistry({
 			sessionId: () => managed.ref.sessionId,
 			onSyncFailed: (error) => {
 				if (!isManagedSessionCurrent(managed) || managed.disposing) return;
-				// Fail-closed: unrecoverable external divergence must not leave a stuck
-				// "diverged forever" session. Lifecycle failure tears down managed state
-				// and surfaces the error; do not fake an agent runFinished.
+				// Tear down managed state and report unrecoverable external divergence through lifecycle failure.
+
 				const failure =
 					error instanceof Error ? error : new Error("Failed to reload the session file after external changes.");
 				void failManagedSessionClosed(managed, failure);
@@ -325,16 +324,16 @@ export function createSessionRegistry({
 		managed.unsubscribeTranscriptInvalidated();
 		managed.unsubscribeTranscriptProjectionChanged();
 		managed.transcriptPager.invalidate();
-		// Do not bump lifecycleEpoch or abort replacement reservations before dispose.
-		// session.dispose() waits for an in-flight replace so its commit can finish; clearing
-		// reservations first forced that wait to fail closed (half-switched identity).
+		// Keep lifecycleEpoch and replacement reservations until dispose finishes waiting for
+		// an admitted replacement to commit.
+
 		try {
 			await managed.queue.drain();
 			await managed.resourceReload.drain();
 			await managed.session.dispose();
 		} finally {
-			// Hard suppress anything a concurrent replace might have touched before the fence
-			// was observed (belt-and-braces; disposing path should already skip re-arm).
+			// Clear resources that a concurrent replacement could have installed before disposal fenced it.
+
 			disableSessionAutoTitle(managed);
 			managed.fileSync.stop();
 			managed.unsubscribeAgent();

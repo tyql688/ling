@@ -26,9 +26,7 @@ export function mergePastedBlocks(submitted: string | null, blocks: readonly Pas
 	return parts.length === 0 ? null : parts.join(SEPARATOR);
 }
 
-/** Chars the merged message will occupy — used to gate a paste BEFORE accepting it, so a
- * paste that cannot ever be sent falls through to the editor's existing bounded-input
- * feedback instead of silently creating an unsendable block. */
+/** Calculates the merged message length before accepting a paste. An oversized paste uses the editor's input-limit feedback. */
 export function mergedPastedLength(textLength: number, blocks: readonly PastedTextBlock[], nextBlockLength: number) {
 	const blockLengths = [...blocks.map((block) => block.text.length), nextBlockLength];
 	const wrapped = blockLengths.reduce(

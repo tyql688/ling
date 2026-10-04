@@ -110,8 +110,8 @@ export function useComposerSuggestions({
 
 	// Pi session commands from the SDK. Extension commands, skills, and prompt templates are
 	// ordinary message text here; pi expands or executes them inside session.prompt().
-	// Triggers resolve the token under the cursor. No mentions inside a slash-command draft:
-	// the command's own argument completion owns "@" for its whole line.
+	// Resolve triggers under the cursor. A slash command's argument completion handles @ across its whole line.
+
 	const slashToken = slashTokenAt(text, cursorOffset);
 	const mentionCompletions = useProjectMentionCompletions({
 		cwd: text.trimStart().startsWith("/") ? null : sessionRef.cwd,
@@ -163,10 +163,7 @@ export function useComposerSuggestions({
 		...dynamicMatches.map((entry) => ({ ...entry, command: undefined })),
 	];
 	const mentionItems = mentionCompletions.items;
-	/** One ordered source for both display and selection, first non-empty wins. Mention items
-	 * are never mixed with Pi's generic autocomplete: only Ling's file index can create the
-	 * file-reference chip, and mixing the two made one visible row require multiple Enters.
-	 * An @ token with zero Ling matches (e.g. `@agent:reviewer`) falls through to extensions. */
+	/** Uses the first non-empty suggestion source for display and selection. Ling's file index creates file-reference chips. An @ token with zero Ling matches, such as `@agent:reviewer`, falls through to extensions. */
 	const completionSource =
 		slashItems.length > 0
 			? ({ kind: "slash", items: slashItems } as const)

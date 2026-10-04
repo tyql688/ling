@@ -4,18 +4,14 @@ import { sessionMessageRowIdentity } from "@renderer/features/sessions/runtime/s
 import { isResolvedByLaterCompaction } from "./compaction-errors";
 import { uniqueToolCalls } from "./tool-calls";
 
-/** Assistant content is a real discriminated union (text/thinking/toolCall) — keep its exact shape
- * so `thinking` narrows to `ThinkingContent`'s actual field name instead of a guessed `text` field. */
+/** Preserves the text/thinking/toolCall discriminated union so `thinking` narrows to ThinkingContent and its declared fields. */
 export type AssistantContentPart = Extract<SessionMessage, { role: "assistant" }>["content"][number];
 type ToolCallPart = Extract<AssistantContentPart, { type: "toolCall" }>;
 type ToolResultMsg = Extract<SessionMessage, { role: "toolResult" }>;
 
 export type ToolCategory = "read" | "edit" | "run" | "other";
 
-/**
- * Built-in tool names → activity-row icon categories. Only common Pi tools are listed;
- * unlisted ones fall back to `other`, avoiding hard-coded icons for every unknown extension tool.
- */
+/** Maps common Pi tool names to activity icons. Unlisted extension tools use `other`. */
 const TOOL_CATEGORY_BY_NAME: Record<string, ToolCategory> = {
 	read: "read",
 	grep: "read",
@@ -39,9 +35,7 @@ export interface ToolStep {
 export type ActivityFailureItem = {
 	type: "failure";
 	index: number;
-	/** 1-based position in the current failure streak — mirrors Pi's retry counter, which
-	 * resets on any successful assistant message: failure 1 is the original request,
-	 * failure k > 1 is retry k-1 failing. */
+	/** 1-based position in Pi's current failure streak, reset by a successful assistant message. Failure 1 is the initial request; failure k > 1 is retry k-1. */
 	attempt: number;
 	message: Extract<SessionMessage, { role: "assistant" }>;
 	resolvedByLaterCompaction: boolean;
@@ -53,11 +47,9 @@ type ActivityItem =
 	 * the terminal reply distinct from adjacent intermediate replies when work folds. */
 	| { type: "text"; messageId: string; text: string; revisionSources: object[] }
 	| { type: "step"; step: ToolStep }
-	/** A displayed extension message delivered mid-turn (e.g. a steered `pi.sendMessage`) — kept at
-	 * its chronological place among the tool steps so it scrolls with the stream. */
+	/** An extension message delivered during a turn, such as a steered `pi.sendMessage`, at its chronological position among tool steps. */
 	| { type: "custom"; message: Extract<SessionMessage, { role: "custom" }> }
-	/** A mid-run compaction — stays inside the work fold at its chronological place instead of
-	 * splitting the run into two folds around a top-level divider. */
+	/** A compaction inside the run's work disclosure at its chronological position. */
 	| { type: "compaction"; summary: string }
 	| ActivityFailureItem;
 
@@ -404,7 +396,7 @@ export function computeWorkingStatusKey(rows: readonly TimelineRow[]): string {
 	return "session.working";
 }
 
-/** Whether to show the working status (display conditions unchanged; anti-flicker comes from pinning the layout to the sticky footer, see chat-timeline). */
+/** Indicates whether the turn shows its working status. The timeline's sticky footer keeps its layout stable. */
 export function shouldShowWorkingStatus(
 	busy: boolean,
 	workingVisible: boolean,

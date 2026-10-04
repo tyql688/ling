@@ -5,7 +5,7 @@ import { useSetAtom } from "jotai";
 import { Plug } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-/** Only an authoritative empty usable catalog reaches this setup prompt. */
+/** Show setup after a successful catalog read confirms that no usable models exist. */
 export function ModelConnectionPrompt({ compact = false }: { compact?: boolean }) {
 	const { t } = useTranslation();
 	const setMode = useSetAtom(appModeAtom);

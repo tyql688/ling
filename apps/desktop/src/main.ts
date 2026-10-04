@@ -22,11 +22,7 @@ import { verifyWindowsUpdateSignature } from "./shell/windows-signature";
 
 declare const __LING_VERSION__: string;
 
-/**
- * A packaged build never opens DevTools endpoints: another local process could drive the window
- * through them and act with the macOS privacy permissions granted to Ling. Checked before
- * `app.ready`, when Chromium has not started the endpoint yet.
- */
+/** Reject remote debugging switches before `app.ready`, before Chromium can open an endpoint. Such endpoints let another local process control Ling with its macOS privacy permissions. */
 function requestsRemoteDebugging(): boolean {
 	return (
 		app.isPackaged &&

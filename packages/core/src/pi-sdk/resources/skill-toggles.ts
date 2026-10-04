@@ -67,17 +67,14 @@ function builtinSkillsDir(): string | undefined {
 	return process.env.LING_BUILTIN_SKILLS_DIR;
 }
 
-/** Every skill shipped in the built-in directory, regardless of switches — the
- * settings UI renders toggles from this list. A missing directory surfaces through
- * loadSkills' own path diagnostic. */
+/** Lists every packaged skill, including disabled entries, for settings toggles. loadSkills reports a missing directory as a path diagnostic. */
 export function loadBuiltinSkills(agentDir: string): PiSkillsResult {
 	const directory = builtinSkillsDir();
 	if (!directory) return { skills: [], diagnostics: [] };
 	return loadSkills({ cwd: directory, agentDir, skillPaths: [directory], includeDefaults: false });
 }
 
-/** True when a discovered skill file lives inside the packaged built-in directory —
- * the skills UI labels those rows "built-in" instead of "global". */
+/** Identifies packaged skill paths for the UI's built-in label. */
 export function isBuiltinSkillPath(filePath: string): boolean {
 	const directory = builtinSkillsDir();
 	if (!directory) return false;

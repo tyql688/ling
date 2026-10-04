@@ -22,11 +22,11 @@ const INPUT_BATCH_DELAY_MS = 4;
  */
 const PENDING_OUTPUT_MAX_CHARS = 256_000;
 const PENDING_OUTPUT_MAX_CHUNKS = 256;
-/** Total stdin queued but not yet IPC-completed; oversized pastes must be rejected explicitly instead of letting the Promise chain grow unbounded. */
+/** Caps stdin awaiting IPC completion. Oversized pastes are rejected to bound the Promise queue. */
 const PENDING_INPUT_MAX_CHARS = 256_000;
 /** Character caps alone still allow hundreds of thousands of one-char Promise closures. */
 const PENDING_INPUT_MAX_OPERATIONS = 64;
-/** xterm must not paint a second panel behind Ling's workbench material. */
+/** Transparent xterm background lets the workbench material show through. */
 const TRANSPARENT_TERMINAL_BACKGROUND = "#00000000";
 
 type TerminalOutputQueueState = "ready" | "gap" | "resync" | "failed";
@@ -305,7 +305,7 @@ export function failTerminalRuntimeResync(runtime: TerminalRuntime): void {
 	runtime.resyncFailed = true;
 }
 
-/** A deliberate focus action is the recovery boundary after automatic retries stop. */
+/** Focusing the terminal retries recovery after automatic retries stop. */
 export function resetTerminalRuntimeResyncFailure(runtime: TerminalRuntime): boolean {
 	if (!runtime.resyncFailed || runtime.disposed) return false;
 	runtime.resyncFailed = false;

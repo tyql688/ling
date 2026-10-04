@@ -7,7 +7,7 @@ import type { SendShortcut } from "@renderer/lib/preferences/composer";
 /** In-flight composer action; at most one at a time, with a revision so a stale completion can't clear a newer action. */
 export type ComposerPendingAction = "send" | "save" | "stop" | null;
 
-/** Draft access surface injected by the variant: session maps a draftsAtom slot, home maps local state. */
+/** Draft access functions: the session composer uses a draftsAtom slot; Home uses local state. */
 interface ComposerDraftAdapter<Snapshot> {
 	text: string;
 	attachmentCount: number;
@@ -30,12 +30,12 @@ interface ComposerCoreOptions<Snapshot, Payload> {
 	/** Builds all outgoing fields from the captured draft before any input is cleared. */
 	prepare: (snapshot: Snapshot) => ComposerMessagePreparation;
 	onLimitError: () => void;
-	/** Preparation failures have no session request to report them; the input surface owns this feedback. */
+	/** The composer displays preparation failures before a session request exists. */
 	onPreparationError: (cause: unknown) => void;
 	submit: (message: ComposerMessage, snapshot: Snapshot, payload: Payload) => Promise<void>;
 	/** Callback after a submit is accepted; receives the original text at submit time (used by composer history). */
 	onSubmitted?: ((submitted: string | null) => void) | undefined;
-	/** Error outlet for failed submits (after restore); the session side already has a banner from the send pipeline, so it stays unset there. */
+	/** Reports submit failures after draft restoration. Session submissions display failures in their send banner and leave this callback unset. */
 	onSubmitError?: ((cause: unknown) => void) | undefined;
 }
 
@@ -133,7 +133,7 @@ interface ComposerKeyboardOptions {
 /** IME guard + Enter-send check; an Enter that doesn't send falls back to the default newline. */
 export function useComposerKeyboard(options: ComposerKeyboardOptions): (event: globalThis.KeyboardEvent) => void {
 	return (event) => {
-		// During IME composition, Enter/Tab/arrow keys belong to the candidate list — never trigger send or popovers.
+		// During IME composition, Enter, Tab and arrow keys control the candidate list; suppress send and popovers.
 		if (options.isComposing(event)) return;
 		if (options.intercept?.(event)) return;
 		if (event.key !== "Enter" || event.shiftKey) return;

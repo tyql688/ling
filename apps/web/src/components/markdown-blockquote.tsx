@@ -11,7 +11,7 @@ const ALERT_ICONS = {
 	caution: OctagonAlert,
 };
 
-/** GitHub alerts use blockquote syntax; keep their existing Ling presentation. */
+/** Renders GitHub alert blockquotes with Ling's alert styles. */
 export function MarkdownBlockquote(props: ComponentProps<typeof BlockquoteNode>) {
 	const { t } = useTranslation();
 	const nodes = props.node.children;

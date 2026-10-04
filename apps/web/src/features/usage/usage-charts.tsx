@@ -44,7 +44,7 @@ export function UsageHeatmap({ cells, language, noActivityLabel, tokensLabel }: 
 		return { weeks: chunked, maxTokens: Math.max(0, ...cells.map((c) => c.totalTokens)) };
 	}, [cells]);
 
-	// Most recent weeks matter most — start scrolled to the right end.
+	// Start at the right end to show the most recent weeks.
 	useEffect(() => {
 		const el = scrollRef.current;
 		if (el) el.scrollLeft = el.scrollWidth;
@@ -100,7 +100,7 @@ export function UsageHeatmap({ cells, language, noActivityLabel, tokensLabel }: 
 	);
 }
 
-/** The less → more legend swatches (levels 0–4). */
+/** Legend swatches for heatmap levels 0 through 4. */
 export function HeatmapLegendSwatches() {
 	return (
 		<>

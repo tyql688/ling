@@ -8,13 +8,7 @@ const BLOCKED_CHILD_PROCESS_ENVIRONMENT_KEYS = new Set<string>([
 	"VSCODE_NODE_OPTIONS",
 ]);
 
-/**
- * Appends the directory of the Node executable running this process to PATH. The GUI-launched
- * app inherits no version-manager shell state (fnm, nvm, volta, ...), so `node`/`npm` shims
- * we hand to children (for example npm install via Pi's package manager) cannot resolve.
- * The runtime Node always has its matching npm beside it, and appending — never prepending —
- * keeps any user-installed toolchain ahead of Ling's bundled runtime.
- */
+/** Appends the running Node executable's directory to PATH so children can find its matching Node and npm. Existing user-toolchain entries retain precedence. */
 function withRuntimeNodePathFallback(environment: Record<string, string>): Record<string, string> {
 	const runtimeNodeDirectory = dirname(process.execPath);
 	const pathKey = Object.keys(environment).find((key) => key.toLowerCase() === "path") ?? "PATH";

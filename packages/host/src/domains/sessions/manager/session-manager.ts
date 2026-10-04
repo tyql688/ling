@@ -256,9 +256,8 @@ async function createSessionNow(
 ): Promise<SessionSummary> {
 	const normalizedTitle = normalizeLingSessionTitle(title);
 	const now = Date.now();
-	// The default title is deliberately NOT persisted — an empty stored name is how later code
-	// (resume backfill below, session summaries) tells "still auto-titleable" apart from a name the
-	// user chose. The returned summary still carries it for immediate display in the sidebar.
+	// Keep the default display title in the summary. An empty persisted name marks the session
+	// as eligible for automatic titling on first completion or resume.
 
 	const session = await owner.runtimeProvider.create(cwd, options);
 	try {
@@ -312,7 +311,7 @@ async function listSessionsForProject(
 	});
 }
 
-/** Sessions across every currently open project — the renderer groups these by `cwd` itself. */
+/** Lists sessions from all open projects for the renderer to group by cwd. */
 async function listAllSessions(
 	owner: ManagedSessionsState,
 	projectCwds: string[],
@@ -412,9 +411,8 @@ async function resumeSessionNow(
 			},
 		});
 	}
-	// A resumed session with messages but no stored name missed its auto-title (generation
-	// failed, or the app quit before the first turn ended) — backfill it now instead of
-	// leaving it default-titled forever.
+	// Backfill a missing stored name on resume when the session already has messages.
+
 	let managed: ManagedSession;
 	try {
 		managed = owner.registry.attachManagedSession(session.ref, session, canonicalCwd, {
@@ -425,7 +423,7 @@ async function resumeSessionNow(
 			latestResourceRevision: owner.resourceRevision,
 		});
 	} catch (error) {
-		// Resume never deletes history on disk — only drop requesters + dispose handle.
+		// Dispose the failed resume handle and its requesters while retaining saved history.
 		await disposeUnattachedRuntime(owner, session, { deleteSessionFile: false });
 		throw error;
 	}
@@ -528,9 +526,7 @@ async function suspendSessionIfIdle(
 	return suspended;
 }
 
-/** Disposes only the sessions belonging to one project (e.g. before closing that project). Returns
- * the closed session ids so callers (e.g. session-ipc.ts) can also tear down their own per-session
- * IPC forwarding, which isn't something session-manager.ts knows about. */
+/** Disposes the sessions of one project and returns their ids so callers can detach per-session IPC forwarding. */
 async function closeSessionsForProject(
 	owner: ManagedSessionsState,
 	cwd: string,
@@ -567,8 +563,7 @@ async function closeSessionsForProject(
 	}
 }
 
-/** Stops managing the session (if open) and deletes its underlying file — there is no SDK-level
- * delete method since this is a plain filesystem concern, not an agent-runtime one. */
+/** Stops managing the session and deletes its saved file. */
 function deleteSession(owner: ManagedSessionsState, ref: SessionRef): Promise<void> {
 	assertRunning(owner);
 	let canonicalCwd: string;

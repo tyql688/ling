@@ -16,11 +16,7 @@ interface SessionMenuHandlers {
 	onDelete: () => void;
 }
 
-/**
- * The one session menu. The sidebar row and conversation title render
- * these same groups so a session never offers different actions depending on where
- * it was clicked. Groups: state · session operations · path & id · put away.
- */
+/** Menu groups shared by sidebar rows and conversation titles: state, session operations, path and ID, and archive/close actions. */
 export function sessionMenuGroups(
 	session: { id: string; cwd: string; pinned: boolean; archived: boolean },
 	handlers: SessionMenuHandlers,

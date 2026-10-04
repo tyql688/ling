@@ -12,20 +12,20 @@ Ling brings Pi conversations, project files, change review and terminals into on
 
 ## Features
 
-- **Conversations:** streaming responses, model and thinking controls, session history, forks, queued messages and context compaction. Start without a project or open a folder to work on its files.
-- **Files and change review:** an independent reading area, Monaco editing, language support, Git history, diffs and review annotations. Reading a file keeps the original conversation and draft in place.
-- **Terminal and tasks:** project terminals, background commands and scheduled agent tasks.
-- **Pi resources:** manage packages, extensions, skills and prompts; reload resources into open projects and sessions. Pi extension prompts and status are adapted to the shared interface.
-- **[Built-in features](docs/design.md):** Todo, access mode, local voice input, MCP services with global/project configuration, questions, background tasks and schedules. Each has its own switch in Settings → Plugins; voice and MCP are off by default. Pi-installed packages take precedence over bundled copies.
-- **Personalization and usage:** light/dark themes, built-in and custom declarative skins, token/cost statistics and supported provider quota views. Application languages include English, Simplified Chinese, Japanese and Korean.
+- Conversations support streaming responses, model and thinking controls, session history, forks, queued messages and context compaction. Start without a project or open a folder to work on its files.
+- Read files in an independent area with Monaco editing, language support, Git history, diffs and review annotations. The conversation and its draft stay open while you read.
+- Run project terminals, background commands and scheduled agent tasks.
+- Manage Pi packages, extensions, skills and prompts, and reload them into open projects and sessions. Ling displays Pi extension prompts and status in its shared interface.
+- The [built-in features](docs/design.md) are Todo, access mode, local voice input, MCP services with global/project configuration, questions, background tasks and schedules. Each has its own switch under Plugins in Settings. Voice is off by default. MCP follows Pi’s global extension selection; upgrades preserve the saved choice. Pi-installed packages take precedence over bundled copies.
+- Choose light/dark themes and built-in or custom declarative skins. View token/cost statistics and supported provider quotas. Application languages include English, Simplified Chinese, Japanese and Korean.
 
 ## Run from source
 
 Install Git and the Node.js and pnpm versions declared in [package.json](package.json).
 
-The macOS desktop app requires **macOS 13 or newer**.
+The macOS desktop app requires macOS 13 or newer.
 
-Windows installers use Ling’s fixed self-signed release certificate. Windows may show an unknown-publisher or SmartScreen prompt during the first installation. The installed app checks for updates automatically, downloads them by default, and installs them on restart or normal quit. Automatic downloads can be disabled in Settings. Versions with manual-only updates need a one-time installation from [Releases](https://github.com/tyql688/ling/releases/latest).
+Windows installers use Ling's fixed self-signed release certificate. Windows may show an unknown-publisher or SmartScreen prompt during the first installation. The installed app checks for updates automatically, downloads them by default, and installs them on restart or normal quit. Automatic downloads can be disabled in Settings. Versions with manual-only updates need a one-time installation from [Releases](https://github.com/tyql688/ling/releases/latest).
 
 ```sh
 git clone https://github.com/tyql688/ling.git
@@ -34,21 +34,21 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-For the browser client, run this instead of `pnpm dev`:
+Start the browser client with:
 
 ```sh
 pnpm dev:web
 ```
 
-Open the authenticated local URL printed by Host. Its fragment contains a private access token. The browser works with directories on the **Host machine**; the desktop app also provides native folder dialogs. Both clients use the same project, session and file services.
+Open the authenticated local URL printed by Host. Its fragment contains a private access token. The browser works with directories on the Host machine; the desktop app also provides native folder dialogs. Both clients use the same project, session and file services.
 
-On first launch, configure a provider in **Settings → Models** with OAuth or an API key, then start a conversation with **No project** or open a project folder. Conversations without a project share Ling's persistent working directory. Existing Pi authentication is reused. Installing a separate Pi CLI executable is optional; model requests use the embedded SDK and may incur provider charges.
+On first launch, configure a provider under Models in Settings with OAuth or an API key, then start a conversation with "No project" or open a project folder. Conversations without a project share Ling's persistent working directory. Existing Pi authentication is reused. Installing a separate Pi CLI executable is optional; model requests use the embedded SDK and may incur provider charges.
 
 Host binds to loopback by default. Pi retains ownership of its credentials, settings and session files. Ling stores application state separately, including SQLite metadata and built-in feature state. See [Architecture](docs/architecture.md) and [Development](docs/development.md) for data ownership and isolated runs.
 
 ## Technology and libraries
 
-The table lists the main technologies and their actual roles. Exact direct dependencies live in the workspace manifests below; [pnpm-lock.yaml](pnpm-lock.yaml) pins the resolved dependency graph.
+Workspace manifests list direct dependencies, and [pnpm-lock.yaml](pnpm-lock.yaml) pins their resolved versions.
 
 | Area | Technologies and libraries |
 | --- | --- |
@@ -72,23 +72,24 @@ The table lists the main technologies and their actual roles. Exact direct depen
 | [`apps/web`](apps/web/package.json) | Shared React interface, feature state and browser/native adapters |
 | [`apps/desktop`](apps/desktop/package.json) | Native window, OS integration, updates and Host supervision |
 | [`packages/host`](packages/host/package.json) | Projects, sessions, files, Git, terminals, persistence and worker supervision |
-| [`packages/core`](packages/core/package.json) | Pi SDK adaptation and shared business interpretation |
-| [`packages/contracts`](packages/contracts/package.json) | Browser-safe data contracts, validation and protocol declarations |
+| [`packages/core`](packages/core/package.json) | Pi SDK adaptation and shared business data processing |
+| [`packages/contracts`](packages/contracts/package.json) | Data types, validation and protocol declarations usable in browsers |
 | [`packages/node-runtime`](packages/node-runtime/package.json) | Atomic file publication, launch logs and process cleanup |
 | [`packages/builtin-extensions`](packages/builtin-extensions/package.json) | Pi tools that forward built-in features to Host |
 | [`builtin-skills`](builtin-skills) | Skills shipped to Ling users |
-| [`.agents/skills`](.agents/skills) | Repository maintenance workflows; excluded from the application |
+| [`.agents/skills`](.agents/skills) | Workflows for repository maintainers, kept in the source checkout |
 
 ## Development
 
 ```sh
 pnpm verify         # lint, formatting, type checks and tests
-pnpm build          # production Web, Host and Desktop builds; no installer
+pnpm build          # production Web, Host and Desktop builds
+pnpm package        # build installers for the current platform
 pnpm format         # format source and documentation
 ```
 
 - [Development](docs/development.md): local commands, contribution checks, isolated acceptance and version/tag policy.
-- [Architecture](docs/architecture.md): package boundaries, data ownership and runtime responsibilities.
+- [Architecture](docs/architecture.md): package dependencies, data storage and runtime responsibilities.
 - [Design](docs/design.md): interface behavior, shared controls and accessibility.
 - [Processes](docs/processes.md): worker lifecycle, supervision and diagnostics.
 - [AGENTS.md](AGENTS.md): repository conventions and test selection.
@@ -97,4 +98,4 @@ pnpm format         # format source and documentation
 
 Ling builds on Pi and the open-source libraries listed above. The initial art-skin gallery was inspired by [heige-codex-skin-studio](https://github.com/HeiGeAi/heige-codex-skin-studio).
 
-Ling source code is licensed under [MIT](LICENSE). Third-party software retains its own license; see [Third-Party Notices](THIRD_PARTY_NOTICES.md). Artwork, videos, provider logos and other brand assets are separate from the code license. “Bundled with Ling” describes inclusion in the app and is not a license grant for those assets.
+Ling source code is licensed under [MIT](LICENSE). Third-party software retains its own license; see [Third-Party Notices](THIRD_PARTY_NOTICES.md). Artwork, videos, provider logos and other brand assets require their own usage permission. "Bundled with Ling" describes inclusion in the app. The code license grants rights to the code; permission to use these assets must come from their rights holders.

@@ -1,9 +1,9 @@
 import { initTheme, Theme } from "@earendil-works/pi-coding-agent";
 import type { PiTheme } from "../types";
 
-// Stock tool renderers and key hints still read Pi's module-global theme even
-// when they receive lingWidgetTheme. Initialize a deterministic built-in theme
-// for those helpers without watching files or changing the user's Pi settings.
+// Stock renderers and key hints read Pi's module-global theme.
+// Initialize a built-in theme for them. lingWidgetTheme configures the other renderers;
+// the user's Pi theme settings remain on disk.
 initTheme("dark", false);
 
 const lingWidgetFgColors = {

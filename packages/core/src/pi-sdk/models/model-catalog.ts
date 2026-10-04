@@ -85,9 +85,9 @@ export function createPiModelCatalog({
 		try {
 			credentials = await runtime.listCredentials();
 		} catch (error) {
-			// A corrupt or temporarily unreadable auth.json makes credential metadata
-			// unknown, not every provider and model nonexistent. Keep the complete model
-			// projection and surface the failed read beside Pi's runtime diagnostics.
+			// An unreadable or corrupt auth.json produces unknown credential metadata.
+			// Retain the model catalog and report the read failure alongside runtime diagnostics.
+
 			credentialError = errorMessage(error);
 		}
 		const credentialTypes = new Map<string, "api_key" | "oauth">(
@@ -97,8 +97,8 @@ export function createPiModelCatalog({
 
 		const modelsByProvider = indexProviderModels(runtime.getModels(), projection);
 
-		// A freshly created custom provider has no models yet — it must still show up so the
-		// user can add models to it. Union runtime providers/models with models.json entries.
+		// Include providers from models.json so a custom provider with an empty model list
+		// remains available for adding its first model.
 		const providersById = new Map(runtime.getProviders().map((provider) => [provider.id, provider]));
 		const allProviderIds = new Set([
 			...providersById.keys(),
@@ -198,8 +198,8 @@ export function createPiModelCatalog({
 			const customRead = await readModelsConfigSafe();
 			const extensionProviderIds = new Set(services.modelRuntime.getRegisteredProviderIds());
 			const projection = await projectProviderSummaries(services.modelRuntime, {
-				// These providers belong to this project's loaded extension generation,
-				// not to the current profile file, which may have changed independently.
+				// These providers come from the project's loaded extension generation.
+
 				customConfig: null,
 				builtIns: await getBuiltInProviderIds(),
 				projectCwd: services.cwd,

@@ -1,5 +1,5 @@
 import { uiBootPreferencesSchema } from "@ling/contracts/user-state";
-/** This cache only avoids a wrong first paint; the Host snapshot supplies the actual preference. */
+/** Caches the first-paint preference until the Host supplies the saved value. */
 export const UI_BOOT_PREFERENCES_KEY = "ling:ui-boot-preferences";
 export function readUiBootPreferences() {
 	try {

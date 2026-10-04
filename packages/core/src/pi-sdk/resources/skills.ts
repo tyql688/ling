@@ -29,11 +29,7 @@ import type { PiSettings } from "../settings/settings";
 type PiLoadedSkill = ReturnType<PiResourceLoader["getSkills"]>["skills"][number];
 type PiSkillDiagnostic = ReturnType<PiResourceLoader["getSkills"]>["diagnostics"][number];
 
-/**
- * A collision is Pi's shadowing mechanism at work (first root wins; a user or project skill
- * overriding a built-in is the intended use), so it is reported as plain information naming
- * the winner rather than as Pi's bare `name "x" collision`.
- */
+/** Reports same-name skill collisions as information, naming the first-root winner. This precedence lets users and projects override built-ins. */
 function toSkillDiagnostic(diagnostic: PiSkillDiagnostic): SkillsOverview["diagnostics"][number] {
 	const message =
 		diagnostic.type === "collision" && diagnostic.collision
@@ -315,13 +311,7 @@ export function createPiSkillCatalog({
 		return skills.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
-	/**
-	 * Merged skills view across every open project. Globally discovered skills (user scope,
-	 * package skills) resolve to the same SKILL.md from each project's resource loader, so
-	 * they are deduplicated by file path; project-scoped skills stay attached to their project.
-	 * `extraPaths` reflects only the GLOBAL settings.json `skills` array — that is the list
-	 * Ling can edit; project-level extras still contribute their skills to the merged list.
-	 */
+	/** Merges skills across open projects. Global and package skills deduplicate by file path; project skills retain their cwd. extraPaths contains the editable global settings.json skills array. Project-level extra paths also contribute discovered skills. */
 	async function readPiSkillsOverview(): Promise<SkillsOverview> {
 		const skillsByPath = new Map<string, SkillInfo>();
 		const diagnostics = new Map<string, SkillsOverview["diagnostics"][number]>();
@@ -427,8 +417,7 @@ export function createPiSkillCatalog({
 		});
 	}
 
-	/** Adds a directory to the global settings.json `skills` array. The application mutation
-	 * boundary owns project/session reconciliation. Duplicates are rejected explicitly. */
+	/** Adds a unique directory to the global settings.json skills array. Host reconciles project and session resources after the mutation. */
 	async function addGlobalSkillPath(path: string): Promise<void> {
 		assertSkillExtraPath(path);
 		await enqueueGlobalSettingsMutation(async () => {

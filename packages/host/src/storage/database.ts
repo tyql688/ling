@@ -13,7 +13,7 @@ const log = createLogger("host-database");
 const SCHEMA_VERSION = 4;
 /** Another Host or a backup may briefly hold the writer lock; bound the synchronous wait. */
 const DATABASE_BUSY_TIMEOUT_MS = 2500;
-/** Health is a summary, not an unbounded dump of damaged historical files. */
+/** Caps retained data-health diagnostics. */
 const issueSchema = z.object({ key: z.string(), source: z.string(), message: z.string() });
 const importRowSchema = z.object({ state: z.enum(["complete", "failed"]) });
 const countSchema = z.object({ count: z.number().int().nonnegative() });

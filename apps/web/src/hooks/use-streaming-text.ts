@@ -13,7 +13,7 @@ const STREAM_OPTIONS: SmoothMarkdownStreamOptions = {
 	catchUpLatencyMs: 120, // Use a shorter horizon while catching a burst up.
 	catchUpThreshold: 160, // Switch to catch-up pacing once a paragraph is queued.
 	maxCommitFps: 120, // Let rAF pace 60/120Hz displays; a 60fps time cutoff skips frames on clock jitter.
-	startDelayMs: 0, // Never hold the first response just to seed an animation.
+	startDelayMs: 0, // Show the first response immediately.
 	maxCharsPerCommit: 80, // Bound work in each visible text commit.
 	flushOnFinish: false,
 };
@@ -48,8 +48,8 @@ export function useStreamingText(text: string, streaming: boolean, enabled = tru
 				if (text.length - visibleLength > MAX_ANIMATED_BACKLOG) {
 					const boundary = graphemes.segment(text).containing(text.length - MAX_ANIMATED_BACKLOG);
 					if (!boundary) throw new Error("Missing streaming text grapheme boundary");
-					// Advance only the excess prefix. Resetting to the full text made every large burst
-					// pop in at once and canceled the animation of thinking and tool output alike.
+					// Advance the excess prefix so a large burst retains an animated tail for thinking and tool output.
+
 					if (boundary.index > visibleLength) reset(text.slice(0, boundary.index));
 				}
 				enqueue(text.slice(getSnapshot().source.length));

@@ -8,8 +8,8 @@ import { lstat, open, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import type { PiToolCallEvent, PiToolResultEvent } from "../types";
 
-// The change review is a text preview, not a workspace mirror; the bounds below keep a single tool hook from
-// retaining/diffing project data without limit.
+// These limits bound the file contents retained and diffed by each tool hook for change review.
+
 /** Per-file capture byte limit (2MiB); larger files only record their path, never enter the diff body. */
 const TURN_FILE_MAX_BYTES = 2 * 1024 * 1024;
 /** Cumulative capture byte limit per turn (32MiB); beyond it a TURN_LIMIT is recorded so one turn cannot blow up memory. */

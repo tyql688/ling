@@ -22,8 +22,7 @@ const FileDiffReview = lazy(() =>
 /** Wide review panes default to two columns; narrower panes retain readable single-column code. */
 const SIDE_BY_SIDE_MIN_WIDTH_PX = 840;
 
-/** A picture is drawn; a clip gets controls rather than autoplay, since two looping videos side by
- * side fight for attention in a pane meant for reading a change. */
+/** Shows pictures and gives video clips playback controls. User-triggered playback keeps side-by-side clips still while reviewing changes. */
 function MediaFigure({
 	label,
 	src,
@@ -51,12 +50,7 @@ function MediaFigure({
 	);
 }
 
-/**
- * A changed picture or clip, rather than the patch text for one. The baseline comes out of the last
- * commit and the current version off disk; either side can be absent — an added file has no
- * baseline, a deleted one has no working copy — and a turn-scoped review has no baseline at all,
- * because only the patch survives a turn, not the bytes it replaced.
- */
+/** Displays image or video versions from the last commit and working tree. Added files have a working copy, deleted files have a baseline, and turn-scoped reviews retain the patch with no baseline bytes. */
 function ChangeReviewMediaPane({
 	cwd,
 	file,
@@ -280,7 +274,7 @@ type ChangeReviewDetailProps = {
 	backLabel?: string | undefined;
 	alwaysShowBack?: boolean | undefined;
 	headerActions?: ReactNode;
-	/** Main-tab detail fills the continuous workbench instead of nesting another card. */
+	/** Fills the workbench content area when displayed in a reading tab. */
 	seamless?: boolean;
 };
 

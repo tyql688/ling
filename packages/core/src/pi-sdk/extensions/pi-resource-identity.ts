@@ -22,7 +22,7 @@ async function readPiResourceIdentity(path: string, source: SourceInfo): Promise
 		path,
 		source: source.origin === "top-level" ? path : source.source,
 		scope: source.scope === "user" ? "global" : source.scope,
-		// Pi's top-level baseDir can be the entire credential/session profile. It is not an extension source root.
+		// Pi's top-level baseDir can contain credentials and sessions; derive extension roots from resource paths.
 		extension:
 			source.origin === "package" && source.baseDir
 				? relative(source.baseDir, path).replaceAll("\\", "/")

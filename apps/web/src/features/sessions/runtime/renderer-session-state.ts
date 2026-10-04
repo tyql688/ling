@@ -168,8 +168,8 @@ export function hibernateRendererSessionState(store: Store, ref: SessionRef, ret
 	const currentRevision = sessionRetentionRevisions.get(key);
 	if (currentRevision !== undefined && retentionRevision < currentRevision) return;
 	releaseRendererSessionRuntimeState(store, [key], false, true);
-	// RuntimeSuspended is the final ordered host event after core disposal. There is
-	// no longer a retired binding to tombstone, and suspended catalog history costs 0 slots.
+	// RuntimeSuspended follows Core disposal. At this point the binding is retired, and suspended catalog history occupies zero runtime slots.
+
 	sessionRetentionRevisions.delete(key);
 }
 

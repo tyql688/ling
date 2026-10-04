@@ -16,8 +16,7 @@ export interface MessageImage {
 	src: string;
 }
 
-/** A persisted image is fetched through the protocol, so its bytes never rode along in the
- * message; only the brief pre-persistence window still carries them inline. */
+/** Fetches persisted image bytes through the attachment protocol. Messages carry inline bytes until persistence completes. */
 function imageSource(part: ImageBearingPart, ref: SessionRef | null): MessageImage | null {
 	if (part.type !== "image" || typeof part.mimeType !== "string") return null;
 	if (part.source && ref) return { src: sessionImageUrl(ref, part.source) };

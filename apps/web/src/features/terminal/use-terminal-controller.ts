@@ -249,9 +249,8 @@ export function useTerminalController(onError: (error: unknown) => void): Termin
 			if (runtime) {
 				ingestRuntimeOutput(runtime, event.chunk);
 			}
-			// Unknown runtimes are intentionally not buffered here. `attach()` replays
-			// authoritative output after list/create has installed the runtime, while
-			// leaving these chunks unacked keeps host backpressure intact.
+			// After list/create installs a runtime, attach() replays its output. Leave earlier chunks
+			// unacknowledged so Host backpressure bounds output while the runtime is unknown.
 		});
 
 		void Promise.all([hostTerminalApi.list(), hostTerminalApi.listProfiles()])
@@ -310,17 +309,17 @@ export function useTerminalController(onError: (error: unknown) => void): Termin
 			activeRef.current = false;
 			unsubscribe();
 			window.removeEventListener(APPEARANCE_CHANGED_EVENT, updateRuntimeThemes);
-			// eslint-disable-next-line react-hooks/exhaustive-deps -- the cleanup deliberately reads the ref as it stands at teardown, not the value captured at setup
+			// eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup uses the ref's current value
 			for (const workspace of workspacesRef.current.values()) rememberProjectTerminalWorkspace(workspace);
-			// eslint-disable-next-line react-hooks/exhaustive-deps -- the cleanup deliberately reads the ref as it stands at teardown, not the value captured at setup
+			// eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup uses the ref's current value
 			for (const runtime of runtimesRef.current.values()) {
 				disposeTerminalRuntime(runtime, true, (error) => onErrorRef.current(error));
 			}
 			runtimesRef.current.clear();
 			workspacesRef.current.clear();
-			// eslint-disable-next-line react-hooks/exhaustive-deps -- the cleanup deliberately reads the ref as it stands at teardown, not the value captured at setup
+			// eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup uses the ref's current value
 			ensureRequestsRef.current.clear();
-			// eslint-disable-next-line react-hooks/exhaustive-deps -- the cleanup deliberately reads the ref as it stands at teardown, not the value captured at setup
+			// eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup uses the ref's current value
 			resyncRequestsRef.current.clear();
 		};
 	}, [

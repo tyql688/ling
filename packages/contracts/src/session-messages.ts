@@ -39,12 +39,7 @@ interface TextContentPart {
 	text: string;
 }
 
-/**
- * A displayed image. Persisted messages carry `source` — the address of the image inside the
- * session store — and the renderer turns it into a authenticated `/api/media/attachment` URL, so the bytes
- * never travel inside the message. `data` is the inline fallback for a message that has not been
- * persisted yet and therefore has no address; it is replaced by `source` on the next projection.
- */
+/** Persisted images carry a `source` address that the renderer converts to an authenticated `/api/media/attachment` URL. Unpersisted images carry inline `data` until the next projection can provide that address. */
 interface ImageContentPart {
 	type: "image";
 	mimeType: string;

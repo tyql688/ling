@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 	}
 
 	override componentDidCatch(error: Error, info: ErrorInfo): void {
-		// Errors are not silent: the boundary only contains the crash; the original error always goes to the console for debugging.
+		// Keep the original error in the console for debugging after rendering the fallback.
 		console.error("Renderer subtree crashed", error, info.componentStack);
 	}
 

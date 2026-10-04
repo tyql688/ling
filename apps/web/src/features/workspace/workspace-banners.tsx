@@ -15,8 +15,8 @@ export function WorkspaceBanners() {
 	const { storeRetrying, retryProjectStore, error: projectsError, warning: projectsWarning } = projectController;
 	const chatError = useAtomValue(sessionErrorMessageFamily(runtimeSessionRef ? sessionKey(runtimeSessionRef) : ""));
 
-	// Change-review failures render beside the changed-file surface, where refresh is
-	// actionable. Repeating them in this global strip produced two persistent copies.
+	// Change-review failures appear beside the changed files and their refresh action.
+
 	const shellError = chatError ?? sessionsError ?? projectsError;
 
 	const stageBanners = (

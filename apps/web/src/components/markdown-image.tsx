@@ -12,8 +12,8 @@ export function MarkdownImage({ src, alt, ...rest }: ComponentProps<"img">) {
 	const { t } = useTranslation();
 	const resolveUrl = useMarkdownImageUrl();
 	const [preview, setPreview] = useState<PreviewImage | null>(null);
-	// Keyed by URL, not a bare flag: a streamed message rewrites this slot's src as it grows,
-	// and a failure recorded for the half-written path must not condemn the finished one.
+	// Track failures by URL because streaming can replace a partial image path with its complete URL.
+
 	const [failedUrl, setFailedUrl] = useState<string | null>(null);
 	const source = typeof src === "string" ? src : null;
 	const url = resolveUrl(source);

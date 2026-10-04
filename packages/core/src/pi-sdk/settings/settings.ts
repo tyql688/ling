@@ -91,14 +91,10 @@ export function createPiSettings(agentDir: string) {
 		});
 	}
 
-	/**
-	 * The GUI face of pi's /settings. Reads and SDK-supported writes use Pi's
-	 * SettingsManager against the global settings.json shared with the CLI. A fresh manager
-	 * per call keeps reads stale-proof against external edits.
-	 */
+	/** Reads and updates global Pi settings with SettingsManager. Each call creates a fresh manager to observe external edits. */
 	function manager(): PiSettingsManager {
-		// This surface edits Pi's global settings. Do not accidentally merge a
-		// ~/.pi/settings.json project override just because Ling uses homedir as cwd.
+		// Read global settings independently of the ~/.pi/settings.json project override that
+		// homedir as cwd could load.
 		return SettingsManager.create(homedir(), agentDir, { projectTrusted: false });
 	}
 

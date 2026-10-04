@@ -1,4 +1,4 @@
-/* Charts share one protected viewport plane, with rules separating the data sections. */
+/* Charts use one background, with rules separating the data sections. */
 .workspace-scene.usage-reading-frame::before {
 	background: var(--color-scene-reading, var(--color-panel));
 }
@@ -20,7 +20,7 @@
 
 .session-usage-tool-row {
 	display: grid;
-	/* Fixed-width name column: each row is its own grid, and fr sizing would resolve per row content, misaligning the bar start. */
+	/* A fixed-width name column aligns bars across rows; fr sizing would follow each row’s content. */
 	grid-template-columns: auto 7rem minmax(78px, 1fr) auto auto;
 	align-items: center;
 	gap: 8px;

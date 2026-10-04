@@ -414,27 +414,19 @@ export interface GitReviewSnapshot {
 	files: ReviewSnapshotFile[];
 }
 
-/**
- * A commit id is interpolated into git arguments, so it is constrained to the exact shape git
- * itself produces. Anything else is rejected rather than escaped: there is no legitimate commit
- * id containing a character outside this set.
- */
+/** Accepts Git-produced abbreviated or full lowercase hexadecimal commit ids before interpolation into arguments. */
 function assertCommitSha(sha: unknown): asserts sha is string {
 	if (typeof sha !== "string" || !/^[0-9a-f]{7,64}$/.test(sha)) throw new Error("Invalid Git commit id");
 }
 
-/**
- * Files a single commit changed, read the way VS Code's git extension reads them: one
- * `diff-tree` call whose raw records carry the status and rename source while its numstat
- * records carry the line counts.
- */
+/** Reads changed files with status, rename source and line counts from combined raw and numstat records. */
 export async function getCommitChangedFiles(cwd: string, sha: string, signal?: AbortSignal): Promise<GitChangedFile[]> {
 	assertCommitSha(sha);
 	const scope = await resolveGitProjectScope(cwd, signal);
 	if (scope === null) return [];
-	// `show` rather than `diff-tree`: it handles a root commit without extra flags, and with
-	// --first-parent a merge reports the changes it introduced onto the branch it landed on
-	// instead of reporting nothing at all, which is what diff-tree does for a merge by default.
+	// show handles root commits and, with --first-parent, reports changes a merge introduced
+	// onto its destination branch.
+
 	const args = [
 		"show",
 		"--format=",
@@ -589,11 +581,7 @@ function mapRevisionFilesToProject(scope: GitProjectScope, files: readonly GitCh
 	});
 }
 
-/**
- * Captures committed work that exists on HEAD but not the branch's configured upstream.
- * This is deliberately local and never fetches: refresh compares immutable commits against
- * the current remote-tracking ref without turning review into a network mutation.
- */
+/** Compares captured HEAD with the local tracking ref for the configured upstream. Refresh uses those local commits; fetching is a separate operation. */
 export async function getGitUnpushedReviewSnapshot(
 	cwd: string,
 	signal?: AbortSignal,
@@ -723,7 +711,7 @@ export function readGitBlobAtHead(cwd: string, path: string, signal?: AbortSigna
 	return readGitBlobAtRevision(cwd, path, "HEAD", signal);
 }
 
-/** Immutable blob lookup used by unpushed review; the caller supplies a validated commit id, not an arbitrary rev. */
+/** Reads an immutable blob for unpushed review using a validated commit id. */
 export function readGitBlobAtCommit(
 	cwd: string,
 	sha: string,

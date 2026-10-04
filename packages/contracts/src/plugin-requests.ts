@@ -3,7 +3,7 @@ import { operationRefSchema } from "./owner-ref";
 import { strictObject } from "./schema-primitives";
 import { pluginSourceSchema } from "./plugin-validation";
 import { z } from "zod";
-/** Native hosts supply their path rules here; all request fields keep one definition. */
+/** Builds package-operation schemas with the Host's path validation. */
 export function createPluginRequestSchemas(pluginCwdSchema = portableAbsolutePathSchema("Plugin project path")) {
 	const pluginScopeSchema = z.enum(["global", "project"]);
 

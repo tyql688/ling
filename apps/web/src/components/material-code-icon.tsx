@@ -9,10 +9,7 @@ const DEFAULT_MATERIAL_ICON = "document";
 const MATERIAL_ICON_FALLBACK =
 	"data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M4.5%201.5h4.586L12.5%204.914V13a1.5%201.5%200%200%201-1.5%201.5h-6A1.5%201.5%200%200%201%203.5%2013V3A1.5%201.5%200%200%201%205%201.5Z%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%221.2%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M9%201.75V5h3.25%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%221.2%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E";
 
-/**
- * Special filenames → icon stem (takes priority over extensions).
- * Aligned with the material-icon-theme contract; when adding/removing entries, keep the lookup order: filename → extension → default.
- */
+/** Maps special filenames to Material Icon Theme icon stems. Lookup order is filename, extension, then default. */
 const MATERIAL_ICON_FILE_NAMES: Readonly<Record<string, string>> = {
 	".editorconfig": "editorconfig",
 	".env": "settings",
@@ -44,7 +41,7 @@ const MATERIAL_ICON_FILE_NAMES: Readonly<Record<string, string>> = {
 	yarn: "yarn",
 };
 
-/** Extension → icon stem; the second lookup layer when the filename table misses. */
+/** Maps extensions to icon stems when the filename table has no match. */
 const MATERIAL_ICON_EXTENSIONS: Readonly<Record<string, string>> = {
 	backup: "document",
 	bash: "console",

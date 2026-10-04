@@ -24,7 +24,7 @@ export const terminalAckShape = {
 	ackUnits: z.number().int().positive().max(TERMINAL_OUTPUT_CHUNK_MAX_CHARS),
 };
 
-/** Native hosts supply their path rules here; all request fields keep one definition. */
+/** Builds terminal request schemas with the Host's path validation. */
 export function createTerminalRequestSchemas(projectPathSchema = portableAbsolutePathSchema("Project path")) {
 	const emptyTerminalRequestSchema = z.undefined();
 

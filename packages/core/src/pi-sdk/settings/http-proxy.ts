@@ -52,7 +52,7 @@ function createUndiciOriginDispatcher(origin: URL, options: object): Dispatcher 
 	);
 }
 
-/** undici's EnvHttpProxyAgent reads lowercase first, then uppercase — mirror that here. */
+/** Read lowercase proxy variables before uppercase ones. */
 function effectiveProxyEnv(): string | null {
 	return process.env.https_proxy ?? process.env.HTTPS_PROXY ?? process.env.http_proxy ?? process.env.HTTP_PROXY ?? null;
 }
@@ -131,14 +131,7 @@ export function createPiHttpProxy({
 	let configuredHttpIdleTimeoutMs: number | null = null;
 	let systemProxyFallback: string | null = null;
 
-	/**
-	 * Pi ships full proxy support (settings.json `httpProxy` → env vars → an undici
-	 * EnvHttpProxyAgent global dispatcher), but wires it up only in its own CLI entrypoints
-	 * (main.js/cli.js/rpc-entry.js) — none of which run when Ling embeds the SDK. This module
-	 * carries that bootstrap into Ling's Pi workers with the same setting and env-var precedence.
-	 * Proxy traffic uses EnvHttpProxyAgent; direct traffic stays on Agent because routing a
-	 * no-proxy request through EnvHttpProxyAgent resets TLS connections on some account APIs.
-	 */
+	/** Initializes proxy handling for embedded Pi workers. settings.json httpProxy and environment variables select an EnvHttpProxyAgent for proxy traffic. Direct traffic uses Agent because EnvHttpProxyAgent can reset direct TLS connections on some account APIs. */
 
 	function globalSettingsManager(): PiSettingsManager {
 		// Same construction as the global package manager: cwd is irrelevant for global reads.
@@ -152,9 +145,9 @@ export function createPiHttpProxy({
 			bodyTimeout: timeoutMs,
 			factory: createUndiciOriginDispatcher,
 			headersTimeout: timeoutMs,
-			// Undici 8.7 changed HTTP proxying to absolute-form requests by default.
-			// Pi providers need the same CONNECT tunnel for HTTP and HTTPS origins so a
-			// streamed tool-call response can keep using its established proxy channel.
+			// Use CONNECT tunnels for HTTP and HTTPS origins so streamed tool-call responses retain
+			// their established proxy channel.
+
 			proxyTunnel: true,
 		};
 		const dispatcher = effectiveProxyEnv()
@@ -176,8 +169,8 @@ export function createPiHttpProxy({
 				});
 			retiringDispatchers.add(retirement);
 		}
-		// Keep global fetch and the dispatcher on the same undici implementation — pi's
-		// http-dispatcher does this to avoid Node/npm-undici mismatches on streamed bodies.
+		// Use the same undici implementation for global fetch and its dispatcher to keep streamed
+		// response bodies compatible.
 		const shouldInstallGlobals =
 			installedGlobalFetch === undefined
 				? globalThis.fetch === originalGlobalFetch
@@ -224,11 +217,7 @@ export function createPiHttpProxy({
 		reconfigureHttpDispatcher();
 	}
 
-	/**
-	 * Startup bootstrap: settings.json's httpProxy seeds the proxy env vars (an already-set
-	 * env var wins — e.g. imported from the login shell, exactly like a terminal-run `pi`),
-	 * then the matching direct or proxy dispatcher is installed globally for every SDK fetch.
-	 */
+	/** At startup, populate unset proxy environment variables from settings.json httpProxy, then install the direct or proxy dispatcher for SDK fetches. Existing environment values, including login-shell values, take precedence. */
 	function initHttpProxy(): void {
 		const settings = globalSettingsManager();
 		configuredProxy = settings.getGlobalSettings().httpProxy?.trim() || null;
@@ -265,15 +254,11 @@ export function createPiHttpProxy({
 		});
 	}
 
-	/**
-	 * Persists `httpProxy` into Pi's global settings.json (shared with the pi CLI) and applies
-	 * it immediately: env vars are set/cleared EXPLICITLY (unlike the ??= bootstrap — the user
-	 * just changed their mind) and the dispatcher is rebuilt to pick the new env up.
-	 */
+	/** Saves httpProxy in the shared global settings.json, sets or clears the proxy environment variables, and rebuilds the dispatcher. */
 	async function setHttpProxySetting(proxy: string | null): Promise<void> {
 		const trimmed = proxy?.trim();
 		if (trimmed) {
-			// undici's EnvHttpProxyAgent tunnels via HTTP CONNECT — socks URLs are not supported.
+			// EnvHttpProxyAgent supports HTTP CONNECT tunnels. SOCKS URLs are unsupported.
 			validateProxyUrl(trimmed);
 		}
 		await enqueueGlobalSettingsMutation(async () => {

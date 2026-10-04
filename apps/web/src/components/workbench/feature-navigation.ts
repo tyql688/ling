@@ -61,7 +61,7 @@ export function formatFeatureCount(count: number): string {
 
 export const FeatureNavigationContext = createContext<((id: FeaturePageId) => void) | null>(null);
 
-/** Feature views depend on this navigation port rather than the workspace composition. */
+/** Opens feature pages through shared navigation callbacks. */
 export function useFeatureNavigation() {
 	const navigate = useContext(FeatureNavigationContext);
 	if (navigate === null) throw new Error("Feature navigation is unavailable outside the workspace");

@@ -17,11 +17,7 @@ interface WorkbenchDialogProps {
 	children: ReactNode;
 }
 
-/**
- * Keeps project navigation and the conversation layout stationary while temporary
- * work surfaces float above the active workspace. The dialog is portalled into the
- * workbench host so it never covers the persistent project sidebar or title bar.
- */
+/** Portals temporary work surfaces into the workbench host above its content. The project sidebar, title bar and conversation layout stay in place. */
 export function WorkbenchDialog({
 	open,
 	nestedDialogOpen,
@@ -37,7 +33,7 @@ export function WorkbenchDialog({
 	const panelRef = useRef<HTMLDivElement>(null);
 	// Mount content two frames late: synchronous rendering of the file tree/preview/diff is expensive
 	// and drops frames when committed in the same frame as the entry animation.
-	// Let the empty-shell animation (fade+rise) start first, then fade the content in — a naturally layered entrance.
+	// Start the shell's fade and rise before fading in its content.
 	const [contentReady, setContentReady] = useState(open);
 	useEffect(() => {
 		if (!open) {
@@ -48,7 +44,7 @@ export function WorkbenchDialog({
 		const first = requestAnimationFrame(() => {
 			second = requestAnimationFrame(() => setContentReady(true));
 		});
-		// rAF doesn't fire while the window is occluded/backgrounded — the timeout fallback guarantees the content appears.
+		// Use a timeout when the background or occluded window pauses requestAnimationFrame.
 		const fallback = window.setTimeout(() => setContentReady(true), 120);
 		return () => {
 			cancelAnimationFrame(first);

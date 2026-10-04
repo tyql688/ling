@@ -1,11 +1,7 @@
 import { errorMessage, lingErrorDtoSchema, type LingErrorCode } from "@ling/contracts/ling-error";
 import i18next from "i18next";
 
-/**
- * Error codes that require a full-snapshot transcript resync.
- * These mean the projection generation/cursor is invalid and partial patches can't be
- * trusted — clear and refetch.
- */
+/** Errors indicating an invalid transcript generation or cursor. Clear the partial projection and fetch a full snapshot. */
 const TRANSCRIPT_RESYNC_CODES = new Set<LingErrorCode>([
 	"STALE_RUNTIME_GENERATION",
 	"STALE_TRANSCRIPT_REVISION",
@@ -17,7 +13,7 @@ export function transcriptErrorNeedsSnapshot(error: unknown): boolean {
 	return TRANSCRIPT_RESYNC_CODES.has(requestErrorCode(error) as LingErrorCode);
 }
 
-/** Cursor pin was dropped (invalidate / TTL) — recoverable via a fresh tail snapshot. */
+/** A dropped cursor pin (invalidation or TTL expiry) requires a fresh tail snapshot. */
 export function isTranscriptCursorStale(error: unknown): boolean {
 	return (
 		requestErrorCode(error) === "TRANSCRIPT_CURSOR_EXPIRED" || requestErrorCode(error) === "TRANSCRIPT_CURSOR_INVALID"

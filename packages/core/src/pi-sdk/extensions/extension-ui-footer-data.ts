@@ -47,7 +47,7 @@ const execFileAsync = promisify(execFile);
 
 async function readGitBranch(cwd: string, signal: AbortSignal): Promise<string | null> {
 	try {
-		// The try/catch still covers a synchronous spawn throw, exactly as the callback form did.
+		// The try/catch handles synchronous spawn failures.
 		const { stdout } = await execFileAsync("git", ["-C", cwd, "rev-parse", "--abbrev-ref", "HEAD"], {
 			encoding: "utf8",
 			maxBuffer: BRANCH_READ_MAX_BUFFER_BYTES,

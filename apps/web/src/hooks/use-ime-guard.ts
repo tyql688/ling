@@ -20,8 +20,7 @@ interface ImeCompositionTracker {
 	isComposing(event: Pick<globalThis.KeyboardEvent, "isComposing" | "keyCode">): boolean;
 }
 
-/** Stateful core kept separate from React so close/reopen boundaries can be tested.
- * `reset()` is required when a conditional input disappears before compositionend. */
+/** Tracks IME composition state. Call reset() when a conditional input disappears before compositionend. */
 function createImeCompositionTracker(): ImeCompositionTracker {
 	let tracked = false;
 	return {
@@ -42,14 +41,7 @@ function createImeCompositionTracker(): ImeCompositionTracker {
 	};
 }
 
-/**
- * IME composition guard: pressing Enter to confirm a pinyin/kana/hangul composition must
- * operate the IME, never submit the field.
- *
- * Belt and braces on purpose — a ref tracks composition via events AND the check consults the
- * native `isComposing`/keyCode-229 flags, because some IME/engine combinations fire
- * `compositionend` before the confirming keydown arrives.
- */
+/** Reserves the confirmation Enter key for the IME. Tracks composition events and checks native isComposing/keyCode-229 flags because some engines dispatch compositionend before the confirming keydown. */
 export function useImeGuard() {
 	const trackerRef = useRef<ImeCompositionTracker | null>(null);
 	if (trackerRef.current === null) trackerRef.current = createImeCompositionTracker();

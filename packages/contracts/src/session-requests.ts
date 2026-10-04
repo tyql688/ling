@@ -39,7 +39,7 @@ export function createMessageFileReferenceSchema(reference: z.ZodType<ProjectFil
 		.transform(({ reference: target, textOffset }) => (textOffset === undefined ? target : { ...target, textOffset }));
 }
 
-/** Native hosts supply their path rules here; all request fields keep one definition. */
+/** Builds session request schemas with the Host's path validation. */
 export function createSessionRequestSchemas({
 	projectPath = portableAbsolutePathSchema("Project path"),
 	sessionRef = portableSessionRefSchema,
@@ -51,13 +51,13 @@ export function createSessionRequestSchemas({
 } = {}) {
 	/** Timeline entry/message entryId cap: same short-id magnitude as sessionId. */
 	const MAX_ENTRY_ID_LENGTH = SESSION_ID_MAX_CHARS;
-	/** Slash-command name cap; 512 covers namespaced commands — longer is junk input. */
+	/** Caps slash-command names at 512 characters, including namespaces. */
 	const MAX_COMMAND_NAME_LENGTH = 512;
 	/** Extension UI viewport width/height pixel cap; 10k stops absurd geometry from bloating layout/serialization. */
 	const MAX_VIEWPORT_DIMENSION = 10_000;
-	/** Session runtimeId cap; generation switches use short ids — longer is refused. */
+	/** Caps runtimeId at the length needed for short generation ids. */
 	const MAX_RUNTIME_ID_LENGTH = 256;
-	/** Transcript pagination cursor string cap; 2Ki encodes an offset — no unbounded cursor in memory. */
+	/** Caps transcript cursors at 2 Ki characters for encoded offsets. */
 	const MAX_TRANSCRIPT_CURSOR_LENGTH = 2_048;
 	/** Resource revision plus a 43-character SHA-256 key stays small; 128 leaves version headroom without accepting blobs. */
 	const MAX_TRANSCRIPT_CACHE_KEY_LENGTH = 128;
@@ -221,8 +221,7 @@ export function createSessionRequestSchemas({
 		expectedText: messageTextSchema,
 	});
 
-	/** Only the session identity crosses the wire; Host resolves its file from the catalog it owns,
-	 * so a client cannot name an arbitrary file to read. */
+	/** Carries the session identity. Host resolves the corresponding file from its session catalog. */
 	const readArchivedTranscriptRequestSchema = z.strictObject({
 		ref: sessionRefSchema,
 		markdownWidth: z.number().int().min(0).max(10_000),

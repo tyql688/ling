@@ -11,7 +11,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useTranslation } from "react-i18next";
 import { STATUS_PRESENTATION } from "./status-presentation";
 
-/** Feedback tone → icon/surface color/ARIA role; info/success use status, warning/danger use alert. */
+/** Maps feedback tone to icon, surface color and ARIA role. Info/success use status; warning/danger use alert. */
 const FEEDBACK_STYLE: Record<
 	FeedbackTone,
 	{ icon: LucideIcon; surface: string; iconClassName: string; role: "alert" | "status" }

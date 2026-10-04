@@ -1,28 +1,28 @@
-# @ling/builtin-extensions
+# Built-in Pi tools
 
-Pi extensions Ling compiles in and loads for every session.
+Ling compiles these extensions into the Pi worker and loads them for every session.
 
-These implement Ling-owned tool behaviour. If the agent merely needs instructions, write a built-in skill in `builtin-skills/`; use an extension when the tool surface itself has to change. Inline registration does not guarantee precedence over user extensions.
+Use an extension to provide Ling tools. Write agent instructions as a built-in skill in `builtin-skills/`. User extensions load before Ling's inline extensions and take precedence when tool names conflict.
 
-## Boundaries
+## Dependencies
 
-The package uses the public Pi SDK, Contracts and TypeBox. It does not import Host, Desktop or renderer internals. `manage-plugins`, `manage-mcp` and `companion-tools` export factories that require explicit Host callbacks. `generate-image` receives the session's Pi ModelRuntime. These factories receive their dependencies from the Pi adapter.
+The package imports the public Pi SDK, Contracts and TypeBox. `manage-plugins`, `manage-mcp` and `companion-tools` export factories that receive Host callbacks. `generate-image` receives the session's Pi ModelRuntime. These factories receive their dependencies from the Pi adapter.
 
-`packages/core/src/pi-sdk/entrypoints/pi-worker.ts` constructs `lingExtensionFactories(pluginTools, companionTools, features, mcpTools)` with the package-operation, companion and MCP callbacks. Project services receive these factories as dependencies and merge them into the SDK resource loader alongside the image-generation factory. The package does not locate Host services globally.
+`packages/core/src/pi-sdk/entrypoints/pi-worker.ts` constructs `lingExtensionFactories(pluginTools, companionTools, features, mcpTools)` with the package-operation, companion and MCP callbacks. Project services receive these factories as dependencies and merge them into the SDK resource loader alongside the image-generation factory.
 
-It is a direct dependency of `@ling/core`. The Host build bundles the extension registry into the Pi worker graph so a deployed Host does not depend on workspace resolution. After a fresh Host build, inspect its entry and shared chunks for unresolved package imports:
+It is a direct dependency of `@ling/core`. The Host build bundles the extension registry into the Pi worker for use in deployed builds. After a fresh Host build, inspect its entry and shared chunks for unresolved package imports:
 
 ```
 rg '@ling/builtin-extensions' packages/host/dist -g '*.js'
 ```
 
-There must be no unresolved package import; `rg` exits 1 when no match is found.
+The expected result is zero unresolved package imports (`rg` exits 1).
 
 ## Adding one
 
 1. Create `src/plugins/<name>/index.ts` with a Pi extension factory, or a `create*` factory receiving named dependencies when it needs Host capabilities.
 2. Add its named inline entry to `lingExtensionFactories()` in `src/index.ts` and supply dependencies from the Pi entrypoint.
-3. Select checks from `AGENTS.md`. Execution or UI changes need actual registration, model/tool-approval and relevant reload/cleanup checks; prose-only changes do not. Inspect Pi's extension diagnostics when exercising project open or resource reload.
+3. Select checks from `AGENTS.md`. For execution or UI changes, check registration, model turns, tool approval, and affected reload and cleanup paths. For prose edits, check the documented behavior against its implementation. Inspect Pi's extension diagnostics when exercising project open or resource reload.
 
 Co-locate tool policy with its extension. Pi owns its built-in shell tools, including shell selection, command prefixes and timeouts.
 
@@ -32,13 +32,13 @@ Use stable `ling-<concern>` inline names from the registry. Pi uses these identi
 
 The installed Pi SDK keeps the first extension registration for each tool name. Its resource loader appends Ling's inline factories after file-based extensions, so an earlier user extension with the same name takes precedence. The selected extension tool replaces Pi's stock tool of that name. Conflicts produce diagnostics while both extensions remain loaded.
 
-Use distinct names for new Ling capabilities. When replacing a stock tool, inspect the active tool source and conflict diagnostics; inline registration alone cannot enforce Ling's policy over a user's replacement.
+Use distinct names for new Ling capabilities. When replacing a stock tool, inspect the active tool source and conflict diagnostics. An earlier user registration determines which implementation runs.
 
 ## Extensions
 
 | Name | Does |
 | --- | --- |
-| `ling-mcp` | Provides `ling_mcp` for canonical MCP configuration and runtime reconciliation |
-| `ling-plugins` | Provides `ling_plugins` for Host-owned Pi package operations and resource reconciliation |
+| `ling-mcp` | Provides `ling_mcp` for MCP configuration edits and runtime reload |
+| `ling-plugins` | Provides `ling_plugins` for Pi package operations and resource reload through Host |
 | `ling-companions` | Registers the companion tools declared in `@ling/contracts/companion-tools` (questions, background tasks, schedules) and forwards each call to the Host |
 | `ling-image-generation` | Exposes Pi image-model discovery and generation through the session's ModelRuntime |

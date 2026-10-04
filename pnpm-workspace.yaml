@@ -28,10 +28,10 @@ overrides:
   "ansi-to-react>linkify-it": 5.0.2
   "minimatch@3.1.5>brace-expansion": 1.1.18
 patchedDependencies:
-  # Backport upstream CSS zoom positioning for Web menus: floating-ui/floating-ui#3492.
+  # Position Web menus correctly under CSS zoom.
   "@floating-ui/core@1.8.0": patches/@floating-ui__core@1.8.0.patch
   "@floating-ui/dom@1.8.0": patches/@floating-ui__dom@1.8.0.patch
-  # Expose the staged NSIS copy hook without replacing the signed installer/update workflow.
+  # Expose the NSIS copy hook for staged installation and updates.
   app-builder-lib@26.17.0: patches/app-builder-lib@26.17.0.patch
   # Keep diagram rendering stable and yield Markdown batches without per-node layout reads.
   markstream-react@2.0.13: patches/markstream-react@2.0.13.patch

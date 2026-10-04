@@ -41,9 +41,7 @@ export function createPiModelRuntimes(defaultAgentDir: string) {
 		return created;
 	}
 
-	/** Raw profile credential read for credential-only operations such as settings reveal
-	 * and provider-owned account calls. Unlike ModelRuntime reads, this intentionally does
-	 * not execute `!command` or expand `$ENV`, and shares the runtime's cooperative read lock. */
+	/** Reads raw profile credentials under the runtime's cooperative lock for settings reveal and provider account requests. Returns literal `!command` and `$ENV` references. */
 	function readStoredProfileCredential(providerId: string) {
 		return getCredentialRuntimeRegistry().readStoredForProfile(providerId);
 	}
@@ -141,16 +139,7 @@ export function createPiModelRuntimes(defaultAgentDir: string) {
 		}
 	}
 
-	/**
-	 * Records which extension-registered provider ids came from the user's global install
-	 * (anything resolved from under agentDir) so shared profile credentials stay usable for
-	 * them across projects. Pi drains pendingProviderRegistrations right after this hook and
-	 * drops the extension path with it; this is the only point where provider -> owner is
-	 * known. Pi's Extension.sourceInfo is synthetic (always "temporary"), so classify by
-	 * location. Every service graph that loads extensions must run this — the project-open
-	 * graph too, not only session runtimes — or a global package's provider override reads
-	 * as a cross-project conflict and its stored credentials fail closed.
-	 */
+	/** Records providers registered by global extensions resolved under agentDir. Pi discards extension paths when it drains pendingProviderRegistrations after this hook, so every project and session graph classifies them here. Extension.sourceInfo is synthetic ("temporary"); file location determines scope. Global providers can then share profile credentials across projects. */
 	function createProviderScopeClassifyingOverride(
 		agentDir: string,
 		modelRuntime: ModelRuntime | undefined,
@@ -181,11 +170,7 @@ export function createPiModelRuntimes(defaultAgentDir: string) {
 		};
 	}
 
-	/**
-	 * Profile-only model runtime for Models/Auth settings and explicit catalog refresh.
-	 * Project and session service graphs must never receive this runtime: extension provider
-	 * registrations are mutable overlays and therefore belong to one cwd/runtime generation.
-	 */
+	/** Model runtime for profile Models/Auth settings and catalog refresh. Project and session graphs require their own cwd-bound generation for mutable extension registrations. */
 	function getGlobalModelRuntime(): Promise<ModelRuntime> {
 		assertActive();
 		const agentDir = defaultAgentDir;

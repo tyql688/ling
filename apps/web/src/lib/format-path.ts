@@ -1,7 +1,6 @@
 import { isWindows } from "./platform";
 
-/** DISPLAY-ONLY: shorten an absolute path under the user's home to ~/… (never feed the
- * result back into IPC — handlers expect real paths). */
+/** Shortens an absolute home path to ~/… for display. IPC handlers require the original absolute path. */
 export function tildify(path: string): string {
 	const home = window.ling.env.home;
 	if (home === null) return path;

@@ -253,8 +253,8 @@ export function createPiWorkerDomainService(options: PiWorkerDomainServiceOption
 		},
 		"session.readArchived": async (input) => {
 			const params = input;
-			// No project is opened: the file is read straight from disk so a deleted project keeps
-			// its history readable. `cwd` only scopes the request to a project Ling already knows.
+			// Read saved history directly from disk for a known project, including a deleted directory.
+			// cwd identifies the project authorized for this request.
 			return readArchivedPiSessionMessages(parsePiWorkerAbsolutePath(params.sessionFilePath), params.markdownWidth);
 		},
 		"model.listProviders": async () => {

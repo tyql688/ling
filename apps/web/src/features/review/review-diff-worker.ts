@@ -11,7 +11,7 @@ export interface ReviewDiffRequest {
 
 export type ReviewDiffResult = { status: "ok"; fileDiff: FileDiffMetadata } | { status: "error"; message: string };
 
-/** One document owns one computation. Switching files terminates the old algorithm, not just its reply. */
+/** A document owns its computation. Switching files terminates that computation's worker. */
 export function prepareReviewDiff(
 	request: ReviewDiffRequest,
 	onResult: (result: ReviewDiffResult) => void,

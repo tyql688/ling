@@ -13,7 +13,7 @@ import { rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { HostDomain, HostHandlers } from "../../transport/host-domain";
 
-/** Fixed path under Pi's global agent dir — the renderer never supplies a path. */
+/** Resolves the selected prompt kind to its fixed path under Pi's global agent directory. */
 function resolveFilePath(agentDir: string, kind: GlobalInstructionKind): string {
 	return join(agentDir, GLOBAL_INSTRUCTION_FILE_NAMES[kind]);
 }

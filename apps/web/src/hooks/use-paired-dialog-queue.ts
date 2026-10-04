@@ -49,7 +49,7 @@ export function usePairedDialogQueue<TRequest extends DialogRequestIdentity>(
 			})
 			.catch((error: unknown) => {
 				if (!active) return;
-				// Fail-fast: never pretend pending dialogs reconciled successfully.
+				// Report a failed pending-dialog snapshot read.
 				feedback.show({
 					tone: "danger",
 					title: t("session.dialogPendingLoadFailed"),

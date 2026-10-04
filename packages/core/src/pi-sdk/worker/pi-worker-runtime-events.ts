@@ -31,10 +31,7 @@ interface PiWorkerRuntimeEventDeliveryOptions {
 	emit(event: PiWorkerEventPayload): void;
 	isDisposed(): boolean;
 	onFatal(error: Error): void;
-	/** Fired after a messageEnd runtime event is emitted. Pi's TUI redraws component
-	 * surfaces on every app activity, so extension widgets/panels that derive from session
-	 * state (entries, tool results) update implicitly there; the offscreen adapter has no
-	 * redraw loop and must re-render them at the transcript boundary instead. */
+	/** Fires after messageEnd to redraw extension widgets and panels from the updated session state. Offscreen components require this redraw because they lack Pi's TUI activity loop. */
 	onTranscriptAdvanced?(): void;
 }
 

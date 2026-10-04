@@ -77,7 +77,7 @@ export function createDesktopGraphics(options: GraphicsOptions) {
 	}
 
 	async function updateGraphicsPreference(softwareRendering: boolean): Promise<void> {
-		// An explicit host preference replaces any automatic fallback.
+		// A saved Host preference takes precedence over automatic fallback.
 		graphicsState = { softwareRendering, autoFallback: false };
 		try {
 			await persistGraphicsState();

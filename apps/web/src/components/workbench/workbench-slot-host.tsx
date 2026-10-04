@@ -90,8 +90,8 @@ export function WorkbenchSlotHost({
 		return () => observer.disconnect();
 	}, []);
 	const hasReading = rightOpen && reading !== null;
-	// Below 760px, two usable content columns no longer fit. This is an effective layout,
-	// not a mutation of the user's saved reading expansion or preferred column widths.
+	// Below 760px, adapt the layout to one usable content column while retaining the saved expansion and width preferences.
+
 	const compact = size.width > 0 && size.width < 760;
 	const floating = hasReading && (expanded || compact);
 	const conversationWidth = size.width - rightColumnWidth(geometry, size.width, size.height);
@@ -129,7 +129,7 @@ export function WorkbenchSlotHost({
 	}, []);
 	const previousSideOpen = useRef(rightOpen);
 	useLayoutEffect(() => {
-		// Closing the right column must not leave keyboard focus inside hidden content.
+		// Move focus to visible content when the right column closes.
 		if (
 			!rightOpen &&
 			previousSideOpen.current &&
@@ -291,8 +291,8 @@ export function WorkbenchSlotHost({
 						onFocusCapture={onReadingFocus}
 						onPointerDownCapture={onReadingFocus}
 						inert={!hasRightColumn ? true : undefined}
-						// Translucent skins stack alpha, so the column paints no fill of its own: the header,
-						// the content and the docked tree each paint exactly one material layer.
+						// The header, content and docked tree each paint one material layer. A transparent column container keeps translucent skins from stacking alpha.
+
 						className={cn(
 							"skin-surface flex min-h-0 min-w-0 flex-col overflow-hidden",
 							!floating && "workbench-reading-seam",

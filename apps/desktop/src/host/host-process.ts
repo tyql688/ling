@@ -52,7 +52,7 @@ export async function startDesktopHostProcess(options: DesktopHostProcessOptions
 	const hostRoot = join(options.appResourcesRoot, "host");
 	const nodeExecutable = join(options.appResourcesRoot, "runtime", process.platform === "win32" ? "node.exe" : "node");
 	const environment: NodeJS.ProcessEnv = { ...process.env, LING_HOST_STDIO_CONTROL: "1" };
-	// The independent Node process does not inherit Electron's disabled injection fuses.
+	// The independent Node process needs its own injection protections in addition to Electron's fuses.
 	// The plain-object copy preserves spellings that Windows treats as aliases.
 	for (const key of Object.keys(environment)) {
 		if (key.toUpperCase() === "NODE_OPTIONS" || key.toUpperCase() === "NODE_PATH") delete environment[key];

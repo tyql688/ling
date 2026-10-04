@@ -158,11 +158,11 @@ export async function preparePiAdapters(options: {
 						const command = extension.commands.get(name);
 						if (command) extension.commands.set(name, { ...command, handler: async (_args, ctx) => open(ctx.ui) });
 					}
-					// Ling captures the client's microphone. Never let an upstream terminal shortcut
-					// record the Host's device in a browser or remote session.
+					// Client microphone capture handles browser and remote sessions.
+					// Disable the terminal shortcut that would record the Host's device.
 					extension.shortcuts.clear();
-					// Version 0.1.0's startup listener only advertises terminal setup shortcuts.
-					// Ling's microphone control owns first-use setup instead.
+					// Version 0.1.0 advertises terminal setup shortcuts at startup.
+					// Ling provides first-use setup through its microphone control.
 					extension.handlers.delete("session_start");
 				}
 			}

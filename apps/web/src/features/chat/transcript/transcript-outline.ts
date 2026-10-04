@@ -25,8 +25,7 @@ const PREVIEW_CHARS = 240;
  */
 const PREVIEW_SCAN_CHARS = PREVIEW_CHARS * 4;
 
-/** The outline is navigation chrome, not a second Markdown renderer. Remove the most visible
- * syntax from its bounded preview so headings, links, tables, and emphasis read as prose. */
+/** Builds a bounded navigation preview by stripping visible heading, link, table and emphasis syntax. */
 function plainPreviewText(text: string): string {
 	return text
 		.replace(/^```[^\n]*$/gm, " ")
@@ -118,10 +117,7 @@ export function sampleOutline(outline: readonly TurnOutlineEntry[], maxTicks: nu
  */
 const CURRENT_TURN_MARGIN_PX = ANCHOR_SCROLL_MARGIN_PX + 16;
 
-/** Scrollspy: the current tick is the LAST turn whose anchor has scrolled past the viewport
- * top. Reply lengths vary wildly, so proportional (scroll-percentage) mapping points at turns
- * the viewport isn't actually showing — only anchor positions tell the truth. Anchors that
- * aren't in the DOM come in as Infinity and can never become current. */
+/** Selects the last turn whose anchor passed the viewport top. Anchor positions account for varying reply lengths. Unmounted anchors use Infinity and are excluded from selection. */
 export function currentTickFromOffsets(offsets: number[], scrollTop: number): number {
 	let current = 0;
 	for (let i = 0; i < offsets.length; i += 1) {

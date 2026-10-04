@@ -195,9 +195,7 @@ function createContentBudget(metadataBytes = 0): ContentBudget {
 	return { remainingBytes: Math.max(0, MESSAGE_CONTENT_BUDGET_BYTES - metadataBytes), omittedImages: 0 };
 }
 
-/** An image part that already carries its address, from a message being normalized a second time
- * (a custom renderer re-runs normalization over its own output). It has no `data` to re-admit, so
- * matching it here is what keeps the picture from being dropped on that pass. */
+/** Recognizes images already addressed in the session store when custom rendering normalizes a message again. */
 function addressedImagePart(part: Record<string, unknown>): ImageContentPart | null {
 	if (part.type !== "image" || typeof part.mimeType !== "string") return null;
 	const source = part.source;
@@ -224,12 +222,7 @@ function admitImage(image: { data: string; mimeType: string }, budget: ContentBu
 	return { type: "image", data: image.data, mimeType: image.mimeType };
 }
 
-/**
- * Emits the image as an address into the session store rather than as bytes, so a message with
- * several megabytes of attachments still projects to a few hundred bytes and the renderer fetches
- * each picture through the authenticated `/api/media/attachment` route only when it draws it. `index` is
- * the position in the source content array, which the session store reader uses verbatim.
- */
+/** Emits a session-store image address for the renderer to fetch through `/api/media/attachment`. index is the image's position in the source content array. */
 function addressedImage(mimeType: string, entryId: string, index: number): ImageContentPart {
 	return { type: "image", mimeType, source: { entryId, index } };
 }
@@ -368,9 +361,9 @@ function normalizeToolResultContent(
 			parts.push(addressedImage(image.mimeType, entryId, index));
 			continue;
 		}
-		// Display-only: no provider send limit applies, so the content budget is the only cap.
-		// Images are admitted first — a read on a PNG pairs a stub text label with the real
-		// payload in the image part — and text then fits into the remainder.
+		// The display content budget admits images first, then fits text into the remaining bytes.
+		// A read result can pair a short PNG label with a large image payload.
+
 		const admitted = admitImage(image, budget);
 		if (admitted) parts.push(admitted);
 		else budget.omittedImages += 1;

@@ -34,11 +34,7 @@ import { cn } from "@renderer/lib/utils";
 import { Bot } from "lucide-react";
 import type { ComponentProps } from "react";
 
-/**
- * Kimi's Color mark is white on transparency, so on a light surface only its blue accent dot
- * survives. Mono follows currentColor there. The swap rides the `.dark` class on <html> rather
- * than a theme subscription, which would otherwise be one per rendered model row.
- */
+/** Kimi's Color mark is white with a blue accent dot. Use Mono/currentColor on light surfaces so the full mark is visible. CSS follows the html element's .dark class for all model rows. */
 function KimiGlyph({ className, ...props }: ComponentProps<typeof KimiColor>) {
 	return (
 		<>
@@ -76,11 +72,7 @@ function CommandCodeGlyph({ style, ...props }: ComponentProps<"svg">) {
 	);
 }
 
-/**
- * Brand glyph component table: canonical identity → icon component (not Pi provider id).
- * Prefer Lobehub's original-color variant. Use an official inline mark only when the catalog has
- * no matching brand, and use Mono for identities designed to adapt to currentColor.
- */
+/** Maps brand identities to icon components. Prefer LobeHub's original-color variant, use official inline marks for brands missing from the catalog, and use Mono for marks designed for currentColor. */
 const PROVIDER_GLYPHS = {
 	"amazon-bedrock": AmazonBedrockColor,
 	anthropic: ClaudeColor,
@@ -118,10 +110,7 @@ const PROVIDER_GLYPHS = {
 
 type ProviderGlyphName = keyof typeof PROVIDER_GLYPHS;
 
-/**
- * Pi built-in provider id → brand glyph. Multiple ids may share one brand (e.g. openai / openai-codex);
- * unknown ids fall back to the neutral Bot icon.
- */
+/** Maps Pi provider IDs to brand glyphs. IDs such as openai and openai-codex share a brand; unknown IDs use the neutral Bot icon. */
 const PROVIDER_GLYPH_BY_ID: Readonly<Record<string, ProviderGlyphName>> = {
 	"amazon-bedrock": "amazon-bedrock",
 	"ant-ling": "ant-group",

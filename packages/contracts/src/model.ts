@@ -18,7 +18,7 @@ export const MODEL_SECRET_MAX_CHARS = 65_536;
 export const MODEL_LOGIN_RESPONSE_MAX_CHARS = 65_536;
 /** Max length of a login requestId; correlates login-flow events and rejects abnormally long correlation ids. */
 export const MODEL_LOGIN_REQUEST_ID_MAX_CHARS = 512;
-/** Advanced sampling configuration is deliberately much smaller than models.json itself. */
+/** Sampling options exposed by Ling; models.json supports additional fields. */
 export const MODEL_SAMPLING_PARAMS_LIMITS: BoundedJsonLimits = {
 	maxDepth: 8,
 	maxNodes: 512,
@@ -256,7 +256,7 @@ export interface ProviderModelDefinition {
 
 export type ModelConfigurationRequest = z.infer<typeof requestSchemas.modelConfigurationRequestSchema>;
 
-/** On-demand configuration inspection. Credential values and request headers are excluded. */
+/** On-demand model configuration metadata. Credentials and request headers stay with the provider. */
 export interface ModelConfiguration {
 	effective: BoundedJsonObject;
 	configured: BoundedJsonObject | null;
@@ -307,13 +307,13 @@ export interface ProviderSummary {
 	custom: boolean;
 	baseUrl: string | null;
 	api: string | null;
-	/** Explicit provider-level models.json defaults; inferred Pi defaults stay implicit. */
+	/** Provider defaults written in models.json. Omitted values use Pi's defaults. */
 	compat: BoundedJsonObject | null;
 	models: ProviderModelInfo[];
 }
 
 // This is Pi's public models.json protocol set, validated again at the Core boundary.
-/** Closed set of custom-provider API protocols, matching Pi's public models.json protocol set; re-validated at the core boundary, and ad-hoc protocol names are rejected. */
+/** Custom-provider API protocols accepted by Pi's models.json format and validated again by Core. */
 export const CUSTOM_PROVIDER_APIS = [
 	"openai-completions",
 	"openai-responses",
@@ -343,8 +343,7 @@ export interface ProviderCatalog {
 	configError: string | null;
 }
 
-/** Read-only effective model catalog for one open project. Unlike ProviderCatalog,
- * this includes project/package extension providers from that project's Pi runtime. */
+/** Effective model catalog for an open project, including providers registered by its Pi package and project extensions. */
 export type ProjectModelCatalogRequest = z.infer<typeof requestSchemas.projectModelCatalogRequestSchema>;
 
 export interface ProjectModelCatalog {
@@ -409,7 +408,7 @@ export interface ModelCatalogRefreshResult {
 	backupPath: string | null;
 }
 
-/** Preserve independent catalog failures without repeating the same cause. */
+/** Combines independent catalog failures and deduplicates their causes. */
 export function combineProviderCatalogErrors(...errors: Array<string | null | undefined>): string | null {
 	const distinct = [...new Set(errors.filter((error): error is string => error !== null && error !== undefined))];
 	return distinct.length > 0 ? distinct.join("\n\n") : null;

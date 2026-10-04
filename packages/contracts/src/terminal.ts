@@ -5,7 +5,7 @@ type RequestSchemasShape = ReturnType<typeof requestSchemas.createTerminalReques
 export const TERMINAL_ID_MAX_CHARS = 128;
 /** Max length of a profile id; accommodates ids derived from system shell paths while bounding the config payload. */
 export const TERMINAL_PROFILE_ID_MAX_CHARS = 1_024;
-/** Max characters per stdin write; keeps a paste/script from overwhelming the main→PTY bridge buffer in one shot. */
+/** Caps each stdin write to bound the main-to-PTY buffer. */
 export const TERMINAL_INPUT_MAX_CHARS = 64 * 1_024;
 /** Max characters per stdout push chunk; output is streamed in chunks so no single event carries an unbounded payload that stalls the renderer. */
 export const TERMINAL_OUTPUT_CHUNK_MAX_CHARS = 64 * 1_024;
@@ -16,7 +16,7 @@ export const TERMINAL_MAX_ROWS = 300;
 
 export type TerminalProfileSource = "environment" | "system" | "path";
 
-/** A detected shell that main has approved for spawning. Renderer never supplies an executable path. */
+/** A shell detected and approved by main. Renderer selects it by id. */
 export interface TerminalProfile {
 	id: string;
 	name: string;

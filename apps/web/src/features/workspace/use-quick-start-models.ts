@@ -69,8 +69,8 @@ export function useQuickStartModels(cwd: string | null) {
 			unsubscribe();
 		};
 	}, [hostPiSettingsApi, settingsAttempt]);
-	// The project runtime already filters this snapshot to models with effective auth.
-	// Unlike the profile settings catalog, it also includes project/package providers.
+	// The project runtime filters the catalog to models with effective authentication,
+	// including project and package providers.
 	const modelOptions = projectModels ?? EMPTY_PROJECT_MODELS;
 	const resolvedDefault = useMemo(
 		() => resolveQuickStartDefaultModel(modelOptions, piModelDefaults),

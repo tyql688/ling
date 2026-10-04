@@ -5,11 +5,7 @@ import { requestCapacityExceeded, requestCancelled, throwAggregateFailures } fro
 import { listProjectFiles as listWorkspaceFiles } from "@ling/host/domains/files/project-files";
 import { LRUCache } from "lru-cache";
 
-/**
- * Cache TTL for the @-mention file list. Enumerating the repo tree is pricey; repeat
- * completions within 10s reuse the result — longer than one completion interaction,
- * shorter than the acceptable delay of a new file staying invisible.
- */
+/** Caches @-mention file lists for 10 seconds to reuse a scan during completion while allowing new files to appear soon. */
 const REPOSITORY_FILES_CACHE_TTL_MS = 10_000;
 /** Each entry may retain a whole repository index plus an expiry timer. */
 const REPOSITORY_FILES_CACHE_MAX_ENTRIES = 16;
@@ -17,11 +13,7 @@ const REPOSITORY_FILES_CACHE_MAX_ENTRIES = 16;
 const REPOSITORY_FILES_CACHE_MAX_WEIGHT_CHARS = 32 * 1024 * 1024;
 /** One project index must stop before pathological deep/long paths dominate the process. */
 const REPOSITORY_FILES_INDEX_MAX_DIRECTORIES = 50_000;
-/**
- * Max items returned by the @-mention dropdown. 50 is enough for keyboard filtering;
- * more only adds rendering and main-process serialization — precise paths should come
- * from prefix filtering, not a longer list.
- */
+/** Returns at most 50 completion items. Prefix filtering narrows larger file lists. */
 const MAX_MENTION_RESULTS = 50;
 
 interface MentionFileEntry {
@@ -55,7 +47,7 @@ function toMentionEntries(files: readonly string[]): MentionFileEntry[] {
 		const lower = path.toLowerCase();
 		entries.push({ path, kind: "directory", lower, lowerBasename: lower.slice(lower.lastIndexOf("/") + 1) });
 	}
-	// Directories and files are interleaved by path: querying "src/c" ranks the src/core directory before its contents, not sunk after all files.
+	// Interleave directories and files by path so src/core precedes its contents for a src/c query.
 	entries.sort((a, b) => (a.lower < b.lower ? -1 : a.lower > b.lower ? 1 : 0));
 	return entries;
 }
@@ -87,7 +79,7 @@ export function createProjectMentionCache() {
 	let disposed = false;
 	let disposal: Promise<void> | null = null;
 
-	// Active scans are admission slots, not evictable cache entries. TTL starts on settlement.
+	// Active scans retain admission slots until settlement, when their cache TTL starts.
 	const mentionFileScans = new Map<string, MentionFilesCacheEntry>();
 	const mentionFilesCache = new LRUCache<string, MentionFilesCacheEntry>({
 		max: REPOSITORY_FILES_CACHE_MAX_ENTRIES,
@@ -130,7 +122,7 @@ export function createProjectMentionCache() {
 		const files = (async () => {
 			// Git repos always index through one `git ls-files` process; the setting only decides
 			// whether .gitignore'd files (dist/, generated code) stay reachable. The directory walk
-			// is the non-repo fallback only — it cannot honor .gitignore and enumerates build trees.
+			// is the non-repo fallback only; it cannot honor .gitignore and enumerates build trees.
 			const paths = (await getGitStatus(canonicalCwd)).isRepository
 				? await listRepositoryFiles(canonicalCwd, respectGitignore)
 				: await listWorkspaceFiles(canonicalCwd);

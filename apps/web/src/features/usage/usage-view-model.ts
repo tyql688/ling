@@ -8,7 +8,7 @@ const OTHER_SERIES_KEY = "__other__";
 
 export interface UsageSeries {
 	key: string;
-	/** Display name — the model id, or OTHER_SERIES_KEY's translated label (caller supplies). */
+	/** Model id, or the caller-supplied translation of OTHER_SERIES_KEY. */
 	label: string;
 	/** CSS color value (a chart palette var). */
 	color: string;
@@ -32,11 +32,7 @@ export function chartColor(slot: number): string {
 /** Color token reserved for the "other" bucket, so it never collides with the chart-1..8 ranking slots. */
 const OTHER_SERIES_COLOR = "var(--color-chart-other)";
 
-/**
- * Palette slots follow the model's rank over the whole heatmap window (snapshot.paletteOrder),
- * so flipping 7↔30 days never repaints a model that stays visible. Models absent from the
- * window ranking's first eight slots take the lowest unused slot instead.
- */
+/** Palette slots follow model rank over snapshot.paletteOrder. Switching between 7 and 30 days preserves the color of models that remain visible. Models outside the window's first eight ranks use the lowest unused slot. */
 function assignColorSlots(displayKeys: string[], paletteOrder: string[]): Map<string, number> {
 	const slots = new Map<string, number>();
 	const used = new Set<number>();
@@ -124,7 +120,7 @@ export function niceMax(maxValue: number): number {
 	return 10 * magnitude;
 }
 
-/** Heatmap intensity 0–4: 0 = no tokens, then quartiles of the window's max day. */
+/** Heatmap intensity from 0 through 4: 0 means no tokens; the other levels are quartiles of the window's maximum daily count. */
 export function heatmapLevel(tokens: number, maxTokens: number): 0 | 1 | 2 | 3 | 4 {
 	if (tokens <= 0 || maxTokens <= 0) return 0;
 	const ratio = tokens / maxTokens;
@@ -134,7 +130,7 @@ export function heatmapLevel(tokens: number, maxTokens: number): 0 | 1 | 2 | 3 |
 	return 4;
 }
 
-/** color-mix percentages of chart-1 for heatmap levels 0–4; level 0 uses the plain surface. */
+/** color-mix percentages of chart-1 for heatmap levels 0 through 4. Level 0 uses the plain surface. */
 const HEATMAP_MIX_PERCENT = [0, 18, 36, 58, 82] as const;
 
 export function heatmapCellColor(level: 0 | 1 | 2 | 3 | 4): string {

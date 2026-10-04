@@ -16,10 +16,7 @@ export interface BoundedJsonLimits {
 	maxBytes: number;
 }
 
-/** Returns the first reason an unknown value cannot cross a bounded JSON object
- * boundary. The traversal rejects values JSON would silently coerce (undefined,
- * non-finite numbers, sparse arrays) so callers never persist a shape different
- * from the one they validated. */
+/** Returns the first invalid value in a bounded JSON object. Rejects undefined, non-finite numbers and sparse arrays because JSON serialization would change them. */
 function inspectBoundedJsonObject(value: unknown, limits: BoundedJsonLimits): string | null {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) {
 		return "value must be a JSON object";

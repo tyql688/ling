@@ -104,7 +104,7 @@ export function TurnChangesCard({
 							</span>
 						)}
 					</div>
-					{/* Idle: +/− totals. Hover (card): swap to View changes → onReview. */}
+					{/* Show +/− totals when idle and the View changes action on hover. */}
 					<div className="relative mt-0.5 flex h-4 items-center">
 						{hasTotals ? (
 							<DiffStat

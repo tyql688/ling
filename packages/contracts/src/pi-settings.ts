@@ -20,7 +20,7 @@ export const PI_COMPACTION_TOKEN_MAX = Number.MAX_SAFE_INTEGER;
 
 export type MessageDeliveryMode = "all" | "one-at-a-time";
 
-/** Mirrors Pi's DefaultProjectTrust: what to do when an untrusted project is opened. */
+/** Trust policy applied when opening an untrusted project. */
 export type DefaultProjectTrust = "ask" | "always" | "never";
 
 /** Retry values retain Pi's non-negative integer domain. */
@@ -118,5 +118,5 @@ export const PI_BUILT_IN_TOOL_NAMES = [
 	"tool_search",
 ] as const;
 
-/** Mirrors Pi's HTTP idle timeout choices in milliseconds; zero disables the timeout. */
+/** Pi's HTTP idle timeout choices in milliseconds. Zero disables the timeout. */
 export const HTTP_IDLE_TIMEOUT_CHOICES_MS = [30_000, 60_000, 120_000, 300_000, 0] as const;

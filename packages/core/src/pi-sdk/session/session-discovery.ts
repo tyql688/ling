@@ -162,8 +162,8 @@ async function inspectPiSessionFile(
 			modified,
 			messageCount,
 			firstMessage: firstMessage || "(no messages)",
-			// Ling projects only title/preview/count; retaining every message made startup
-			// proportional to the complete transcript corpus for no renderer benefit.
+			// Retain title, opening preview and row count for the sidebar summary cache.
+
 			allMessagesText: "",
 		};
 		return { kind: "loaded", path, info, fingerprint: stableFingerprint };

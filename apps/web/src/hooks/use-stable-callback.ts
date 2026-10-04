@@ -1,8 +1,6 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
 
-/** For callbacks crossing a memo boundary: the memoized child keeps one function identity
- * while invocations always reach the latest closure — stale-capture safe without making
- * the callback a comparator input. Never call the result during render. */
+/** Keeps one callback identity across a memo boundary while invoking the latest closure. Call the result from events or effects; calls during render are unsupported. */
 export function useStableCallback<Args extends unknown[], Result>(
 	callback: (...args: Args) => Result,
 ): (...args: Args) => Result {

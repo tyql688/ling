@@ -59,7 +59,7 @@ const MAC_SYSTEM_PERMISSION_ROWS: readonly SystemPermissionRow[] = [
 	},
 ];
 
-/** Windows privacy/app permission guide rows (not requestable in-app, only jumps to the system page). */
+/** Opens Windows system pages where users manage privacy and app permissions. */
 const WINDOWS_SYSTEM_PERMISSION_ROWS: readonly SystemPermissionRow[] = [
 	{
 		target: "windows-privacy",
@@ -167,11 +167,11 @@ export function SystemPermissionsSection() {
 		window.addEventListener("focus", refreshOnFocus);
 		return () => {
 			lifecycleRevisionRef.current += 1;
-			// eslint-disable-next-line react-hooks/exhaustive-deps -- the cleanup deliberately reads the ref as it stands at teardown, not the value captured at setup
+			// eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup uses the ref's current value
 			refreshQueuedRef.current.clear();
-			// eslint-disable-next-line react-hooks/exhaustive-deps -- the cleanup deliberately reads the ref as it stands at teardown, not the value captured at setup
+			// eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup uses the ref's current value
 			refreshInFlightRef.current.clear();
-			// eslint-disable-next-line react-hooks/exhaustive-deps -- the cleanup deliberately reads the ref as it stands at teardown, not the value captured at setup
+			// eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup uses the ref's current value
 			actionInFlightRef.current.clear();
 			window.removeEventListener("focus", refreshOnFocus);
 		};

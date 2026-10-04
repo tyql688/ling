@@ -101,10 +101,8 @@ export function createSessionResourceReloadController(
 		deferred = false;
 		void schedule().catch((error: unknown) => {
 			log.error(`deferred resource reload failed for session ${options.sessionId()}:`, error);
-			// Fail-closed reload already emits lifecycle failure when invalidation started.
-			// Pre-invalidation failures only log here; surface them by disposing the managed
-			// session via a second reconcile attempt is not safe. Leave the log — session
-			// remains usable if generation was restored; busy sessions will retry after idle.
+			// Invalidated generations report lifecycle failure. Log failures before invalidation
+			// and leave a restored generation usable. Busy sessions retry after becoming idle.
 		});
 	}
 

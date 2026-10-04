@@ -63,8 +63,8 @@ export function useSessions({ onSessionsRemoved }: { onSessionsRemoved(refs: rea
 			}
 			const list = await hostSessionApi.list();
 			if (!refreshFence.isCurrent(request, SESSION_LIST_IDENTITY)) return;
-			// Sessions whose auto-title hasn't landed yet come back with an empty title (the default
-			// name is never persisted — see core/session-manager/session-manager.ts) — show the localized label.
+			// Show the localized default when the session title is empty. The default label is derived for display.
+
 			const next = list.map((s) => (s.title ? s : { ...s, title: t("session.untitled") }));
 			const nextKeys = new Set(next.map((session) => sessionKey(toSessionRef(session))));
 			const removed = store
@@ -153,8 +153,8 @@ export function useSessions({ onSessionsRemoved }: { onSessionsRemoved(refs: rea
 		[hostSessionApi, onSessionsRemoved, refresh, refreshFence, setSessions],
 	);
 
-	// Auto-titling (see core/session-manager/session-manager.ts) runs in the background after a session's first
-	// turn — patch the sidebar's title in place when it lands, rather than re-fetching the list.
+	// Apply background auto-title results to the sidebar after the session's first turn.
+
 	useEffect(() => {
 		return hostSessionApi.onTitleChanged(({ ref, title }) => {
 			setSessions((current) => current.map((s) => (sameSessionRef(toSessionRef(s), ref) ? { ...s, title } : s)));
@@ -179,9 +179,8 @@ export function useSessions({ onSessionsRemoved }: { onSessionsRemoved(refs: rea
 		});
 	}, [hostSessionApi, refresh, setActiveSessionRef, setSessions, t]);
 
-	// Safety net for anything that removes sessions in bulk without going through
-	// `deleteSession` below (e.g. closing a whole project) — never leave `activeSessionRef`
-	// pointing at a session that no longer exists in the list.
+	// Clear activeSessionRef when a bulk operation, such as project closure, removes the selected session.
+
 	useEffect(() => {
 		if (activeSessionRef && !sessions.some((s) => sameSessionRef(toSessionRef(s), activeSessionRef))) {
 			selectionIntentIdRef.current += 1;
@@ -327,8 +326,7 @@ export function useSessions({ onSessionsRemoved }: { onSessionsRemoved(refs: rea
 		[hostSessionApi, activeSessionRef, refresh, refreshFence, setActiveSessionRef, setSessions, t],
 	);
 
-	/** Back to the home screen — "new conversation" shows the quick-start view; nothing is created
-	 * until the first message actually sends (see workspace session actions' handleHomeStart). */
+	/** Opens the quick-start view. handleHomeStart creates the session when its first message is sent. */
 	const deselectSession = useCallback(() => {
 		selectionIntentIdRef.current += 1;
 		setActiveSessionRef(null);

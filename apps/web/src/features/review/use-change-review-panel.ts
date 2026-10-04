@@ -100,7 +100,7 @@ export type ChangeReviewPanelProps = {
 	onOpenFile?: ((target: ChangeReviewTarget) => void) | undefined;
 };
 
-/** Owns the form's asynchronous work, recovery state and submission intent. */
+/** Loads the selected review scope and file, retaining navigation and recovery state. */
 export function useChangeReviewPanel({
 	sessionRef,
 	open,
@@ -124,7 +124,7 @@ export function useChangeReviewPanel({
 	const [localScope, setScope] = useState<ChangeReviewWorkspaceScope>(requestedScope);
 	const controlledScope = onScopeChange !== undefined;
 	const scope = controlledScope ? requestedScope : localScope;
-	/** Allows one automatic scope fallback when the panel opens; a manual switch disables it immediately so it never hijacks again. */
+	/** Chooses a fallback scope once when the panel opens. A manual scope selection disables that automatic choice. */
 	const scopeAutoRef = useRef(false);
 	const reviewed = useChangeReviewReviewed(sessionRef);
 	const [navigation, dispatchNavigation] = useReducer(changeReviewNavigationReducer, INITIAL_CHANGE_REVIEW_NAVIGATION);
@@ -148,8 +148,8 @@ export function useChangeReviewPanel({
 			if (navigatorOnly) onOpenFile?.({ scope, turnId: targetTurnId, path: match.path });
 			else dispatchNavigation({ type: "selectFile", path: match.path });
 		}
-		// One attempt against a loaded list, hit or miss — a stale focus request must not
-		// linger and hijack the selection on a later snapshot refresh.
+		// Consume the focus request after one loaded-list attempt so later refreshes retain the user's selection.
+
 		onFocusFileHandled?.();
 	}, [focusFile, open, files, navigatorOnly, onFocusFileHandled, onOpenFile, scope, targetTurnId]);
 

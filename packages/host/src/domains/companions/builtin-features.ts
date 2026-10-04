@@ -18,7 +18,7 @@ const legacyIds: Record<Exclude<BuiltinFeatureId, "voice" | "mcp">, string> = {
 };
 const legacySchema = z.object({ version: z.literal(1), disabled: z.array(z.string()).optional() });
 
-/** Owns Host feature switches and projects Pi's canonical MCP activation. */
+/** Reads and updates Host feature switches and Pi's MCP activation setting. */
 export function createBuiltinFeatures(
 	home: string,
 	mcp?: {

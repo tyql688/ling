@@ -22,16 +22,16 @@ import { operationRefSchema } from "@ling/contracts/owner-ref";
 
 import { portableAbsolutePathSchema, isPortableAbsolutePath } from "./path-validation";
 import { sessionRefSchema } from "./session-ref";
-/** Native hosts supply their path rules here; all request fields keep one definition. */
+/** Builds Git request schemas with the Host's path validation. */
 export function createGitRequestSchemas(
 	absolutePathSchema = portableAbsolutePathSchema,
 	isAbsolute = isPortableAbsolutePath,
 	windowsPaths = false,
 ) {
 	const projectPathSchema = absolutePathSchema("Project path");
-	/** snapshotId field cap; short hash/UUID magnitude — longer is treated as a forged reference. */
+	/** Caps snapshotId at the length needed for a short hash or UUID. Longer values are rejected. */
 	const MAX_SNAPSHOT_ID_LENGTH = 128;
-	/** turnId field cap: same short-id boundary as sessionId. */
+	/** Caps turnId at the same short-id limit as sessionId. */
 	const MAX_TURN_ID_LENGTH = SESSION_ID_MAX_CHARS;
 
 	const gitRelativePathSchema = nonEmptyBoundedString(GIT_PATH_MAX_CHARS, "Git path")

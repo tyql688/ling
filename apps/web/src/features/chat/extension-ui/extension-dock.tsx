@@ -139,10 +139,7 @@ function DockBody({
 	);
 }
 
-/**
- * Right-side extension panel. Takes no layout space when `open=false`; content is projected
- * from Pi extension notifications and persisted state.
- */
+/** Displays Pi extension notifications and saved state in the right-side panel. The closed panel takes zero layout width. */
 export function ExtensionDock({
 	state,
 	open,
@@ -154,7 +151,7 @@ export function ExtensionDock({
 	open: boolean;
 	onClose: () => void;
 	onOpenLinkError: (error: unknown) => void;
-	/** Inline in the workspace side panel: no own width, resize handle, or border. */
+	/** Uses the workspace side panel's width, resize handle and border. */
 	docked?: boolean | undefined;
 }) {
 	const { t } = useTranslation();

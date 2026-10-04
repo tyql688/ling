@@ -19,15 +19,12 @@ function stringArg(args: Record<string, unknown>, key: string): string | null {
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-/** Collapse a multi-line command to one scannable line — the row clamps it with CSS truncate. */
+/** Collapses a multiline command to one line for the row's CSS truncation. */
 function singleLine(text: string): string {
 	return text.replace(/\s+/g, " ").trim();
 }
 
-/**
- * Collapsed tool-step row content: the tool name (rendered by the caller) plus a one-line
- * detail ("bash df -h /"), never the raw multi-line arguments.
- */
+/** Returns a one-line detail such as `df -h /` for a collapsed tool step. The caller renders the tool name beside it. */
 export function toolCallSummary(part: ToolCallPart): ToolCallSummary {
 	const args = part.arguments;
 	switch (part.name) {

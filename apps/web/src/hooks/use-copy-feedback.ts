@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /** Keep the copy-success check visible for two seconds. */
 export const COPY_FEEDBACK_MS = 2_000;
 
-/** Class for the check icon that replaces a copy icon: it twists in instead of just appearing. */
+/** Rotates the check icon into view when it replaces the copy icon. */
 export const COPY_CHECK_CLASS = "animate-in zoom-in-50 spin-in-45 duration-200 motion-reduce:animate-none";
 
 export function useCopyFeedback<Key>() {

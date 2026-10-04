@@ -56,7 +56,7 @@ jobs:
 
           gh api --paginate --slurp "repos/$GH_REPO/releases" > "$RUNNER_TEMP/releases.json"
           EXISTING=$(jq -c --arg tag "$TAG_NAME" '[.[][] | select(.tag_name == $tag)] | first' "$RUNNER_TEMP/releases.json")
-          # A new tag legitimately has no release yet; failed API reads abort above.
+          # A new tag may have no release. Failed API reads abort above.
           if [ "$EXISTING" = "null" ]; then
             gh release create "$TAG_NAME" --draft --generate-notes --verify-tag --title "$VERSION"
           fi
@@ -174,7 +174,7 @@ jobs:
           echo "APPLE_SIGNING_IDENTITY=$CERT_ID" >> "$GITHUB_ENV"
 
       # electronFuses rewrites the Electron binary, invalidating the signature it shipped
-      # with, so signing must happen here and forceCodeSigning must stay on: an unsigned
+      # with. Sign here with forceCodeSigning enabled: an unsigned
       # fuse-patched arm64 binary is SIGKILLed at launch and `xattr -cr` cannot repair it.
       # pnpm exec gives electron-builder the workspace's package-manager environment.
       # A direct Node invocation otherwise falls back to npm dependency collection.
@@ -201,8 +201,8 @@ jobs:
             echo "$REQUIREMENT"
             codesign --verify --deep --strict --verbose=2 "$APP"
 
-            # An ad-hoc signature pins the requirement to a per-build cdhash instead of the
-            # reusable certificate, which is exactly the identity drift this job prevents.
+            # An ad-hoc signature uses a per-build cdhash. Require the reusable certificate
+            # so installed releases retain the same signing identity.
             if echo "$REQUIREMENT" | grep -q "cdhash"; then
               echo "$APP is ad-hoc signed instead of using the reusable certificate." >&2
               exit 1
@@ -341,7 +341,7 @@ jobs:
       # Each macOS job emits a latest-mac.yml describing only its own architecture.
       # electron-updater picks an update by matching arm64 in the filename against the
       # `files` array, so publishing either manifest as-is would strand the other
-      # architecture on its installed version forever.
+      # architecture without a matching update asset.
       - name: Finalize the draft update manifests
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

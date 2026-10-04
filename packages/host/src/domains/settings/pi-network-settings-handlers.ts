@@ -38,11 +38,7 @@ export function createPiSettingsDomain({
 		if (reloadError) throw reloadError;
 	}
 
-	/** Value-only settings are read lazily through the shared SettingsManager instances
-	 * (delivery modes, compaction/retry) or consumed only when a new session
-	 * is constructed (default model/thinking). Refreshing those instances in place reaches
-	 * every live session without the full project/session generation rebuild, which costs
-	 * seconds per open project and made each settings toggle visibly slow. */
+	/** Refreshes shared SettingsManager instances for delivery modes, compaction and retry values read at use time. Default model and thinking values apply when sessions are created. Resource-affecting changes use a project/session reload. */
 	async function mutateAndRefreshPiSettings(mutate: () => Promise<void>): Promise<void> {
 		await mutate();
 		await piWorker.refreshSettingsSnapshots();

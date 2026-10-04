@@ -13,7 +13,7 @@ import { useBackgroundTasks } from "./use-background-tasks";
 import { BuiltinFeatureNotice } from "@renderer/features/companions/builtin-features";
 import { useBuiltinFeatures } from "@renderer/features/companions/builtin-feature-state";
 
-// Keep the renderer tail smaller than the Host's retained log without hiding that it was shortened.
+// Keep a smaller output tail in the renderer and indicate when it has been shortened.
 const OUTPUT_TEXT_LIMIT = 200_000;
 
 function Output({ sessionRef, id }: { sessionRef: SessionRef; id: string }) {
@@ -48,7 +48,7 @@ function Output({ sessionRef, id }: { sessionRef: SessionRef; id: string }) {
 			stopped = true;
 			clearTimeout(timer);
 		};
-		// The session key, not the ref object identity, scopes this reader.
+		// Scope this reader to the session key.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [api, id, sessionKey(sessionRef), t]);
 	return (

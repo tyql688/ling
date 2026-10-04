@@ -48,7 +48,7 @@ export function ChangeReviewHeader({
 	onCopyPath: (path: string) => void;
 	/** Absent when docked: the side panel's tab strip owns closing. */
 	onClose?: (() => void) | undefined;
-	/** Docked: one quiet row — the tab already carries the title. */
+	/** Compact docked row; the tab displays its title. */
 	compact?: boolean | undefined;
 	/** Host controls placed before the description, such as the project and branch. */
 	leading?: ReactNode | undefined;

@@ -10,11 +10,7 @@ import {
 } from "@ling/core/plugin-host/protocol";
 import { createWorkerRpc, postWorkerMessage } from "../worker-rpc";
 
-/**
- * Entry point of the plugin host — a separate Node child forked by the Ling host.
- * Runs the SDK's package manager where its synchronous npm spawns and long
- * scans can't block the main process (and with it every live session).
- */
+/** Runs Pi package management in a separate Node child so synchronous npm commands and scans leave Host responsive. */
 
 configureLoggerOutput({ process: "plugin-host", structured: true });
 const log = createLogger("plugin-host");

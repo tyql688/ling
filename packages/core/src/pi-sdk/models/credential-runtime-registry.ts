@@ -104,8 +104,7 @@ export class PiCredentialRuntimeRegistry {
 		if (scope) this.disposeScope(scope);
 	}
 
-	/** Profile settings may inspect only unambiguous shared credentials. No profile
-	 * read or mutation may choose between project providers that share an id. */
+	/** Allows profile credential access when every loaded project agrees on provider ownership. */
 	createProfileCredentialStore(
 		assertMutationAllowed: (providerId: string) => void = () => {},
 		observeMutation?: PiStoredCredentialMutationObserver,

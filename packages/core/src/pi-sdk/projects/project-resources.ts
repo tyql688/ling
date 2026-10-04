@@ -82,9 +82,9 @@ export async function createBoundedAgentSessionServices(
 	const { includeBuiltinExtensions, ...serviceOptions } = options;
 	const createServices = async (modelRuntimeSignal?: AbortSignal) => {
 		if (!owner.loadCatalogResources && !includeBuiltinExtensions) {
-			// A session worker needs canonical cwd and a project lifecycle owner.
-			// Its actual runtime loads the complete extension/provider graph below. The control
-			// worker remains the catalog owner, so this shell must not execute every extension twice.
+			// A session worker retains canonical cwd and project lifetime here.
+			// Its runtime loads extensions and providers; the control worker loads the catalog.
+
 			return createAgentSessionServices({
 				...serviceOptions,
 				resourceLoaderOptions: {

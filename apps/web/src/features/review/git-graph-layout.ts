@@ -6,9 +6,9 @@ import type { GitGraphCommit } from "@ling/contracts/git";
 const GIT_GRAPH_LANE_COLOR_COUNT = 5;
 /** Horizontal spacing between adjacent lanes (px); determines graph width and node coordinates. */
 export const GIT_GRAPH_LANE_GAP = 19;
-/** Corner radius where a lane steps sideways, matching VS Code's SWIMLANE_CURVE_RADIUS. */
+/** Corner radius for a lane's sideways step. */
 export const GIT_GRAPH_CURVE_RADIUS = 5;
-/** Node radius before the per-kind adjustments below, matching VS Code's CIRCLE_RADIUS. */
+/** Node radius before the commit-kind adjustments below. */
 export const GIT_GRAPH_CIRCLE_RADIUS = 4;
 /** Ring thickness that separates a node from the lanes running behind it. */
 export const GIT_GRAPH_CIRCLE_STROKE_WIDTH = 2;

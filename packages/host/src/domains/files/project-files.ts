@@ -283,7 +283,7 @@ export async function listProjectDirectory(root: string, inputPath: string): Pro
 	return { path: inputPath, entries, truncated };
 }
 
-/** Authenticated project selection may browse folder names before opening a project, never file contents. */
+/** Lists Host directory names for authenticated folder selection before project opening. */
 export async function browseHostDirectories(input: string): Promise<HostDirectoryListing> {
 	try {
 		const path = await realpath(input);
@@ -375,12 +375,7 @@ async function readHandle(handle: Awaited<ReturnType<typeof open>>, size: number
 	return offset === size ? buffer : buffer.subarray(0, offset);
 }
 
-/**
- * Locates a previewable media file inside the project and identifies it from its header.
- * `readProjectFilePreview` answers `binary` for a clip because a transcript cannot draw one, but a
- * review can play it. Only the header is read: the caller streams the body, since a media element
- * asks for ranges rather than the whole file. Null when the path is not media Ling renders.
- */
+/** Reads a project media file's header to identify supported image and video formats. The caller streams requested byte ranges. Returns null for unsupported media. */
 export async function resolveWorkspaceMediaFile(
 	root: string,
 	inputPath: string,

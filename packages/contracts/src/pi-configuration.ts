@@ -113,7 +113,7 @@ export interface PiConfigurationWriteResult {
 
 /** Pi reads these fields only from its agent-directory settings. */
 export const PI_GLOBAL_CONFIGURATION_KEYS = ["defaultProjectTrust", "cacheWarming", "httpProxy", "deviceId"] as const;
-/** These settings describe terminal presentation rather than the shared graphical workbench. */
+/** Settings for Pi terminal presentation. */
 export const PI_TERMINAL_CONFIGURATION_KEYS = [
 	"theme",
 	"terminal",

@@ -29,7 +29,7 @@ function persistedMessageOptions(entry: { id: unknown; timestamp: unknown }) {
 	throw new Error("Pi session entry has an invalid timestamp");
 }
 
-/** Projects the current Pi branch without leaking raw SDK entry types beyond the Pi boundary. */
+/** Converts the current Pi branch to Ling transcript messages. */
 export function projectPiBranchMessages(
 	source: PiBranchProjectionSource,
 	options: {
@@ -149,9 +149,7 @@ export function projectPiBranchMessages(
 	);
 }
 
-/** Summary metadata must not normalize and render the entire transcript. The raw branch already
- * carries enough structure to count projected rows and find the opening prompt; only custom
- * entries need their extension renderer consulted to preserve the projection's inclusion rule. */
+/** Counts rows and finds the opening prompt from raw branch entries. Custom entries consult their extension renderer to determine inclusion. */
 export function summarizePiBranchMessages(session: PiAgentSession): { messageCount: number; preview: string } {
 	let messageCount = 0;
 	let preview = "";

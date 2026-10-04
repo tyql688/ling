@@ -3,7 +3,7 @@ import { createProjectFileSchemas } from "./project-file-requests";
 import { portableAbsolutePathSchema } from "./path-validation";
 import type { ProjectFileReferenceTarget } from "./project";
 
-/** Uploads stream to disk; this bounds one transfer, not model input or local file references. */
+/** Caps each streamed upload to disk. Model input and local file references have separate limits. */
 export const ATTACHMENT_UPLOAD_MAX_BYTES = 1024 * 1024 * 1024;
 export const attachmentFileRequestSchema = z.strictObject({
 	cwd: portableAbsolutePathSchema("Project path"),

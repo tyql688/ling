@@ -63,9 +63,7 @@ const scheduleMessageUpdateFlush: ScheduleSessionMessageUpdateFlush = (callback)
 	};
 };
 
-/** Every active session keeps its Host event subscription when the user switches away from it.
- * Keep the renderer cache updated for all sessions, not just the visible one, so background turns
- * continue to stream and do not look frozen when the user switches back. */
+/** Keeps Host subscriptions for every active session so background turns continue updating their cached transcripts after navigation. */
 export function createSessionProjectionRuntime(store: Store, session: LingApi["session"]) {
 	const pendingRefreshes = new Map<string, Promise<void>>();
 	const companionRequests = new Map<string, LatestCompanionRequestQueue<SessionCompanionTarget>>();
@@ -244,8 +242,8 @@ export function createSessionProjectionRuntime(store: Store, session: LingApi["s
 				if (disposed || !isRendererSessionStateCurrent(key, stateToken)) return;
 				const snapshot = result;
 				const decision = sessionStreamController.acceptSnapshot(key, snapshot);
-				// Snapshot is authoritative (apply | ignore only) — no resync loop.
-				// ignore includes "stale snapshot vs newer buffered binding" after replace.
+				// Apply the snapshot or ignore it when its binding is stale.
+
 				if (decision.type === "ignore") return;
 				messageUpdateBatcher.discard(key);
 				store.set(sessionViewFamily(key), (current) =>
@@ -320,7 +318,7 @@ export function createSessionProjectionRuntime(store: Store, session: LingApi["s
 					const previousKey = sessionKey(envelope.event.previousRef);
 					// A same-file refresh reuses the key: the session is still live, so wiping its
 					// busy/queue state here would contradict main. The stream controller reset is
-					// still required — the event stream rolled over to a new runtime generation.
+					// still required; the event stream rolled over to a new runtime generation.
 					const sameSession = previousKey === key;
 					if (sameSession) {
 						messageUpdateBatcher.discard(previousKey);
@@ -333,11 +331,9 @@ export function createSessionProjectionRuntime(store: Store, session: LingApi["s
 						// In-flight getSnapshot for the previous generation is stale; the
 						// coalesced finally path re-fetches after this replacement envelope.
 						dirtyRefreshes.add(key);
-						// Companion snapshots are kept, not nulled: requestCompanions re-reads both for
-						// the new generation, and selectCompanionSnapshot only keeps a current snapshot
-						// when the runtime binding matches, so the fresh read always wins. Nulling them
-						// empties the extension dock badge and the command catalog for the frames in
-						// between, which collapses the workspace tool badge and re-expands it.
+						// Retain companion snapshots during replacement so dock badges and commands stay visible.
+						// requestCompanions reloads both snapshots for the new generation. selectCompanionSnapshot selects by runtime binding.
+
 						resetProjection(previousKey, "rollover");
 					} else {
 						retireReplacedRendererSessionState(store, envelope.event.previousRef, envelope.ref);
@@ -368,13 +364,12 @@ export function createSessionProjectionRuntime(store: Store, session: LingApi["s
 				// makes an active new session fall back behind the history-loading gate on every write.
 				// Explicit invalidation is the protocol signal for branch/reload/source rewrites.
 				if (envelope.event.type === "transcriptInvalidated") {
-					// Compaction is append-only: Pi writes a `compaction` entry carrying `parentId` and
-					// `firstKeptEntryId`, and every older entry stays on the chain (only the context handed
-					// to the model is trimmed). So the projection is still correct and clearing it is pure
-					// loss: the refill needs one page per 200 entries, and every streamed delta bumps
-					// transcriptRevision, which drops the pager's pinned view and kills the in-flight
-					// cursor — a long session can never finish that refill until the turn goes quiet.
-					// Tree navigation and reload do rewrite the chain, so those still drop the projection.
+					// Compaction appends a `compaction` entry with `parentId` and `firstKeptEntryId`. Earlier entries remain in history,
+					// while Pi trims the context passed to the model. Keep the displayed history during compaction.
+					// A full reload fetches pages of 200 entries. Streaming increments transcriptRevision, invalidating the pager's
+					// pinned view and in-flight cursor, so a long reload would stall until the turn settles.
+					// Tree navigation and reload can rewrite the chain and require a fresh transcript.
+
 					if (envelope.event.reason !== "compaction") resetProjection(key, "clearTranscript");
 					requestSnapshot(envelope.ref);
 				} else if (envelope.event.type === "snapshotChanged" || envelope.event.type === "transcriptProjectionChanged") {

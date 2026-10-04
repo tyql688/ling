@@ -93,9 +93,9 @@ function setThinkingLevel(owner: RuntimeCommandOwner, level: ThinkingLevel): Pro
 	return owner.operations.runOrderedMutation(() => {
 		const session = owner.runtime().session;
 		session.setThinkingLevel(level);
-		// Pi appends the level to the session file. Without this the file watcher reads Ling's
-		// own append as an outside edit and refreshes the runtime from disk — setModel above
-		// has carried the same emit for exactly that reason.
+		// Pi appends the thinking level to the session file. Notify the file watcher that this
+		// is a local write so it can retain the current runtime.
+
 		if (owner.isActive()) owner.emitSnapshotChanged();
 		return owner.projectModelState(session);
 	});

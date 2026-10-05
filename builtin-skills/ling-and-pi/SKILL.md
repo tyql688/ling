@@ -32,6 +32,12 @@ Resolve the current project and the actual Pi agent directory before editing. `<
 
 Check the CLI version and agent directory when behavior differs. Ling ships its own Pi SDK version with the application. Workspace terminals and agent shell tools run separately and display output in their respective views.
 
+## Configure Azure and Codemode
+
+Azure uses the provider ID `azure`. For a saved provider ID of `azure-openai-responses`, update the provider keys in `auth.json` and `models.json`, and references in `settings.json` (`defaultProvider`, `enabledModels`, and `modelThinkingLevels`). Its models can use the `azure-openai-responses` or `openai-completions` API protocol; preserve that protocol when updating a provider ID. Configure the endpoint with `AZURE_OPENAI_BASE_URL` or `AZURE_OPENAI_RESOURCE_NAME`; `AZURE_OPENAI_DEPLOYMENT_NAME_MAP` maps catalog model IDs to deployment names. Use the installed Pi documentation for the accepted credential and model fields and preserve unrelated entries. After opening an existing Azure session, verify its selected provider and model before sending a message.
+
+Enable `codemode` for the current conversation in Session Details → Tools. Pi's `defaultTools` setting controls the starting tool set for new sessions; preserve the other tools when changing it. Codemode's `image()` shows an image and includes its temporary file path in the result. Ling keeps the image in session history for preview and download. Use a file tool with the required permission to copy the temporary file into the project when the user needs a working file; a temporary path is not permanent storage.
+
 ## Change or diagnose a setting
 
 1. Inspect the requested setting or instruction and both relevant scopes. Distinguish a missing file, an untrusted project, a parse failure, and a value overridden elsewhere.

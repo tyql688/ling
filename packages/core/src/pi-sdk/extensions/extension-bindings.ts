@@ -41,6 +41,7 @@ export function createPiExtensionBindings(
 			new Set(modelProjection.projectSessionModels(runtime.session).map((model) => model.provider)).size,
 		getThemes: () => runtime.session.resourceLoader.getThemes().themes,
 	});
+	if (runtime.modelFallbackMessage) uiContext.notify(runtime.modelFallbackMessage, "warning");
 	return {
 		mode: "rpc",
 		uiContext,

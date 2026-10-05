@@ -8,6 +8,10 @@ import { createPiModelProjection } from "../models/model-projection";
 import { createPiRuntimeFactory } from "../session/runtime-factory";
 import { createPiRuntimeInspection } from "../session/runtime-inspection";
 import { createPiRuntimeOperationCoordinator } from "../session/runtime-operations";
+import { createPiSessionRuntimeHandle } from "../session/runtime";
+import { createPiRuntimeProjection } from "../session/runtime-projection";
+import { createPiExtensionUi } from "../extensions/extension-ui-context";
+import { createExtensionUiBridge } from "../../pi-protocol/extension-ui";
 import { sessionControlResultSchema, sessionInspectionSchema } from "@ling/contracts/session-inspection";
 import { createLingSkillResources } from "../resources/skill-toggles";
 import { createPiTurnLifecycle } from "../session/turn-lifecycle";
@@ -387,3 +391,101 @@ export default function(pi) {
 		await rm(directory, { recursive: true, force: true });
 	}
 }, 20_000);
+
+it.each(["azure-openai-responses", "azure"])(
+	"reports model restoration fallback for saved provider %s",
+	async (provider) => {
+		const directory = await temporaryDirectory("pi-model-restoration");
+		const agentDir = join(directory, "agent");
+		const cwd = join(directory, "project");
+		const modelRuntimes = createPiModelRuntimes(agentDir);
+		const turnLifecycle = createPiTurnLifecycle({ start: async () => {}, finish: async () => {} });
+		const bridge = createExtensionUiBridge();
+		const extensionUi = createPiExtensionUi(bridge);
+		const projects = createPiProjectServices({
+			loadCatalogResources: false,
+			agentDir,
+			modelRuntimes,
+			turnLifecycle,
+			skillResources: createLingSkillResources(),
+			builtinExtensions: () => [],
+			resolveProjectTrust: async () => true,
+			readAdapterPlan: async () => ({
+				features: {
+					todo: false,
+					permissions: false,
+					questions: false,
+					"background-tasks": false,
+					schedules: false,
+					voice: false,
+					mcp: false,
+				},
+				voice: null,
+				todo: null,
+				permissions: null,
+			}),
+		});
+		try {
+			await mkdir(agentDir);
+			await mkdir(cwd);
+			await writeFile(join(agentDir, "auth.json"), JSON.stringify({ azure: { type: "api_key", key: "fixture-key" } }));
+			await writeFile(
+				join(agentDir, "settings.json"),
+				JSON.stringify({ defaultProvider: "azure", defaultModel: "gpt-5.4" }),
+			);
+			await projects.openProject(cwd);
+			const manager = SessionManager.inMemory(cwd);
+			manager.appendModelChange(provider, "gpt-5.4");
+			manager.appendMessage({ role: "user", content: "Fixture history", timestamp: 0 });
+			const ref = { cwd, sessionId: manager.getSessionId() };
+			const modelProjection = createPiModelProjection(modelRuntimes);
+			const runtimeFactory = createPiRuntimeFactory({ projects, modelProjection });
+			const runtime = await runtimeFactory.createRuntimeForSession(ref, manager);
+			const handle = createPiSessionRuntimeHandle(
+				{
+					extensionUi,
+					projects: {
+						getOpenProjectCwd: (path) => projects.getPiServices(path).cwd,
+						releasePiRuntimeServices: projects.releasePiRuntimeServices,
+					},
+					turnLifecycle,
+					modelProjection,
+					runtimeFactory,
+					projections: createPiRuntimeProjection(modelProjection),
+				},
+				ref,
+				runtime,
+			);
+			try {
+				await handle.bindExtensions();
+				expect(runtime.session.model?.provider).toBe("azure");
+				const notifications = bridge.getExtensionUiState(ref).notifications;
+				if (provider === "azure-openai-responses") {
+					expect(runtime.modelFallbackMessage).toBe(
+						"Could not restore model azure-openai-responses/gpt-5.4. Using azure/gpt-5.4",
+					);
+					expect(notifications).toEqual([
+						expect.objectContaining({ level: "warning", message: runtime.modelFallbackMessage }),
+					]);
+				} else {
+					expect(runtime.modelFallbackMessage).toBeUndefined();
+					expect(notifications).toEqual([]);
+				}
+				await handle.reloadResources();
+				expect(bridge.getExtensionUiState(ref).notifications).toEqual([]);
+			} finally {
+				await handle.dispose();
+			}
+		} finally {
+			try {
+				await projects.dispose(async () => {});
+			} finally {
+				turnLifecycle.dispose();
+				await extensionUi.dispose();
+				bridge.dispose();
+				await modelRuntimes.dispose();
+				await rm(directory, { recursive: true, force: true });
+			}
+		}
+	},
+);

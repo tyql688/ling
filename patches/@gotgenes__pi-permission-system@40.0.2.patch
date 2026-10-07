@@ -1,8 +1,7 @@
 diff --git a/src/access-intent/bash/command-enumeration.ts b/src/access-intent/bash/command-enumeration.ts
-index fc3cbefe5bd8cbba1f7ea31fff47b30b29b2f37a..fcb7dab11f01d03aeb2d7d068e302cfdcad5b537 100644
 --- a/src/access-intent/bash/command-enumeration.ts
 +++ b/src/access-intent/bash/command-enumeration.ts
-@@ -47,6 +47,8 @@ export interface BashCommand {
+@@ -47,6 +47,8 @@
     * by its own walk rather than read off this string (#803).
     */
    readonly executedUnit?: string;
@@ -11,7 +10,7 @@ index fc3cbefe5bd8cbba1f7ea31fff47b30b29b2f37a..fcb7dab11f01d03aeb2d7d068e302cfd
    /**
     * Set when this wrapper unit's floor has no reason left to hold, naming the
     * reason (#803). Only ever present alongside `wrapperKind: "indirection"`
-@@ -452,6 +454,8 @@ function unresolvedScope(node: TSNode, scope: UnitScope): UnitScope {
+@@ -452,6 +454,8 @@
  interface UnitFacts {
    readonly wrapperKind?: WrapperKind;
    readonly executedUnit?: string;
@@ -20,7 +19,7 @@ index fc3cbefe5bd8cbba1f7ea31fff47b30b29b2f37a..fcb7dab11f01d03aeb2d7d068e302cfd
    readonly floorExemption?: FloorExemption;
    readonly spellings?: readonly string[];
  }
-@@ -461,15 +465,25 @@ function makeUnit(
+@@ -461,15 +465,25 @@
    scope: UnitScope,
    facts: UnitFacts = {},
  ): BashCommand {
@@ -48,7 +47,7 @@ index fc3cbefe5bd8cbba1f7ea31fff47b30b29b2f37a..fcb7dab11f01d03aeb2d7d068e302cfd
    const marked: BashCommand = scope.parseUnresolved
      ? { ...exempted, parseUnresolved: true }
      : exempted;
-@@ -489,7 +503,10 @@ function makeUnit(
+@@ -489,7 +503,10 @@
   * surely as one on the enclosing statement.
   */
  function makeCommandUnit(node: TSNode, scope: UnitScope): BashCommand {
@@ -60,7 +59,7 @@ index fc3cbefe5bd8cbba1f7ea31fff47b30b29b2f37a..fcb7dab11f01d03aeb2d7d068e302cfd
    return makeUnit(text, scope, {
      spellings: distinctSpellings(text, [
        scope.words.spellHomeAtStart(text),
-@@ -497,6 +514,10 @@ function makeCommandUnit(node: TSNode, scope: UnitScope): BashCommand {
+@@ -497,6 +514,10 @@
      ]),
      wrapperKind: classifyWrapperWords(words),
      executedUnit: executedUnitOf(text, words) ?? undefined,
@@ -71,7 +70,7 @@ index fc3cbefe5bd8cbba1f7ea31fff47b30b29b2f37a..fcb7dab11f01d03aeb2d7d068e302cfd
      floorExemption: floorExemptionOf(words, redirectedScope(node, scope)),
    });
  }
-@@ -554,12 +575,14 @@ function readCommandUnit(
+@@ -554,12 +575,14 @@
    text: string;
    words: CommandWord[];
    argumentSpelling?: string;
@@ -87,7 +86,7 @@ index fc3cbefe5bd8cbba1f7ea31fff47b30b29b2f37a..fcb7dab11f01d03aeb2d7d068e302cfd
    let text = "";
    let spelled = "";
    let respelled = false;
-@@ -577,11 +600,16 @@ function readCommandUnit(
+@@ -577,12 +600,17 @@
        ? undefined
        : scope.speller?.absoluteSpellingOf(word);
      respelled ||= spelling !== undefined;
@@ -106,11 +105,11 @@ index fc3cbefe5bd8cbba1f7ea31fff47b30b29b2f37a..fcb7dab11f01d03aeb2d7d068e302cfd
  }
 -
 +
+ /**
 diff --git a/src/handlers/gates/bash-command.ts b/src/handlers/gates/bash-command.ts
-index 9c4ccf7e7f1778652d66683e0ea43b9846643f3a..79860d2bac24e18560032e1cbc62824d543a716a 100644
 --- a/src/handlers/gates/bash-command.ts
 +++ b/src/handlers/gates/bash-command.ts
-@@ -274,7 +274,12 @@ function resolveWrapperUnit(
+@@ -284,7 +284,12 @@
    // `command`, and naming a fragment of the command line there would offer a
    // grant that does not cover what the user is looking at.
    return {
@@ -124,7 +123,7 @@ index 9c4ccf7e7f1778652d66683e0ea43b9846643f3a..79860d2bac24e18560032e1cbc62824d
      command: base.command,
      floorExemption: cmd.floorExemption,
    };
-@@ -300,9 +305,8 @@ function isTriviallyEmptyCommand(command: string): boolean {
+@@ -310,9 +315,8 @@
   *
   * Three callers share it: each command unit of the chain, the whole command
   * when the chain yields no units, and the inner command of a wrapper the floor

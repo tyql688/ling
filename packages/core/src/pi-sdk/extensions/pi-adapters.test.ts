@@ -103,7 +103,7 @@ async function fixture() {
 }
 
 describe("bundled Pi adapters", () => {
-	it("applies absolute Bash rules to relative paths inside execution modifiers", async () => {
+	it("keeps wrapped Bash approval rules scoped to their command", async () => {
 		const f = await fixture();
 		vi.stubEnv("PI_CODING_AGENT_DIR", f.agentDir);
 		const require = createRequire(new URL("../../../../host/package.json", import.meta.url));
@@ -119,6 +119,7 @@ describe("bundled Pi adapters", () => {
 					"*": "allow",
 					bash: {
 						"*": "allow",
+						"printf NEEDS_APPROVAL": "ask",
 						[`cat ${join(f.cwd, "ask.txt")}`]: "ask",
 						[`cat ${join(f.cwd, "deny.txt")}`]: "deny",
 					},
@@ -141,13 +142,16 @@ describe("bundled Pi adapters", () => {
 		const bridge = createExtensionUiBridge();
 		const ui = createPiExtensionUi(bridge);
 		const prompts: string[] = [];
+		let decision = "No";
 		try {
 			await session.bindExtensions({
 				uiContext: {
 					...ui.createPiExtensionUiContext({ cwd: f.cwd, sessionId: session.sessionId }),
-					select: async (title) => {
+					select: async (title, options) => {
 						prompts.push(title);
-						return "No";
+						const selected = options.find((option) => option.startsWith(decision));
+						expect(selected).toBeDefined();
+						return selected;
 					},
 				},
 			});
@@ -172,6 +176,27 @@ describe("bundled Pi adapters", () => {
 				}
 				expect(prompts.length, prefix).toBe(before + 1);
 			}
+			const granted = "sh -c 'printf GRANTED'";
+			decision = "Yes, allow bash";
+			const beforeGrant = prompts.length;
+			const grant = await session.extensionRunner.emitToolCall({
+				type: "tool_call",
+				toolName: "bash",
+				toolCallId: "session-grant",
+				input: { command: granted },
+			});
+			expect(grant, JSON.stringify({ grant, prompts: prompts.slice(beforeGrant) })).not.toMatchObject({ block: true });
+			expect(prompts.length).toBe(beforeGrant + 1);
+			decision = "No";
+			expect(
+				await session.extensionRunner.emitToolCall({
+					type: "tool_call",
+					toolName: "bash",
+					toolCallId: "session-grant-chain",
+					input: { command: `${granted} && printf NEEDS_APPROVAL` },
+				}),
+			).toMatchObject({ block: true });
+			expect(prompts.length).toBe(beforeGrant + 2);
 		} finally {
 			await session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" });
 			session.dispose();

@@ -11,7 +11,7 @@ overrides:
 patchedDependencies:
   '@floating-ui/core@1.8.0': ff2edd0cd2c591d91f6139d8ce5f58e7fc30b62ce270ff397762afb524e0f418
   '@floating-ui/dom@1.8.0': f599ca103cf6d7b931cad8b16e3b1005473a340dd4277daed21a817527798bca
-  '@gotgenes/pi-permission-system@40.0.0': aa14f0d9f2b59de7467552d5b41abf940717225c2743f62fff60b8928888ff67
+  '@gotgenes/pi-permission-system@40.0.2': 8e1a3e681c4835547659d85d22d446e7856db5f7943a5cda3e7b20c8f68d15e3
   app-builder-lib@26.17.0: 1a43b8f5b954018e5a423977f863ce0ae9edae92745a51144103ff8d3c7158c1
   markstream-react@2.0.13: 552cc48de40bfce4ff0d989cc1ed02c5d0be46650ce8e559b911898f60f21aab
 
@@ -376,8 +376,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(@earendil-works/pi-coding-agent@1.0.4(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@1.0.4)(typebox@1.3.34)
       '@gotgenes/pi-permission-system':
-        specifier: 40.0.0
-        version: 40.0.0(patch_hash=aa14f0d9f2b59de7467552d5b41abf940717225c2743f62fff60b8928888ff67)(@earendil-works/pi-coding-agent@1.0.4(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@1.0.4)
+        specifier: 40.0.2
+        version: 40.0.2(patch_hash=8e1a3e681c4835547659d85d22d446e7856db5f7943a5cda3e7b20c8f68d15e3)(@earendil-works/pi-coding-agent@1.0.4(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@1.0.4)
       '@juicesharp/rpiv-todo':
         specifier: 2.12.0
         version: 2.12.0(@earendil-works/pi-ai@1.0.4(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(undici@8.11.2)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-coding-agent@1.0.4(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@1.0.4)(typebox@1.3.34)
@@ -1179,8 +1179,8 @@ packages:
       '@modelcontextprotocol/sdk':
         optional: true
 
-  '@gotgenes/pi-permission-system@40.0.0':
-    resolution: {integrity: sha512-9oPZCWUoZuwiWVZtytyqFwZ4+qix0u5rma8og2CLtiHOgR6W/eDWEjqWv+8YXh4dx1uKorq+kUtWIMgsWlaTUQ==}
+  '@gotgenes/pi-permission-system@40.0.2':
+    resolution: {integrity: sha512-39MhC2LGB+4q7WJFIyIu5D6utF72+42nw4Pi0VYAL+LfN19DV+SY4f8jrlB/LIVgKNMZ2q0SUhQ30pR3PCu2RQ==}
     engines: {node: '>=22'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=1.0.0'
@@ -7494,7 +7494,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@gotgenes/pi-permission-system@40.0.0(patch_hash=aa14f0d9f2b59de7467552d5b41abf940717225c2743f62fff60b8928888ff67)(@earendil-works/pi-coding-agent@1.0.4(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@1.0.4)':
+  '@gotgenes/pi-permission-system@40.0.2(patch_hash=8e1a3e681c4835547659d85d22d446e7856db5f7943a5cda3e7b20c8f68d15e3)(@earendil-works/pi-coding-agent@1.0.4(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5))(@earendil-works/pi-tui@1.0.4)':
     dependencies:
       '@earendil-works/pi-coding-agent': 1.0.4(@aws-sdk/credential-provider-node@3.972.83)(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5)
       '@earendil-works/pi-tui': 1.0.4

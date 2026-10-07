@@ -8,6 +8,7 @@ import {
 	createBashToolDefinition,
 } from "@earendil-works/pi-coding-agent";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +16,8 @@ import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { preparePiAdapters, createPiBuiltinExtensionFactories } from "./pi-adapters";
 import { createPiToolRendererProjection } from "./extension-tool-renderer";
 import { piBranchProjectionSource } from "../types";
+import { createPiExtensionUi } from "./extension-ui-context";
+import { createExtensionUiBridge } from "../../pi-protocol/extension-ui";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -99,6 +102,82 @@ async function fixture() {
 }
 
 describe("bundled Pi adapters", () => {
+	it("applies absolute Bash rules to relative paths inside execution modifiers", async () => {
+		const f = await fixture();
+		vi.stubEnv("PI_CODING_AGENT_DIR", f.agentDir);
+		const require = createRequire(new URL("../../../../host/package.json", import.meta.url));
+		const entry = join(require.resolve("@gotgenes/pi-permission-system"), "..", "index.ts");
+		const config = join(f.agentDir, "extensions", "pi-permission-system");
+		await mkdir(config, { recursive: true });
+		await writeFile(join(f.cwd, "ask.txt"), "Fixture");
+		await writeFile(join(f.cwd, "deny.txt"), "Fixture");
+		await writeFile(
+			join(config, "config.json"),
+			JSON.stringify({
+				permission: {
+					"*": "allow",
+					bash: {
+						"*": "allow",
+						[`cat ${join(f.cwd, "ask.txt")}`]: "ask",
+						[`cat ${join(f.cwd, "deny.txt")}`]: "deny",
+					},
+				},
+			}),
+		);
+		const resourceLoader = new DefaultResourceLoader({
+			cwd: f.cwd,
+			agentDir: f.agentDir,
+			additionalExtensionPaths: [entry],
+		});
+		await resourceLoader.reload();
+		expect(resourceLoader.getExtensions().errors).toEqual([]);
+		const { session } = await createAgentSession({
+			cwd: f.cwd,
+			agentDir: f.agentDir,
+			resourceLoader,
+			sessionManager: SessionManager.inMemory(f.cwd),
+		});
+		const bridge = createExtensionUiBridge();
+		const ui = createPiExtensionUi(bridge);
+		const prompts: string[] = [];
+		try {
+			await session.bindExtensions({
+				uiContext: {
+					...ui.createPiExtensionUiContext({ cwd: f.cwd, sessionId: session.sessionId }),
+					select: async (title) => {
+						prompts.push(title);
+						return "No";
+					},
+				},
+			});
+			for (const prefix of [
+				"",
+				"time -p ",
+				"timeout 3 ",
+				"nice -n 5 ",
+				"stdbuf -oL ",
+				"setsid ",
+				"timeout 3 nice -n 5 ",
+			]) {
+				const before = prompts.length;
+				for (const file of ["ask.txt", "deny.txt"]) {
+					const result = await session.extensionRunner.emitToolCall({
+						type: "tool_call",
+						toolName: "bash",
+						toolCallId: `${prefix}-${file}`,
+						input: { command: `${prefix}cat ./${file}` },
+					});
+					expect(result?.block, `${prefix}${file}`).toBe(true);
+				}
+				expect(prompts.length, prefix).toBe(before + 1);
+			}
+		} finally {
+			await session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" });
+			session.dispose();
+			await ui.dispose();
+			bridge.dispose();
+		}
+	});
 	it("projects unregistered tool renderers and isolates resolver failures from transcript content", async () => {
 		const f = await fixture();
 		const resourceLoader = new DefaultResourceLoader({

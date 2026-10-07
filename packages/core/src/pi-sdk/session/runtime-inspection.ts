@@ -12,6 +12,9 @@ import type { PiAgentSessionRuntime } from "../types";
 import type { PiRuntimeOperationCoordinator } from "./runtime-operations";
 import type { createPiRuntimeSessionActions } from "./runtime-session-actions";
 import { importPiSession } from "./session-import";
+import { readSessionToolFilter } from "./session-tool-filter";
+import type { SessionToolFilter } from "@ling/contracts/session-tool-filter";
+import { createLingError } from "../../ling-error";
 
 export function createPiRuntimeInspection(owner: {
 	runtime(): PiAgentSessionRuntime;
@@ -19,6 +22,7 @@ export function createPiRuntimeInspection(owner: {
 	sessionActions: Pick<ReturnType<typeof createPiRuntimeSessionActions>, "navigateTree">;
 	isBusy(): boolean;
 	changed(): void;
+	updateToolFilter(filter: SessionToolFilter): Promise<void>;
 	importSession(path: string): Promise<{ cancelled: boolean }>;
 }) {
 	return {
@@ -56,6 +60,7 @@ export function createPiRuntimeInspection(owner: {
 				return {
 					leafId: manager.getLeafId(),
 					busy,
+					toolFilter: readSessionToolFilter(manager),
 					total: entries.length,
 					offset,
 					entries: entries.slice(offset, offset + SESSION_TREE_PAGE_SIZE).map(({ entry, branchDepth }) => {
@@ -112,6 +117,7 @@ export function createPiRuntimeInspection(owner: {
 			});
 		},
 		controlSession(action: SessionControl) {
+			if (action.type === "toolFilter") return owner.updateToolFilter(action.filter).then(() => ({ cancelled: false }));
 			if (action.type === "navigate")
 				return owner.operations.runOrderedMutation(async () => {
 					const result = await owner.sessionActions.navigateTree(action.entryId, {
@@ -134,6 +140,15 @@ export function createPiRuntimeInspection(owner: {
 						if (action.enabled) names.add(action.name);
 						else names.delete(action.name);
 						session.setActiveToolsByName([...names]);
+						if (session.getActiveToolNames().includes(action.name) !== action.enabled) {
+							throw createLingError({
+								code: "INVALID_REQUEST",
+								category: "validation",
+								message:
+									"Pi could not change this tool. Check the session tool filter and the tool's exposure settings.",
+								retryable: false,
+							});
+						}
 						break;
 					}
 					case "flag": {

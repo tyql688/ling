@@ -2154,6 +2154,21 @@
 			"tools": "Tool selection",
 			"toolCall": "Tool call"
 		},
-		"searchTools": "Search tools"
+		"searchTools": "Search tools",
+		"toolFilter": {
+			"title": "Tool filters",
+			"hint": "Applies to this conversation and is saved with its history. Use commas or new lines to separate names. * matches any characters. Applying reloads extensions and resets the active tool selection.",
+			"mode": "Tool selection",
+			"defaults": "Pi defaults",
+			"custom": "Matching tools",
+			"none": "Disable all tools",
+			"allow": "Allowed names or patterns",
+			"exclude": "Excluded names or patterns",
+			"mcpHint": "Exclusions take priority. A nonempty allowlist without mcp__ entries keeps MCP tools registered. Their exposure settings still apply. Add mcp__ patterns to filter them too.",
+			"disableMcp": "Disable built-in MCP for this conversation",
+			"mcpOverrideHint": "MCP extensions installed by you follow their own settings.",
+			"invalid": "Enter at least one allowed pattern, or choose Disable all tools. Each list supports 128 patterns of up to 1,024 characters.",
+			"apply": "Apply and reload"
+		}
 	}
 }

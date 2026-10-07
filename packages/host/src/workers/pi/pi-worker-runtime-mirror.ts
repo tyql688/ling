@@ -25,7 +25,7 @@ const SNAPSHOT_EVENT_CAPACITY = 1_024;
 
 export interface PiWorkerRuntimeTransport {
 	call: PiCall;
-	release(runtimeId: string): void;
+	release(runtimeId: string, error?: Error): void;
 	fail(runtimeId: string, error: Error): void;
 }
 
@@ -136,7 +136,7 @@ export function createPiWorkerRuntimeMirror(
 			relatedRefs: uniqueSessionRefs(relatedRefs.map(cloneRef)),
 		};
 		hostBusy = false;
-		transport.release(runtimeId);
+		transport.release(runtimeId, error);
 		notifyListeners(
 			lifecycleFailureListeners,
 			"Pi worker lifecycle failure",

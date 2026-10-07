@@ -24,7 +24,7 @@ Resolve the current project and the actual Pi agent directory before editing. `<
 | Project Pi Config panel | The same scoped configuration editor as Pi Settings; inspect configured, inherited and effective values, edit trusted projects or reset overrides |
 | MCP configuration | `ling_mcp` or Settings → MCP services; see the MCP reference for official global/project configuration |
 | Global instructions | `<agent-dir>/AGENTS.md`, `SYSTEM.md`, and `APPEND_SYSTEM.md`; Ling provides editors for these files |
-| Session Details | `/session` or the composer button: active tools, branch navigation and labels, system prompt, runtime extension flags, context/cache status and HTML/JSONL import/export |
+| Session Details | `/session` or the composer button: active tools and tool filters, branch navigation and labels, system prompt, runtime extension flags, context/cache status and HTML/JSONL import/export |
 | Credentials and models | Pi's `auth.json` and `models.json` under `<agent-dir>`; use Ling's credential/model controls when available and never print secrets |
 | Session history | Pi files under `<agent-dir>/sessions`; locate the actual session rather than reconstructing its filename or editing a live log |
 | Ling app state | Separate app data; `LING_USER_DATA_DIR` moves it without moving Pi data or `~/.ling/skins` |
@@ -37,6 +37,14 @@ Check the CLI version and agent directory when behavior differs. Ling ships its 
 Azure uses the provider ID `azure`. For a saved provider ID of `azure-openai-responses`, update the provider keys in `auth.json` and `models.json`, and references in `settings.json` (`defaultProvider`, `enabledModels`, and `modelThinkingLevels`). Its models can use the `azure-openai-responses` or `openai-completions` API protocol; preserve that protocol when updating a provider ID. Configure the endpoint with `AZURE_OPENAI_BASE_URL` or `AZURE_OPENAI_RESOURCE_NAME`; `AZURE_OPENAI_DEPLOYMENT_NAME_MAP` maps catalog model IDs to deployment names. Use the installed Pi documentation for the accepted credential and model fields and preserve unrelated entries. After opening an existing Azure session, verify its selected provider and model before sending a message.
 
 Enable `codemode` for the current conversation in Session Details → Tools. Pi's `defaultTools` setting controls the starting tool set for new sessions; preserve the other tools when changing it. Codemode's `image()` shows an image and includes its temporary file path in the result. Ling keeps the image in session history for preview and download. Use a file tool with the required permission to copy the temporary file into the project when the user needs a working file; a temporary path is not permanent storage.
+
+For an existing image, Codemode can call `image(await tools.read({ path: "image.png" }))`. The read tool returns image content, and its usual permission checks apply to the nested call.
+
+## Choose tools for one conversation
+
+Open Session Details → Tools → Tool filters. Choose Pi defaults, matching tools, or disable all tools. Enter names or `*` patterns separated by commas or new lines. Exclusions take priority. A nonempty allowlist without a `mcp__` entry keeps MCP tools registered. Their exposure still applies: Codemode can call `codemode` and `deferred` tools, while `direct` tools must also match the allowlist to activate. Add patterns such as `mcp__docs__*` to filter MCP tools as well. The built-in MCP switch applies to this conversation. User-installed MCP replacements follow their own configuration.
+
+Apply while the conversation is idle. Ling reloads extensions and resets the active tool selection. Check the resulting list before the next turn. The filter is saved with conversation history and survives resource reload and reopening. Pi persists a new session when its first conversation message arrives. Navigating within a session keeps that file's current filter; a fork inherits filter entries on the copied history path. Tool filters control availability, and permission rules determine approval for each callable tool.
 
 ## Change or diagnose a setting
 

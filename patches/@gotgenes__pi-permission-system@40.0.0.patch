@@ -1,0 +1,138 @@
+diff --git a/src/access-intent/bash/command-enumeration.ts b/src/access-intent/bash/command-enumeration.ts
+index fc3cbefe5bd8cbba1f7ea31fff47b30b29b2f37a..fcb7dab11f01d03aeb2d7d068e302cfdcad5b537 100644
+--- a/src/access-intent/bash/command-enumeration.ts
++++ b/src/access-intent/bash/command-enumeration.ts
+@@ -47,6 +47,8 @@ export interface BashCommand {
+    * by its own walk rather than read off this string (#803).
+    */
+   readonly executedUnit?: string;
++  /** Absolute argument spelling of the inner command. */
++  readonly executedSpelling?: string;
+   /**
+    * Set when this wrapper unit's floor has no reason left to hold, naming the
+    * reason (#803). Only ever present alongside `wrapperKind: "indirection"`
+@@ -452,6 +454,8 @@ function unresolvedScope(node: TSNode, scope: UnitScope): UnitScope {
+ interface UnitFacts {
+   readonly wrapperKind?: WrapperKind;
+   readonly executedUnit?: string;
++  /** Absolute argument spelling of the inner command. */
++  readonly executedSpelling?: string;
+   readonly floorExemption?: FloorExemption;
+   readonly spellings?: readonly string[];
+ }
+@@ -461,15 +465,25 @@ function makeUnit(
+   scope: UnitScope,
+   facts: UnitFacts = {},
+ ): BashCommand {
+-  const { wrapperKind, executedUnit, floorExemption, spellings } = facts;
++  const {
++    wrapperKind,
++    executedUnit,
++    executedSpelling,
++    floorExemption,
++    spellings,
++  } = facts;
+   const scoped: BashCommand = scope.context
+     ? { text, context: scope.context }
+     : { text };
+   const flagged = wrapperKind ? { ...scoped, wrapperKind } : scoped;
+   const named =
+     executedUnit === undefined ? flagged : { ...flagged, executedUnit };
++  const spelledInner =
++    executedSpelling === undefined ? named : { ...named, executedSpelling };
+   const exempted =
+-    floorExemption === undefined ? named : { ...named, floorExemption };
++    floorExemption === undefined
++      ? spelledInner
++      : { ...spelledInner, floorExemption };
+   const marked: BashCommand = scope.parseUnresolved
+     ? { ...exempted, parseUnresolved: true }
+     : exempted;
+@@ -489,7 +503,10 @@ function makeUnit(
+  * surely as one on the enclosing statement.
+  */
+ function makeCommandUnit(node: TSNode, scope: UnitScope): BashCommand {
+-  const { text, words, argumentSpelling } = readCommandUnit(node, scope);
++  const { text, words, argumentSpelling, spelledWords } = readCommandUnit(
++    node,
++    scope,
++  );
+   return makeUnit(text, scope, {
+     spellings: distinctSpellings(text, [
+       scope.words.spellHomeAtStart(text),
+@@ -497,6 +514,10 @@ function makeCommandUnit(node: TSNode, scope: UnitScope): BashCommand {
+     ]),
+     wrapperKind: classifyWrapperWords(words),
+     executedUnit: executedUnitOf(text, words) ?? undefined,
++    executedSpelling:
++      argumentSpelling && spelledWords
++        ? (executedUnitOf(argumentSpelling, spelledWords) ?? undefined)
++        : undefined,
+     floorExemption: floorExemptionOf(words, redirectedScope(node, scope)),
+   });
+ }
+@@ -554,12 +575,14 @@ function readCommandUnit(
+   text: string;
+   words: CommandWord[];
+   argumentSpelling?: string;
++  spelledWords?: CommandWord[];
+ } {
+   const nodes = commandWordNodes(node);
+   if (nodes.length === 0) return { text: node.text, words: [] };
+-
++
+   const redirects = hostedRedirects(node);
+   const words: CommandWord[] = [];
++  const spelledWords: CommandWord[] = [];
+   let text = "";
+   let spelled = "";
+   let respelled = false;
+@@ -577,11 +600,16 @@ function readCommandUnit(
+       ? undefined
+       : scope.speller?.absoluteSpellingOf(word);
+     respelled ||= spelling !== undefined;
++    spelledWords.push({
++      ...argWord,
++      text: spelling ?? word.text,
++      offset: spelled.length,
++    });
+     spelled += spelling ?? word.text;
+     previous = word;
+   }
+   return respelled
+-    ? { text, words, argumentSpelling: spelled }
++    ? { text, words, argumentSpelling: spelled, spelledWords }
+     : { text, words };
+ }
+-
++
+diff --git a/src/handlers/gates/bash-command.ts b/src/handlers/gates/bash-command.ts
+index 9c4ccf7e7f1778652d66683e0ea43b9846643f3a..79860d2bac24e18560032e1cbc62824d543a716a 100644
+--- a/src/handlers/gates/bash-command.ts
++++ b/src/handlers/gates/bash-command.ts
+@@ -274,7 +274,12 @@ function resolveWrapperUnit(
+   // `command`, and naming a fragment of the command line there would offer a
+   // grant that does not cover what the user is looking at.
+   return {
+-    ...resolveOnBashSurface(inner, [], agentName, resolver),
++    ...resolveOnBashSurface(
++      inner,
++      cmd.executedSpelling ? [cmd.executedSpelling] : [],
++      agentName,
++      resolver,
++    ),
+     command: base.command,
+     floorExemption: cmd.floorExemption,
+   };
+@@ -300,9 +305,8 @@ function isTriviallyEmptyCommand(command: string): boolean {
+  *
+  * Three callers share it: each command unit of the chain, the whole command
+  * when the chain yields no units, and the inner command of a wrapper the floor
+- * no longer covers. Only a unit has spellings: they come from the program
+- * analysis that produced it, and the whole command or a wrapper's inner text
+- * has no unit of its own to carry them.
++ * exempts. The program analysis supplies absolute argument spellings for
++ * both the enclosing unit and its inner command.
+  */
+ function resolveOnBashSurface(
+   command: string,

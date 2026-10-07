@@ -1,5 +1,5 @@
-/** Version 5 assigns a worker role before loading project resources. */
-export const PI_WORKER_PROTOCOL_VERSION = 5 as const;
+/** Wire compatibility version for worker roles and session operations. */
+export const PI_WORKER_PROTOCOL_VERSION = 6 as const;
 
 export const PI_WORKER_REQUEST_MAX_BYTES = 64 * 1024 * 1024;
 

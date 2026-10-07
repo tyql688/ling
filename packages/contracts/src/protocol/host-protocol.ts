@@ -6,7 +6,7 @@ import { SESSION_IMAGE_MAX_ITEMS, SESSION_IMAGE_TOTAL_MAX_BYTES, SESSION_MESSAGE
 import { lingErrorDtoSchema, type LingErrorDto } from "../ling-error";
 
 /** Breaking generation of the client/host wire contract; incompatible peers must refuse to connect. */
-export const HOST_PROTOCOL_VERSION = 5;
+export const HOST_PROTOCOL_VERSION = 6;
 /** Maximum characters in a client or request id; bounds replay-cache keys and diagnostics. */
 const HOST_PROTOCOL_ID_MAX_CHARS = 128;
 /** Maximum characters in a method or event channel; bounds dispatch keys before domain parsing. */

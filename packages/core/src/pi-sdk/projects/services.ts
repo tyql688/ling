@@ -244,6 +244,7 @@ export function createPiProjectServices({
 			options: {
 				sessionManager: PiSessionManager;
 				extensionFlagValues?: Map<string, boolean | string>;
+				disabledBuiltinExtensions?: string[];
 				mode?: PiResourceReloadMode;
 			},
 		): Promise<PiAgentSessionServices> {
@@ -613,6 +614,7 @@ function acquirePiRuntimeServices(
 	options: {
 		sessionManager: PiSessionManager;
 		extensionFlagValues?: Map<string, boolean | string>;
+		disabledBuiltinExtensions?: string[];
 		mode?: PiResourceReloadMode;
 	},
 ): Promise<PiAgentSessionServices> {
@@ -651,6 +653,7 @@ function acquirePiRuntimeServices(
 		// wrapping the turn-lifecycle extensionsOverride carried by this spread.
 		const resourceLoaderOptions = {
 			...turnLifecycleResources,
+			...(options.disabledBuiltinExtensions ? { disabledBuiltinExtensions: options.disabledBuiltinExtensions } : {}),
 			extensionFactories: [toolOrigins.extension, ...turnLifecycleResources.extensionFactories],
 		};
 		let runtimeServices: PiAgentSessionServices | null = null;

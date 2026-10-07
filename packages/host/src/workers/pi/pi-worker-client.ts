@@ -272,7 +272,9 @@ export function createPiWorkerClient(options: PiWorkerClientOptions): PiWorkerCl
 			const transport: PiWorkerRuntimeTransport = {
 				call: (callMethod, callParams, callOptions) =>
 					call(callMethod, callParams, { ...callOptions, host: worker.host.readyPromise }),
-				release: () => {
+				release: (_runtimeId, error) => {
+					// A lifecycle failure may arrive before the command's reply.
+					if (error) requestTransport.rejectHost(worker.host, error);
 					void releaseWorker().catch((error: unknown) =>
 						log.error(`Pi session worker ${runtimeId} did not stop cleanly:`, error),
 					);

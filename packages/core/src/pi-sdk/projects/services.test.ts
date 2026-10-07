@@ -18,6 +18,8 @@ import { createPiTurnLifecycle } from "../session/turn-lifecycle";
 import { createPiMcp } from "../mcp/pi-mcp";
 import { createMcpConfigFile } from "../mcp/mcp-config";
 import { createPiProjectServices } from "./services";
+import { defaultSessionToolFilter } from "@ling/contracts/session-tool-filter";
+import { readSessionToolFilter } from "../session/session-tool-filter";
 
 // Real SDK imports and both resource graphs reload from disk; allow room for concurrent filesystem suites.
 it("loads a session worker's extensions only for its runtime, including after resource reload", async () => {
@@ -257,6 +259,9 @@ export default function(pi) {
 									operations,
 									isBusy: () => false,
 									changed() {},
+									updateToolFilter: async () => {
+										throw new Error("Use the runtime handle to reload tool filters");
+									},
 									importSession: async (path) => {
 										const imported = SessionManager.open(path);
 										expect(imported.getSessionId()).not.toBe(manager.getSessionId());
@@ -489,3 +494,181 @@ it.each(["azure-openai-responses", "azure"])(
 		}
 	},
 );
+
+it("applies session tool filters across registration, reload, disk reopen and failed reconstruction", async () => {
+	const directory = await temporaryDirectory("pi-session-tool-filter");
+	const agentDir = join(directory, "agent");
+	const cwd = join(directory, "project");
+	const modelRuntimes = createPiModelRuntimes(agentDir);
+	const turnLifecycle = createPiTurnLifecycle({ start: async () => {}, finish: async () => {} });
+	const bridge = createExtensionUiBridge();
+	const extensionUi = createPiExtensionUi(bridge);
+	let rejectGeneration = false;
+	const projects = createPiProjectServices({
+		loadCatalogResources: false,
+		agentDir,
+		modelRuntimes,
+		turnLifecycle,
+		skillResources: createLingSkillResources(),
+		builtinExtensions: () => [
+			{
+				name: "filter-fixture",
+				factory(pi) {
+					if (rejectGeneration) throw new Error("Fixture reconstruction failed");
+					const register = (name: string) =>
+						pi.registerTool({
+							name,
+							label: name,
+							description: name,
+							parameters: { type: "object", properties: {} },
+							execute: async () => ({ content: [{ type: "text", text: name }], details: {} }),
+						});
+					register("fixture_keep");
+					register("fixture_drop");
+					register("mcp__alpha__first");
+					register("mcp__beta__first");
+					pi.registerCommand("filter-register", {
+						description: "Register fixture tools",
+						handler: async () => {
+							register("mcp__alpha__late");
+							register("mcp__beta__late");
+						},
+					});
+				},
+			},
+		],
+		resolveProjectTrust: async () => true,
+		readAdapterPlan: async () => ({
+			features: {
+				todo: false,
+				permissions: false,
+				questions: false,
+				"background-tasks": false,
+				schedules: false,
+				voice: false,
+				mcp: true,
+			},
+			voice: null,
+			todo: null,
+			permissions: null,
+		}),
+	});
+	let handle: ReturnType<typeof createPiSessionRuntimeHandle> | undefined;
+	try {
+		await mkdir(agentDir);
+		await mkdir(cwd);
+		await projects.openProject(cwd);
+		const manager = SessionManager.create(cwd, join(directory, "sessions"));
+		const root = manager.appendMessage({ role: "user", content: "Filter fixture", timestamp: 0 });
+		const modelProjection = createPiModelProjection(modelRuntimes);
+		const factory = createPiRuntimeFactory({ projects, modelProjection });
+		let current: Awaited<ReturnType<typeof factory.createRuntimeForSession>>;
+		const runtimeFactory = {
+			...factory,
+			async createRuntimeForSession(...args: Parameters<typeof factory.createRuntimeForSession>) {
+				current = await factory.createRuntimeForSession(...args);
+				return current;
+			},
+		};
+		const open = async (sessionManager: typeof manager) => {
+			const ref = { cwd, sessionId: sessionManager.getSessionId() };
+			const runtime = await runtimeFactory.createRuntimeForSession(ref, sessionManager);
+			const result = createPiSessionRuntimeHandle(
+				{
+					extensionUi,
+					turnLifecycle,
+					modelProjection,
+					runtimeFactory,
+					projects: {
+						getOpenProjectCwd: (path) => projects.getPiServices(path).cwd,
+						releasePiRuntimeServices: projects.releasePiRuntimeServices,
+					},
+					projections: createPiRuntimeProjection(modelProjection),
+				},
+				ref,
+				runtime,
+			);
+			await result.bindExtensions();
+			return result;
+		};
+		handle = await open(manager);
+		const filter = { tools: ["read", "fixture_*", "mcp__alpha__*"], excludeTools: ["*_drop"], disableMcp: true };
+		const applying = handle.controlSession({ type: "toolFilter", filter });
+		await expect(handle.controlSession({ type: "toolFilter", filter: defaultSessionToolFilter() })).rejects.toThrow();
+		await applying;
+		expect((await handle.inspectSession(0)).toolFilter).toEqual(filter);
+		expect(
+			current!.services.resourceLoader.getExtensions().extensions.some((entry) => entry.path === "builtin:mcp"),
+		).toBe(false);
+		expect(
+			current!.session
+				.getAllTools()
+				.map((tool) => tool.name)
+				.sort(),
+		).toEqual(["fixture_keep", "mcp__alpha__first", "read"]);
+		await current!.session.prompt("/filter-register");
+		expect(current!.session.getActiveToolNames().sort()).toEqual([
+			"fixture_keep",
+			"mcp__alpha__first",
+			"mcp__alpha__late",
+			"read",
+		]);
+		await expect(handle.controlSession({ type: "tool", name: "fixture_drop", enabled: true })).rejects.toThrow(
+			"available tools changed",
+		);
+		await handle.reloadResources();
+		expect((await handle.inspectSession(0)).toolFilter).toEqual(filter);
+		await current!.session.navigateTree(root);
+		expect(readSessionToolFilter(manager)).toEqual(filter);
+		const path = manager.getSessionFile()!;
+		await handle.dispose();
+		handle = await open(SessionManager.open(path));
+		expect((await handle.inspectSession(0)).toolFilter).toEqual(filter);
+		expect(
+			current!.session
+				.getAllTools()
+				.map((tool) => tool.name)
+				.sort(),
+		).toEqual(["fixture_keep", "mcp__alpha__first", "read"]);
+		await handle.controlSession({
+			type: "toolFilter",
+			filter: { tools: ["codemode"], excludeTools: [], disableMcp: false },
+		});
+		expect(
+			current!.session
+				.getAllTools()
+				.map((tool) => tool.name)
+				.sort(),
+		).toEqual(["codemode", "mcp__alpha__first", "mcp__beta__first"]);
+		expect(current!.session.getActiveToolNames()).toEqual(["codemode"]);
+		await expect(handle.controlSession({ type: "tool", name: "mcp__alpha__first", enabled: true })).rejects.toThrow(
+			"Check the session tool filter",
+		);
+		expect(
+			current!.services.resourceLoader.getExtensions().extensions.some((entry) => entry.path === "builtin:mcp"),
+		).toBe(true);
+		await handle.controlSession({ type: "toolFilter", filter: { tools: [], excludeTools: [], disableMcp: false } });
+		expect(current!.session.getAllTools()).toEqual([]);
+		await handle.controlSession({ type: "toolFilter", filter: defaultSessionToolFilter() });
+		expect(current!.session.getActiveToolNames()).toContain("read");
+		expect(current!.session.getAllTools().map((tool) => tool.name)).toContain("fixture_drop");
+		rejectGeneration = true;
+		await expect(handle.controlSession({ type: "toolFilter", filter })).rejects.toThrow();
+		expect(readSessionToolFilter(SessionManager.open(path))).toEqual(defaultSessionToolFilter());
+		rejectGeneration = false;
+		await handle.dispose();
+		handle = await open(SessionManager.open(path));
+		expect((await handle.inspectSession(0)).toolFilter).toEqual(defaultSessionToolFilter());
+	} finally {
+		await handle?.dispose();
+		try {
+			await projects.dispose(async () => {});
+		} finally {
+			turnLifecycle.dispose();
+			await extensionUi.dispose();
+			bridge.dispose();
+			await modelRuntimes.dispose();
+			await rm(directory, { recursive: true, force: true });
+		}
+	}
+}, 20_000);

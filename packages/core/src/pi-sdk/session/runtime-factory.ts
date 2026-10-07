@@ -11,6 +11,7 @@ import type { SessionRef } from "@ling/contracts/session-ref";
 import type { PiDiagnostic } from "@ling/contracts/pi-diagnostic";
 import { createLogger } from "../../logger";
 import { assertNoBlockingDiagnostics, collectServiceDiagnostics } from "../diagnostics";
+import { readSessionToolFilter } from "./session-tool-filter";
 import type {
 	PiAgentSession,
 	PiAgentSessionServices,
@@ -29,6 +30,7 @@ interface PiRuntimeServiceAccess {
 		options: {
 			sessionManager: PiSessionManager;
 			extensionFlagValues?: Map<string, boolean | string>;
+			disabledBuiltinExtensions?: string[];
 			mode?: PiResourceReloadMode;
 		},
 	): Promise<PiAgentSessionServices>;
@@ -41,6 +43,7 @@ export interface PiSessionProjectAccess extends PiRuntimeServiceAccess {
 
 export interface RuntimeGenerationState {
 	mode?: PiResourceReloadMode;
+	resetToolSelection?: boolean;
 	model: { provider: string; id: string } | null;
 	thinkingLevel: PiAgentSession["thinkingLevel"];
 	scopedModels: { provider: string; id: string; thinkingLevel?: PiAgentSession["thinkingLevel"] }[];
@@ -281,8 +284,10 @@ export function createPiRuntimeFactory({
 			const selection = pendingSelection;
 			pendingGeneration = null;
 			pendingSelection = null;
+			const toolFilter = readSessionToolFilter(sessionManager);
 			const services = await acquirePiRuntimeServices(cwd, {
 				sessionManager,
+				disabledBuiltinExtensions: toolFilter.disableMcp ? ["mcp"] : [],
 				...(generation ? { extensionFlagValues: new Map(generation.extensionFlagValues), mode: generation.mode } : {}),
 			});
 			try {
@@ -316,6 +321,8 @@ export function createPiRuntimeFactory({
 				const sessionResult = await createAgentSessionWithProjectedAvailability({
 					services,
 					sessionManager,
+					...(toolFilter.tools === null ? {} : { tools: toolFilter.tools }),
+					excludeTools: toolFilter.excludeTools,
 					...(sessionStartEvent ? { sessionStartEvent } : {}),
 					...(model ? { model } : {}),
 					...(generation
@@ -326,7 +333,8 @@ export function createPiRuntimeFactory({
 					...(scopedModels ? { scopedModels } : {}),
 				});
 				installNextTurnAbortGuard(sessionResult.session);
-				restoreRuntimeToolSelection(sessionResult.session, sessionResult.extensionsResult.runtime, generation);
+				if (!generation?.resetToolSelection)
+					restoreRuntimeToolSelection(sessionResult.session, sessionResult.extensionsResult.runtime, generation);
 				return { ...sessionResult, services, diagnostics: services.diagnostics };
 			} catch (error) {
 				releasePiRuntimeServices(services);

@@ -26,6 +26,8 @@ import { sessionBusyFamily } from "./state/session";
 import { useAtomValue } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SessionToolFilterForm } from "./session-tool-filter";
+import type { SessionToolFilter } from "@ling/contracts/session-tool-filter";
 
 type Tab = "overview" | "tools" | "tree" | "prompt" | "flags";
 
@@ -41,8 +43,46 @@ export function SessionInspector({
 	onRestoreText(text: string): void;
 }) {
 	const { t } = useTranslation();
+	const api = useDomainApi("session");
 	// Tree navigation advances the runtime generation; recovered text belongs to the session.
 	const [restored, setRestored] = useState<string | null>(null);
+	const [selectedTab, setSelectedTab] = useState<{ session: string; tab: Tab } | null>(null);
+	const [expandedFilter, setExpandedFilter] = useState<{ session: string; expanded: boolean } | null>(null);
+	const [filterSubmission, setFilterSubmission] = useState<{
+		session: string;
+		filter: SessionToolFilter;
+		pending: boolean;
+		error: string | null;
+	} | null>(null);
+	const filterRequests = useRef(new Map<string, symbol>());
+	useEffect(() => {
+		const requests = filterRequests.current;
+		return () => requests.clear();
+	}, []);
+	const currentSession = binding ? sessionKey(binding.ref) : null;
+	const submission = filterSubmission?.session === currentSession ? filterSubmission : null;
+	async function applyFilter(filter: SessionToolFilter) {
+		if (!binding) return;
+		const session = sessionKey(binding.ref);
+		if (filterRequests.current.has(session)) return;
+		const request = Symbol();
+		filterRequests.current.set(session, request);
+		setFilterSubmission({ session, filter, pending: true, error: null });
+		try {
+			await api.control({ ...binding, action: { type: "toolFilter", filter } });
+			if (filterRequests.current.get(session) === request) {
+				setFilterSubmission((current) => (current?.session === session ? null : current));
+			}
+		} catch (cause) {
+			if (filterRequests.current.get(session) === request) {
+				setFilterSubmission((current) =>
+					current?.session === session ? { ...current, pending: false, error: formatRequestError(cause, t) } : current,
+				);
+			}
+		} finally {
+			if (filterRequests.current.get(session) === request) filterRequests.current.delete(session);
+		}
+	}
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="flex max-h-[85dvh] w-[min(56rem,calc(100vw-2rem))] max-w-none flex-col overflow-hidden">
@@ -51,6 +91,7 @@ export function SessionInspector({
 					<DialogCloseButton aria-label={t("common.close")} />
 				</div>
 				<DialogDescription>{t("sessionInspector.description")}</DialogDescription>
+				{submission?.error && <FeedbackNotice tone="danger">{submission.error}</FeedbackNotice>}
 				{restored && (
 					<FeedbackNotice tone="info">
 						<pre className="max-h-24 overflow-auto whitespace-pre-wrap">{restored}</pre>
@@ -69,6 +110,13 @@ export function SessionInspector({
 					<InspectionContent
 						key={`${binding.ref.cwd}:${binding.ref.sessionId}:${binding.runtimeId}:${binding.generation}`}
 						binding={binding}
+						tab={selectedTab?.session === currentSession ? selectedTab.tab : "overview"}
+						onTabChange={(tab) => setSelectedTab({ session: sessionKey(binding.ref), tab })}
+						filterExpanded={expandedFilter?.session === currentSession && expandedFilter.expanded}
+						onFilterExpandedChange={(expanded) => setExpandedFilter({ session: sessionKey(binding.ref), expanded })}
+						filterDraft={submission?.filter}
+						filterPending={submission?.pending ?? false}
+						onApplyFilter={(filter) => void applyFilter(filter)}
 						onRecoveredText={setRestored}
 					/>
 				)}
@@ -80,19 +128,34 @@ export function SessionInspector({
 
 function InspectionContent({
 	binding,
+	tab,
+	onTabChange,
+	filterExpanded,
+	onFilterExpandedChange,
+	filterDraft,
+	filterPending,
+	onApplyFilter,
 	onRecoveredText,
 }: {
 	binding: SessionInspectionBinding;
+	tab: Tab;
+	onTabChange(tab: Tab): void;
+	filterExpanded: boolean;
+	onFilterExpandedChange(expanded: boolean): void;
+	filterDraft: SessionToolFilter | undefined;
+	filterPending: boolean;
+	onApplyFilter(filter: SessionToolFilter): void;
 	onRecoveredText(text: string): void;
 }) {
 	const api = useDomainApi("session");
 	const busy = useAtomValue(sessionBusyFamily(sessionKey(binding.ref)));
 	const { t } = useTranslation();
-	const [tab, setTab] = useState<Tab>("overview");
 	const [snapshot, setSnapshot] = useState<SessionInspection | null>(null);
 	const [offset, setOffset] = useState(0);
 	const [error, setError] = useState<string | null>(null);
-	const [pending, setPending] = useState(false);
+	const [actionInProgress, setPending] = useState(false);
+	const pending = actionInProgress || filterPending;
+	const actionPending = useRef(false);
 	const upload = useRef<HTMLInputElement>(null);
 	const [query, setQuery] = useState("");
 	const [selected, setSelected] = useState<string | null>(null);
@@ -122,7 +185,8 @@ function InspectionContent({
 		};
 	}, [load]);
 	async function act(action: SessionControl) {
-		if (pending) return;
+		if (pending || actionPending.current) return;
+		actionPending.current = true;
 		setPending(true);
 		setError(null);
 		const revision = ++fence.current;
@@ -137,6 +201,7 @@ function InspectionContent({
 		} catch (cause) {
 			if (revision === fence.current) setError(formatRequestError(cause, t));
 		} finally {
+			actionPending.current = false;
 			setPending(false);
 		}
 	}
@@ -180,7 +245,7 @@ function InspectionContent({
 			<div className="flex flex-wrap items-center justify-between gap-2">
 				<Segmented
 					value={tab}
-					onChange={setTab}
+					onChange={onTabChange}
 					options={(["overview", "tools", "tree", "prompt", "flags"] as const).map((value) => ({
 						value,
 						label: t(`sessionInspector.${value}`),
@@ -264,6 +329,15 @@ function InspectionContent({
 						)}
 						{tab === "tools" && (
 							<>
+								<SessionToolFilterForm
+									key={JSON.stringify(filterDraft ?? snapshot.toolFilter)}
+									filter={filterDraft ?? snapshot.toolFilter}
+									expanded={filterExpanded}
+									onExpandedChange={onFilterExpandedChange}
+									busy={busy}
+									pending={pending}
+									onApply={onApplyFilter}
+								/>
 								<p className="mb-3 text-sm text-text-muted">{t("sessionInspector.toolsHint")}</p>
 								<Input
 									aria-label={t("sessionInspector.searchTools")}

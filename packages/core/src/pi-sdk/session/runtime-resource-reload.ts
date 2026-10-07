@@ -1,6 +1,8 @@
 import type { PiResourceReloadMode } from "@ling/contracts/session";
 import type { SessionRef } from "@ling/contracts/session-ref";
 import { PI_DEFAULT_TOOL_NAMES } from "@ling/contracts/pi-settings";
+import type { SessionToolFilter } from "@ling/contracts/session-tool-filter";
+import { appendSessionToolFilter, readSessionToolFilter } from "./session-tool-filter";
 import { throwAggregateFailures } from "@ling/core/ling-error";
 import { assertNoBlockingDiagnostics } from "../diagnostics";
 import type { PiAgentSession, PiAgentSessionRuntime } from "../types";
@@ -39,6 +41,7 @@ export interface PiRuntimeResourceReload {
 	assertAvailable(): void;
 	reload(mode?: PiResourceReloadMode): Promise<void>;
 	reloadFromCommand(): Promise<void>;
+	updateToolFilter(filter: SessionToolFilter): Promise<void>;
 	recordExtensionError(error: Error): void;
 	emitDeferredIdleEdge(): void;
 }
@@ -94,7 +97,11 @@ export function createPiRuntimeResourceReload(host: RuntimeResourceReloadHost): 
 			);
 		}
 	};
-	const reloadGeneration = async (session: PiAgentSession, mode: PiResourceReloadMode): Promise<void> => {
+	const reloadGeneration = async (
+		session: PiAgentSession,
+		mode: PiResourceReloadMode,
+		resetToolSelection: boolean,
+	): Promise<void> => {
 		const sessionManager = session.sessionManager;
 		generationAvailable = false;
 		const previousRuntime = host.getRuntime();
@@ -110,7 +117,7 @@ export function createPiRuntimeResourceReload(host: RuntimeResourceReloadHost): 
 					reason: "reload",
 				});
 			}
-			const generation = { ...captureRuntimeGenerationState(session, extensionFlagValues), mode };
+			const generation = { ...captureRuntimeGenerationState(session, extensionFlagValues), mode, resetToolSelection };
 			invalidated = true;
 			await invalidateGeneration(previousRuntime, session);
 			await previousRuntime.services.settingsManager.reload();
@@ -146,6 +153,7 @@ export function createPiRuntimeResourceReload(host: RuntimeResourceReloadHost): 
 		permittedRuntimeOperations: number,
 		requireOwningPrompt: boolean,
 		mode: PiResourceReloadMode = "full",
+		toolFilter?: SessionToolFilter,
 	): Promise<void> => {
 		if (active) return active;
 		const lifecycle = host.getLifecycle();
@@ -172,7 +180,20 @@ export function createPiRuntimeResourceReload(host: RuntimeResourceReloadHost): 
 		// re-enter through ctx.reload().
 		const work = Promise.resolve().then(async () => {
 			activeErrors = [];
-			await reloadGeneration(session, mode);
+			const previousFilter = readSessionToolFilter(session.sessionManager);
+			try {
+				if (toolFilter) appendSessionToolFilter(session.sessionManager, toolFilter);
+				await reloadGeneration(session, mode, toolFilter !== undefined);
+			} catch (error) {
+				if (toolFilter) {
+					try {
+						appendSessionToolFilter(session.sessionManager, previousFilter);
+					} catch (rollbackError) {
+						throw new AggregateError([error, rollbackError], "Failed to apply and restore the session tool filter");
+					}
+				}
+				throw error;
+			}
 			const current = host.getRuntime();
 			assertNoBlockingDiagnostics(
 				`Failed to reload session ${current.session.sessionManager.getSessionId()}`,
@@ -225,6 +246,10 @@ export function createPiRuntimeResourceReload(host: RuntimeResourceReloadHost): 
 				return Promise.reject(sessionResourceReloadBusy(host.getRef()));
 			}
 			return start(1, true);
+		},
+		updateToolFilter(filter) {
+			if (active) return Promise.reject(sessionResourceReloadBusy(host.getRef()));
+			return start(0, false, "full", filter);
 		},
 		recordExtensionError(error) {
 			activeErrors?.push(error);

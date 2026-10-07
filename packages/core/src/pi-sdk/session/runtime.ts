@@ -211,6 +211,7 @@ export function createPiSessionRuntimeHandle(
 			sessionActions: ownedSessionActions,
 			isBusy,
 			changed: emitSnapshotChanged,
+			updateToolFilter: (filter) => ownedResourceReload.updateToolFilter(filter),
 			importSession: (path) =>
 				ownedReplacement.replace("switch", null, () => ownedRuntime.importFromJsonl(path, ownedRuntime.cwd)),
 		}),

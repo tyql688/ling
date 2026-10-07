@@ -58,6 +58,7 @@ function fixture() {
 			systemPromptOptions: {
 				cwd: "/project",
 				selectedTools: [],
+				hiddenTools: [],
 				toolSnippets: {},
 				toolGuidelines: {},
 				promptGuidelines: [],

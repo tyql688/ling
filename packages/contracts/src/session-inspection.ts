@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { sessionRefSchema } from "./session-ref";
+import { sessionToolFilterSchema } from "./session-tool-filter";
 
 /** Pages bound tree projection work; large tool bodies stay in the transcript reader. */
 export const SESSION_TREE_PAGE_SIZE = 100;
@@ -15,6 +16,7 @@ export const sessionInspectionBindingSchema = z.strictObject({
 export const sessionInspectionSchema = z.strictObject({
 	leafId: id.nullable(),
 	busy: z.boolean(),
+	toolFilter: sessionToolFilterSchema,
 	total: z.number().int().nonnegative(),
 	offset: z.number().int().nonnegative(),
 	entries: z
@@ -60,6 +62,7 @@ export const sessionInspectionSchema = z.strictObject({
 		.nullable(),
 });
 export const sessionControlSchema = z.discriminatedUnion("type", [
+	z.strictObject({ type: z.literal("toolFilter"), filter: sessionToolFilterSchema }),
 	z.strictObject({ type: z.literal("tool"), name: id, enabled: z.boolean() }),
 	z.strictObject({ type: z.literal("flag"), name: id, value: z.union([z.string().max(65_536), z.boolean()]) }),
 	z.strictObject({ type: z.literal("label"), entryId: id, label: z.string().max(4096) }),

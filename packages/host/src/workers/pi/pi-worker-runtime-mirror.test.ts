@@ -141,9 +141,10 @@ describe("Host runtime mirror", () => {
 		h.read.resolve({ ref, snapshot: state().snapshot, eventSequence: 0 });
 		await rejected;
 		const other = setup();
-		other.mirror.handleHostLost(new Error("gone"));
+		const failure = new Error("gone");
+		other.mirror.handleHostLost(failure);
 		other.mirror.handleHostLost(new Error("gone again"));
-		expect(other.release).toHaveBeenCalledExactlyOnceWith("runtime");
+		expect(other.release).toHaveBeenCalledExactlyOnceWith("runtime", failure);
 		expect(() => other.mirror.assertAvailable()).toThrow("gone");
 		other.mirror.markDisposed();
 	});

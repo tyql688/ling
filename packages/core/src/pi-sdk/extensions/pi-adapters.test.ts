@@ -14,7 +14,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { temporaryDirectory } from "../../../../../test/temporary-directory";
 import { preparePiAdapters, createPiBuiltinExtensionFactories } from "./pi-adapters";
-import { createPiToolRendererProjection } from "./extension-tool-renderer";
+import { createPiToolRendererProjection, hasPiToolRenderers } from "./extension-tool-renderer";
+import { projectPiBranchMessages, projectPiToolResult } from "../session/session-message-projector";
 import { piBranchProjectionSource } from "../types";
 import { createPiExtensionUi } from "./extension-ui-context";
 import { createExtensionUiBridge } from "../../pi-protocol/extension-ui";
@@ -192,10 +193,10 @@ describe("bundled Pi adapters", () => {
 							if (name === "broken") throw new Error("Fixture renderer failed");
 							if (name !== "offline") return next();
 							return {
-								renderCall: () => ({ render: () => ["Offline call"], invalidate() {} }),
+								renderCall: () => ({ render: (width) => [`Offline call ${width}`], invalidate() {} }),
 								renderResult: (_result, options) => ({
-									render: () => [
-										options.isPartial ? "Partial" : options.expanded ? "Expanded result" : "Collapsed result",
+									render: (width) => [
+										`${options.isPartial ? "Partial" : options.expanded ? "Expanded result" : "Collapsed result"} ${width}`,
 									],
 									invalidate() {},
 								}),
@@ -214,7 +215,9 @@ describe("bundled Pi adapters", () => {
 		});
 		try {
 			await session.bindExtensions({});
-			const projection = createPiToolRendererProjection(piBranchProjectionSource(session));
+			let width = 120;
+			const projection = createPiToolRendererProjection(piBranchProjectionSource(session), () => width);
+			expect(hasPiToolRenderers(session)).toBe(true);
 			expect(session.extensionRunner.getToolDefinition("offline")).toBeUndefined();
 			expect(
 				projection.project({
@@ -226,11 +229,15 @@ describe("bundled Pi adapters", () => {
 				}),
 			).toMatchObject({
 				content: [
-					{ rendered: { collapsedLines: ["Offline call"] } },
+					{ rendered: { columns: 120, collapsedLines: ["Offline call 120"] } },
 					{ rendered: { error: "Fixture renderer failed" } },
 				],
 			});
-			expect(projection.projectPartial("offline-call", { content: [] })).toMatchObject({ collapsedLines: ["Partial"] });
+			width = 60;
+			expect(projection.projectPartial("offline-call", { content: [] })).toMatchObject({
+				columns: 60,
+				collapsedLines: ["Partial 60"],
+			});
 			expect(
 				projection.project(
 					{
@@ -244,9 +251,45 @@ describe("bundled Pi adapters", () => {
 				),
 			).toMatchObject({
 				content: [{ text: "Retained result" }],
-				rendered: { collapsedLines: ["Collapsed result"], expandedLines: ["Expanded result"] },
+				rendered: { columns: 60, collapsedLines: ["Collapsed result 60"], expandedLines: ["Expanded result 60"] },
 			});
 			expect(projection.projectPartial("offline-call", { content: [] })).toBeUndefined();
+			session.sessionManager.appendMessage({
+				role: "assistant",
+				content: [{ type: "toolCall", id: "offline-call", name: "offline", arguments: {} }],
+				api: "openai-responses",
+				provider: "test",
+				model: "test",
+				stopReason: "toolUse",
+				timestamp: 1,
+				usage: {
+					input: 0,
+					output: 0,
+					cacheRead: 0,
+					cacheWrite: 0,
+					totalTokens: 0,
+					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+				},
+			});
+			const resultId = session.sessionManager.appendMessage({
+				role: "toolResult",
+				toolCallId: "offline-call",
+				toolName: "offline",
+				isError: false,
+				content: [{ type: "text", text: "Retained result" }],
+				timestamp: 2,
+			});
+			expect(projectPiBranchMessages(piBranchProjectionSource(session), { markdownWidth: 105 })[0]).toMatchObject({
+				content: [{ rendered: { columns: 105, expandedLines: ["Offline call 105"] } }],
+			});
+			for (const columns of [72, 130, 72]) {
+				expect(projectPiToolResult(session, resultId, columns)).toMatchObject({
+					entryId: resultId,
+					content: [{ text: "Retained result" }],
+					renderedCall: { columns, expandedLines: [`Offline call ${columns}`] },
+					rendered: { columns, expandedLines: [`Expanded result ${columns}`] },
+				});
+			}
 		} finally {
 			await session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" });
 			session.dispose();

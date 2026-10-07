@@ -172,7 +172,13 @@ const ToolStepView = memo(
 				</div>
 				{!step.result && <NestedToolProgress session={key} parentId={step.call.id} expanded={expanded} />}
 				{expanded && (
-					<div className={cn("mt-1 ml-7 flex min-w-0 flex-col gap-2", EXPANDED_DETAIL_SCROLL_CLASS)}>
+					<div
+						className={cn(
+							"mt-1 flex min-w-0 flex-col gap-2",
+							expandedCall ? "mx-1" : "ml-7",
+							EXPANDED_DETAIL_SCROLL_CLASS,
+						)}
+					>
 						{!step.result && expandedCall && <RenderedTerminalLines lines={expandedCall.lines} inline />}
 						{!step.result && progress && <ToolProgressBlock progress={progress} />}
 						{step.result && (
@@ -181,7 +187,7 @@ const ToolStepView = memo(
 								showName={false}
 								command={cardHeader}
 								variant="inline"
-								call={expandedCall && <RenderedTerminalLines lines={expandedCall.lines} inline />}
+								call={step.call.rendered}
 							/>
 						)}
 					</div>

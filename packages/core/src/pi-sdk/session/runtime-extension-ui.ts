@@ -7,6 +7,7 @@ import type {
 import type { SessionRef } from "@ling/contracts/session-ref";
 import type { SessionRuntimeTranscriptProjectionReason } from "@ling/core/pi-protocol/runtime-types";
 import type { PiExtensionUi } from "../extensions/extension-ui-context";
+import { hasPiToolRenderers } from "../extensions/extension-tool-renderer";
 import { hasPiMarkdownTransformers } from "../extensions/markdown-transformer";
 import type { PiAgentSessionRuntime } from "../types";
 import type { PiRuntimeOperationCoordinator } from "./runtime-operations";
@@ -107,7 +108,8 @@ async function updateExtensionUiViewport(
 	// the header follows the transcript width, widgets and the footer follow the dock.
 	if (changed.dockColumns || changed.markdownColumns)
 		owner.extensionUi.components.rerenderPiExtensionComponents(owner.ref());
-	if (changed.markdownColumns && hasPiMarkdownTransformers(owner.runtime().session)) {
+	const session = owner.runtime().session;
+	if (changed.markdownColumns && (hasPiMarkdownTransformers(session) || hasPiToolRenderers(session))) {
 		owner.emitTranscriptProjectionChanged("markdownWidth");
 	}
 }

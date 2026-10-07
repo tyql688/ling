@@ -225,7 +225,7 @@ export const piRuntimeMethods = {
 	),
 	"runtime.readToolResult": runtimeMethod(
 		piMethod(
-			z.strictObject({ entryId: identifierSchema }),
+			z.strictObject({ entryId: identifierSchema, renderWidth: dimension }),
 			(value: unknown): ToolResultSessionMessage => {
 				const message = sessionMessageSchema.parse(value);
 				if (message.role !== "toolResult" || message.contentState === "deferred")
@@ -234,7 +234,7 @@ export const piRuntimeMethods = {
 			},
 			runtimeQuery({ timeoutMs: LIFECYCLE_REQUEST_TIMEOUT_MS }),
 		),
-		["entryId"],
+		["entryId", "renderWidth"],
 		{},
 	),
 	/** Bytes of one persisted image; null means its entry or part no longer exists. */

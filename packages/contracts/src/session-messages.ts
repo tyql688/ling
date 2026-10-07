@@ -113,6 +113,8 @@ export interface ToolResultSessionMessage extends SessionMessageIdentity {
 	toolOrigin?: PiToolOrigin;
 	isError: boolean;
 	rendered?: RenderedTextSnapshot;
+	/** Call presentation refreshed with a disclosed result at the requested viewport width. */
+	renderedCall?: RenderedTextSnapshot;
 	nestedCalls?: NestedToolCalls;
 	/** Provider usage reported by SDK-backed tools, when the tool performed a billed model call. */
 	usage?: AssistantUsage;
@@ -156,6 +158,8 @@ export interface CustomSessionMessage extends SessionMessageIdentity {
 }
 
 export interface RenderedTextSnapshot {
+	/** Monospace width used for a tool presentation, so a visible result can refresh after resizing. */
+	columns?: number;
 	collapsedLines?: string[];
 	expandedLines?: string[];
 	error?: string;

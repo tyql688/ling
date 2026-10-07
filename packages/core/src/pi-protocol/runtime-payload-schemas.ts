@@ -63,6 +63,7 @@ const usageSchema = z.strictObject({
 });
 
 const renderedTextSchema = z.strictObject({
+	columns: z.number().int().positive().optional(),
 	collapsedLines: z.array(fieldSchema).max(COLLECTION_MAX_ITEMS).optional(),
 	expandedLines: z.array(fieldSchema).max(COLLECTION_MAX_ITEMS).optional(),
 	error: fieldSchema.optional(),
@@ -129,6 +130,7 @@ export const sessionMessageSchema = z.discriminatedUnion("role", [
 		nestedCalls: nestedToolCallsSchema.optional(),
 		isError: z.boolean(),
 		rendered: renderedTextSchema.optional(),
+		renderedCall: renderedTextSchema.optional(),
 		usage: usageSchema.optional(),
 		details: z.json().optional(),
 	}),

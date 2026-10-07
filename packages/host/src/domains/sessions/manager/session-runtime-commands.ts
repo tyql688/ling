@@ -572,7 +572,7 @@ export function createSessionRuntimeCommands({
 			}
 		};
 		assertCurrent();
-		const result = await interaction.session.readToolResult(request.entryId);
+		const result = await interaction.session.readToolResult(request.entryId, request.renderWidth);
 		assertCurrent();
 		return result;
 	}

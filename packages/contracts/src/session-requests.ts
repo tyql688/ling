@@ -89,6 +89,7 @@ export function createSessionRequestSchemas({
 		...sessionRuntimeTargetShape,
 		entryId: safeIdSchema(MAX_RUNTIME_ID_LENGTH, "Entry id"),
 		expectedTranscriptRevision: nonNegativeIndexSchema,
+		renderWidth: z.number().int().min(1).max(MAX_VIEWPORT_DIMENSION),
 	});
 
 	const sessionRuntimeBindingRequestSchema = z.strictObject(sessionRuntimeTargetShape);

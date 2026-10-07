@@ -64,6 +64,8 @@ export interface SessionView {
 	messages: SessionMessage[];
 	transcript: SessionTranscriptState;
 	toolExecutions: readonly ToolExecutionProgress[];
+	/** Measured monospace columns of the visible transcript; null before layout is available. */
+	viewportColumns: number | null;
 	busy: boolean;
 	summarizationRetry: SummarizationRetryStatus | null;
 	autoRetry: AutoRetryStatus | null;
@@ -82,6 +84,7 @@ export function emptySessionView(epoch = 0): SessionView {
 		messages: [],
 		transcript: emptySessionTranscriptState(epoch),
 		toolExecutions: [],
+		viewportColumns: null,
 		busy: false,
 		summarizationRetry: null,
 		autoRetry: null,
@@ -123,6 +126,7 @@ export const sessionTranscriptStateFamily = sessionField("transcript");
 export const dismissedMcpSettingsRequestFamily = sessionField("dismissedMcpSettingsRequest");
 export const dismissedVoiceSettingsRequestFamily = sessionField("dismissedVoiceSettingsRequest");
 export const sessionToolExecutionsFamily = sessionField("toolExecutions");
+export const sessionViewportColumnsFamily = sessionField("viewportColumns");
 export const sessionBusyFamily = sessionField("busy");
 export const sessionPermissionSourceFamily = sessionField("permissionSource");
 export const sessionSummarizationRetryFamily = sessionField("summarizationRetry");

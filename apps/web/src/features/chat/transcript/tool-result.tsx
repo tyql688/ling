@@ -1,15 +1,15 @@
 import { useDomainApi } from "@renderer/lib/host-api-context";
-import type { ToolResultSessionMessage } from "@ling/contracts/session-messages";
+import type { RenderedTextSnapshot, ToolResultSessionMessage } from "@ling/contracts/session-messages";
 import { sessionKey } from "@ling/contracts/session-ref";
 import { ImagePreviewDialog, type PreviewImage } from "@renderer/components/image-preview-dialog";
 import { partsText } from "@renderer/features/chat/transcript/message-text";
 import { DiffView } from "@renderer/features/review/diff-view";
-import { sessionTranscriptStateFamily } from "@renderer/features/sessions/state/session";
+import { sessionTranscriptStateFamily, sessionViewportColumnsFamily } from "@renderer/features/sessions/state/session";
 import { formatRequestError } from "@renderer/lib/errors";
 import { cn } from "@renderer/lib/utils";
 import { Ansi } from "@renderer/components/ansi";
 import { useAtomValue, useStore } from "jotai";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { TodoToolResult } from "@renderer/features/pi-adapters/todo/todo-tool-result";
 import { useTranslation } from "react-i18next";
 import { projectExtensionTerminalText } from "../extension-ui/extension-terminal-text";
@@ -25,7 +25,7 @@ interface ToolResultProps {
 	showName?: boolean;
 	command?: string | undefined;
 	variant?: "card" | "inline";
-	call?: ReactNode;
+	call?: RenderedTextSnapshot | undefined;
 }
 interface DetailAttempt {
 	binding: string;
@@ -34,18 +34,23 @@ interface DetailAttempt {
 // A cached detail lives only as long as its summary, and is replaced after a runtime/branch change.
 const details = new WeakMap<ToolResultMsg, DetailAttempt>();
 type DetailState = { source: ToolResultMsg; binding: string } & (
-	{ status: "ready"; message: ToolResultMsg } | { status: "error"; error: string }
+	{ status: "ready"; message: ToolResultMsg } | { status: "error"; error: string; message?: ToolResultMsg | undefined }
 );
 
 export function ToolResultBlock(props: ToolResultProps) {
-	if (props.message.contentState !== "deferred") return <LoadedToolResult {...props} />;
-	return <DeferredToolResult {...props} />;
+	const ref = useSessionImageRef();
+	const columns = useAtomValue(sessionViewportColumnsFamily(ref === null ? "" : sessionKey(ref)));
+	const rendered = props.call !== undefined || props.message.rendered !== undefined;
+	if (props.message.contentState !== "deferred" && (!rendered || props.message.entryId === null)) {
+		return <LoadedToolResult {...props} />;
+	}
+	return <DeferredToolResult {...props} renderWidth={columns} />;
 }
 
-function DeferredToolResult(props: ToolResultProps) {
+function DeferredToolResult(props: ToolResultProps & { renderWidth: number | null }) {
 	const hostSessionApi = useDomainApi("session");
 
-	const { message } = props;
+	const { message, renderWidth } = props;
 	const ref = useSessionImageRef();
 	const store = useStore();
 	const key = ref === null ? "" : sessionKey(ref);
@@ -54,7 +59,10 @@ function DeferredToolResult(props: ToolResultProps) {
 	const [state, setState] = useState<DetailState | null>(null);
 	const [attempt, setAttempt] = useState(0);
 	const { t } = useTranslation();
+	const needsLoad =
+		message.contentState === "deferred" || (message.rendered?.columns ?? props.call?.columns) !== renderWidth;
 	useEffect(() => {
+		if (renderWidth === null || !needsLoad) return;
 		// Retained rows can remain visible while resume or resync obtains a fresh binding.
 		if (ref !== null && transcript.runtimeId === null) return;
 		let cancelled = false;
@@ -69,6 +77,7 @@ function DeferredToolResult(props: ToolResultProps) {
 				runtimeId: current.runtimeId,
 				generation: current.generation,
 				expectedTranscriptRevision: current.currentRevision,
+				renderWidth,
 			});
 			if (
 				result.entryId !== message.entryId ||
@@ -80,8 +89,9 @@ function DeferredToolResult(props: ToolResultProps) {
 			return result;
 		};
 		let cached = details.get(message);
-		if (cached?.binding !== binding) {
-			cached = { binding, promise: load() };
+		const cacheBinding = `${binding}:${renderWidth}`;
+		if (cached?.binding !== cacheBinding) {
+			cached = { binding: cacheBinding, promise: load() };
 			details.set(message, cached);
 		}
 		const pending = cached;
@@ -91,39 +101,55 @@ function DeferredToolResult(props: ToolResultProps) {
 			},
 			(cause: unknown) => {
 				if (details.get(message) === pending) details.delete(message);
-				if (!cancelled) setState({ source: message, binding, status: "error", error: formatRequestError(cause) });
+				if (!cancelled)
+					setState((previous) => ({
+						source: message,
+						binding,
+						status: "error",
+						error: formatRequestError(cause),
+						message:
+							previous?.binding === binding && previous.source.entryId === message.entryId
+								? previous.message
+								: undefined,
+					}));
 			},
 		);
 		return () => {
 			cancelled = true;
 		};
-	}, [hostSessionApi, attempt, binding, key, message, ref, store, transcript.runtimeId]);
-	const current = state?.source === message && state.binding === binding ? state : null;
-	if (current?.status === "ready") return <LoadedToolResult {...props} message={current.message} />;
+	}, [hostSessionApi, attempt, binding, key, message, ref, store, transcript.runtimeId, renderWidth, needsLoad]);
+	const current = state?.source.entryId === message.entryId && state.binding === binding ? state : null;
+	const retained = !needsLoad
+		? message
+		: (current?.message ?? (message.contentState !== "deferred" ? message : undefined));
 	return (
 		<>
-			{props.call}
-			{current?.status === "error" ? (
+			{retained ? <LoadedToolResult {...props} message={retained} /> : <ToolCallLines rendered={props.call} />}
+			{needsLoad && current?.status === "error" ? (
 				<div role="alert" className="flex items-center gap-2 text-xs text-danger">
 					<span>{current.error}</span>
 					<button
 						type="button"
 						className="shrink-0 underline"
 						onClick={() => {
-							setState(null);
 							setAttempt((value) => value + 1);
 						}}
 					>
 						{t("session.retry")}
 					</button>
 				</div>
-			) : (
+			) : !retained ? (
 				<div role="status" className="py-2 text-xs text-text-muted">
 					{t("session.loadingToolDetails")}
 				</div>
-			)}
+			) : null}
 		</>
 	);
+}
+
+function ToolCallLines({ rendered }: { rendered: RenderedTextSnapshot | undefined }) {
+	const call = rendered?.error ? null : selectCustomMessageRenderedLines(rendered, true);
+	return call ? <RenderedTerminalLines lines={call.lines} inline /> : null;
 }
 
 function LoadedToolResult(props: ToolResultProps) {
@@ -134,7 +160,7 @@ function LoadedToolResult(props: ToolResultProps) {
 	const { message } = props;
 	return (
 		<TodoToolResult message={message}>
-			{props.call}
+			<ToolCallLines rendered={message.renderedCall ?? props.call} />
 			{rendered ? (
 				<RenderedTerminalLines lines={rendered.lines} inline={props.variant === "inline"} />
 			) : (

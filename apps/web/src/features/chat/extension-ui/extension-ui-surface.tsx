@@ -16,6 +16,8 @@ import {
 import { extensionKeyData } from "./extension-terminal-keys";
 import { projectExtensionTerminalText } from "./extension-terminal-text";
 import { createExtensionViewportMeasurer } from "./extension-ui-viewport";
+import { useStore } from "jotai";
+import { sessionViewportColumnsFamily } from "@renderer/features/sessions/state/session";
 
 /** Displays Pi extension UI in the browser. Headers appear in the transcript. Custom panels handle their overlay layout and input. The extension dock shows persistent status, widgets, footer and notification history. */
 type ExtensionCustomPanelState = NonNullable<ExtensionUiStateSnapshot["customPanel"]>;
@@ -158,6 +160,7 @@ export function ExtensionCustomPanel({
 	onError: (error: unknown) => void;
 }) {
 	const hostSessionApi = useDomainApi("session");
+	const store = useStore();
 
 	const { t } = useTranslation();
 	const panelRef = useRef<HTMLDivElement | null>(null);
@@ -193,6 +196,7 @@ export function ExtensionCustomPanel({
 			animationFrame = 0;
 			const viewport = measurer.measure();
 			if (!viewport) return;
+			store.set(sessionViewportColumnsFamily(currentSessionKey), viewport.markdownColumns);
 			const key = `${viewport.columns}:${viewport.rows}:${viewport.markdownColumns}:${viewport.dockColumns}`;
 			if (lastViewportKeyRef.current === key) return;
 			lastViewportKeyRef.current = key;
@@ -215,7 +219,7 @@ export function ExtensionCustomPanel({
 			observer?.disconnect();
 			measurer.dispose();
 		};
-	}, [hostSessionApi, sessionRef, onError]);
+	}, [hostSessionApi, sessionRef, onError, store]);
 
 	if (!sessionRef || !panel || panel.hidden) return null;
 

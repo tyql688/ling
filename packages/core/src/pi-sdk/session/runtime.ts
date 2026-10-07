@@ -274,9 +274,9 @@ export function createPiSessionRuntimeHandle(
 			if (ownedRuntime.session === session) appliedCacheWarmingMode = mode;
 		},
 		reloadResources,
-		async readToolResult(entryId: string) {
+		async readToolResult(entryId: string, renderWidth: number) {
 			assertRuntimeGenerationReadable();
-			return projectPiToolResult(ownedRuntime.session, entryId, markdownWidth());
+			return projectPiToolResult(ownedRuntime.session, entryId, renderWidth);
 		},
 		subscribe,
 		abort,

@@ -22,6 +22,16 @@ interface TrackedToolCall {
 /** A normal turn has only a handful of calls; malformed/missing results must not retain every args object. */
 const MAX_PENDING_TOOL_RENDERER_CALLS = 128;
 
+export function hasPiToolRenderers(session: PiAgentSession): boolean {
+	return session.resourceLoader
+		.getExtensions()
+		.extensions.some(
+			(extension) =>
+				Boolean(extension.toolRenderers?.length) ||
+				[...extension.tools.values()].some(({ definition }) => definition.renderCall || definition.renderResult),
+		);
+}
+
 function renderContext(
 	call: TrackedToolCall,
 	toolCallId: string,
@@ -46,13 +56,13 @@ function renderContext(
 	};
 }
 
-function renderLines(component: unknown, toolName: string): string[] {
+function renderLines(component: unknown, toolName: string, width: number): string[] {
 	if (!isPiRenderableComponent(component))
 		throw new Error(`Tool renderer for ${toolName} returned an invalid component`);
 	try {
 		return renderPiComponentLines(
 			component,
-			EXTENSION_UI_RENDER_WIDTH,
+			width,
 			() => new Error(`Tool renderer for ${toolName} returned invalid lines`),
 		);
 	} finally {
@@ -66,10 +76,12 @@ function renderCallVariant(
 	toolCallId: string,
 	expanded: boolean,
 	state: Record<string, unknown>,
+	width: number,
 ): string[] {
 	return renderLines(
 		renderer(call.args, lingWidgetTheme, renderContext(call, toolCallId, expanded, state, false)),
 		call.name,
+		width,
 	);
 }
 
@@ -80,10 +92,11 @@ function renderResultVariant(
 	result: PiToolResult,
 	expanded: boolean,
 	isError: boolean,
+	width: number,
 	isPartial = false,
 ): string[] {
 	const state: Record<string, unknown> = {};
-	if (definition.renderCall) renderCallVariant(definition.renderCall, call, toolCallId, expanded, state);
+	if (definition.renderCall) renderCallVariant(definition.renderCall, call, toolCallId, expanded, state, width);
 	const renderer = definition.renderResult;
 	if (!renderer) return [];
 	return renderLines(
@@ -94,6 +107,7 @@ function renderResultVariant(
 			renderContext(call, toolCallId, expanded, state, isError, isPartial),
 		),
 		call.name,
+		width,
 	);
 }
 
@@ -106,13 +120,15 @@ function renderCallSnapshot(
 	owner: PiBranchProjectionSource,
 	call: TrackedToolCall,
 	toolCallId: string,
+	width: number,
 ): RenderedTextSnapshot | undefined {
 	try {
 		const definition = resolveToolRenderers(owner, call.name);
 		if (!definition?.renderCall) return undefined;
 		return {
-			collapsedLines: renderCallVariant(definition.renderCall, call, toolCallId, false, {}),
-			expandedLines: renderCallVariant(definition.renderCall, call, toolCallId, true, {}),
+			columns: width,
+			collapsedLines: renderCallVariant(definition.renderCall, call, toolCallId, false, {}, width),
+			expandedLines: renderCallVariant(definition.renderCall, call, toolCallId, true, {}, width),
 		};
 	} catch (error) {
 		return { error: toCommandError(error).message };
@@ -125,12 +141,14 @@ function renderResultSnapshot(
 	toolCallId: string,
 	result: unknown,
 	isError: boolean,
+	width: number,
 	isPartial = false,
 ): RenderedTextSnapshot | undefined {
 	try {
 		const definition = resolveToolRenderers(owner, call.name);
 		if (!definition?.renderResult) return undefined;
 		return {
+			columns: width,
 			collapsedLines: renderResultVariant(
 				definition,
 				call,
@@ -138,6 +156,7 @@ function renderResultSnapshot(
 				result as PiToolResult,
 				false,
 				isError,
+				width,
 				isPartial,
 			),
 			expandedLines: renderResultVariant(
@@ -147,6 +166,7 @@ function renderResultSnapshot(
 				result as PiToolResult,
 				true,
 				isError,
+				width,
 				isPartial,
 			),
 		};
@@ -156,7 +176,10 @@ function renderResultSnapshot(
 }
 
 /** One projection instance preserves call arguments until the matching result appears. */
-export function createPiToolRendererProjection(owner: PiBranchProjectionSource) {
+export function createPiToolRendererProjection(
+	owner: PiBranchProjectionSource,
+	getWidth: () => number = () => EXTENSION_UI_RENDER_WIDTH,
+) {
 	const originFor = createPiToolOrigins(owner.sessionManager);
 	const calls = new Map<string, TrackedToolCall>();
 	const rememberCall = (toolCallId: string, call: TrackedToolCall): void => {
@@ -180,7 +203,7 @@ export function createPiToolRendererProjection(owner: PiBranchProjectionSource) 
 					}
 					const call = { name: part.name, args: record(part.arguments) ?? {}, cwd: owner.sessionManager.getCwd() };
 					rememberCall(part.id, call);
-					const rendered = renderCallSnapshot(owner, call, part.id);
+					const rendered = renderCallSnapshot(owner, call, part.id, getWidth());
 					if (!rendered) return candidate;
 					changed = true;
 					return { ...part, rendered };
@@ -201,7 +224,7 @@ export function createPiToolRendererProjection(owner: PiBranchProjectionSource) 
 					return { ...result, content: [], details: undefined, rendered: undefined, contentState: "deferred" };
 				}
 				if (!call || call.name !== source.toolName) return result;
-				const rendered = renderResultSnapshot(owner, call, source.toolCallId, source, source.isError);
+				const rendered = renderResultSnapshot(owner, call, source.toolCallId, source, source.isError, getWidth());
 				return rendered ? { ...result, rendered } : result;
 			}
 			return value;
@@ -209,7 +232,7 @@ export function createPiToolRendererProjection(owner: PiBranchProjectionSource) 
 		projectPartial(toolCallId: string, result: unknown): RenderedTextSnapshot | undefined {
 			const call = calls.get(toolCallId);
 			if (!call) return undefined;
-			return renderResultSnapshot(owner, call, toolCallId, result, false, true);
+			return renderResultSnapshot(owner, call, toolCallId, result, false, getWidth(), true);
 		},
 		clear(): void {
 			calls.clear();

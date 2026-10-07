@@ -11,6 +11,7 @@ import { hasPiMarkdownTransformers } from "../extensions/markdown-transformer";
 import { type PiAgentSession, type PiAgentSessionRuntime, piBranchProjectionSource } from "../types";
 import { runtimeDiagnostics } from "./runtime-factory";
 import { projectPiBranchMessages, summarizePiBranchMessages } from "./session-message-projector";
+import { hasPiToolRenderers } from "../extensions/extension-tool-renderer";
 import { readSessionOrigin } from "./session-origin";
 import { getPiPermissionSource } from "../extensions/pi-adapters";
 
@@ -214,7 +215,7 @@ export function createPiRuntimeProjection(modelProjection: PiModelProjection) {
 			.update("\0projection-environment\0")
 			.update(projectionEnvironmentKey(session))
 			.update("\0markdown-width\0")
-			.update(hasPiMarkdownTransformers(session) ? String(markdownWidth) : "unused")
+			.update(hasPiMarkdownTransformers(session) || hasPiToolRenderers(session) ? String(markdownWidth) : "unused")
 			.digest("base64url");
 	}
 

@@ -59,7 +59,7 @@ const handlers: PiMethodHandlers<Pick<typeof piRuntimeMethods, RuntimeCallMethod
 	"runtime.readToolResult": async (args, options) => {
 		const { runtime } = options;
 		const parsed = args;
-		return await runtime.readToolResult(parsed.entryId);
+		return await runtime.readToolResult(parsed.entryId, parsed.renderWidth);
 	},
 	"runtime.readImagePart": async (args, options) => {
 		const { runtime } = options;

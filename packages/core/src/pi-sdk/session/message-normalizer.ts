@@ -406,7 +406,9 @@ function normalizeRendered(value: unknown): RenderedCustomSessionMessage | undef
 		? source.expandedLines.filter((line): line is string => typeof line === "string").slice(0, MAX_ARRAY_ITEMS)
 		: undefined;
 	const error = typeof source.error === "string" ? boundedString(source.error) : undefined;
+	const columns = nonNegativeSafeInteger(source.columns);
 	return {
+		...(columns !== null && columns > 0 ? { columns } : {}),
 		...(collapsedLines ? { collapsedLines: collapsedLines.map((line) => boundedString(line)) } : {}),
 		...(expandedLines ? { expandedLines: expandedLines.map((line) => boundedString(line)) } : {}),
 		...(error ? { error } : {}),

@@ -163,7 +163,7 @@ export function createPiSessionEventAdapter(options: PiSessionEventAdapterOption
 	const generation = createAssistantGeneration(session.sessionManager);
 	const lastEndedIdByRole = new Map<string, string>();
 	const persistedEntryByMessageId = new Map<string, string>();
-	const toolRenderer = createPiToolRendererProjection(piBranchProjectionSource(session));
+	const toolRenderer = createPiToolRendererProjection(piBranchProjectionSource(session), getMarkdownWidth);
 	let pendingMessageUpdate: {
 		message: Extract<PiAgentSessionEvent, { type: "message_update" }>["message"];
 		messageId: string;

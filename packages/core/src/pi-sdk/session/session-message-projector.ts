@@ -3,7 +3,7 @@ import { createLingError } from "@ling/core/ling-error";
 import { inspectPiSessionEntryIdentity } from "../../transcript/session-entry-identity";
 import { renderPiCustomEntry, renderPiCustomMessage } from "../extensions/extension-message-renderer";
 import { createPiToolRendererProjection } from "../extensions/extension-tool-renderer";
-import { transformPiMarkdownMessage } from "../extensions/markdown-transformer";
+import { resolvePiMarkdownWidth, transformPiMarkdownMessage } from "../extensions/markdown-transformer";
 import { type PiAgentSession, type PiBranchProjectionSource, piBranchProjectionSource } from "../types";
 import { normalizePiMessage } from "./message-normalizer";
 import { readAssistantGeneration } from "./assistant-generation";
@@ -41,7 +41,7 @@ export function projectPiBranchMessages(
 ): SessionMessage[] {
 	const messages: SessionMessage[] = [];
 	const deferToolResults = options.deferToolResults ?? true;
-	const toolRenderer = createPiToolRendererProjection(source);
+	const toolRenderer = createPiToolRendererProjection(source, () => resolvePiMarkdownWidth(options.markdownWidth));
 	const branch = source.sessionManager.getBranch();
 	// A running turn keeps full results so resync never replaces live output with unloaded details.
 	const liveStart = options.includeLiveTurn
@@ -195,7 +195,7 @@ export function projectPiToolResult(
 		});
 	}
 	const result = entry.message;
-	const renderer = createPiToolRendererProjection(piBranchProjectionSource(session));
+	const renderer = createPiToolRendererProjection(piBranchProjectionSource(session), () => markdownWidth);
 	const callEntry = branch.findLast(
 		(candidate, index) =>
 			index < entryIndex &&
@@ -203,12 +203,19 @@ export function projectPiToolResult(
 			candidate.message.role === "assistant" &&
 			candidate.message.content.some((part) => part.type === "toolCall" && part.id === result.toolCallId),
 	);
-	if (callEntry?.type === "message") renderer.project(callEntry.message);
+	const callMessage =
+		callEntry?.type === "message"
+			? normalizePiMessage(renderer.project(callEntry.message), persistedMessageOptions(callEntry))
+			: null;
+	const call =
+		callMessage?.role === "assistant"
+			? callMessage.content.find((part) => part.type === "toolCall" && part.id === result.toolCallId)
+			: undefined;
 	const message = normalizePiMessage(renderer.project(result, true, false, entry.id), persistedMessageOptions(entry));
 	const projected = transformPiMarkdownMessage(session, message, {
 		isStreaming: false,
 		availableWidth: markdownWidth,
 	});
 	if (projected.role !== "toolResult") throw new Error("The tool result projection has an invalid role.");
-	return projected;
+	return call?.type === "toolCall" && call.rendered ? { ...projected, renderedCall: call.rendered } : projected;
 }

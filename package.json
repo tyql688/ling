@@ -1,6 +1,6 @@
 {
 	"name": "ling",
-	"version": "0.1.13",
+	"version": "0.1.14",
 	"description": "Desktop and Web workspace for the Pi coding agent",
 	"private": true,
 	"type": "module",

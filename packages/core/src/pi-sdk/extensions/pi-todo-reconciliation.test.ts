@@ -126,7 +126,7 @@ describe("Todo reconciliation", () => {
 				.filter((entry) => entry.type === "message" && entry.message.role === "toolResult")
 				.at(-1),
 		).toMatchObject({ message: { details: { tasks: [{ status: "in_progress" }] } } });
-		f.emit({ type: "agent_settled" });
+		f.emit({ type: "agent_settled", aborted: false });
 		f.start();
 		f.finish();
 		expect(f.sendMessage).toHaveBeenCalledTimes(1);

@@ -13,15 +13,15 @@ allowBuilds:
   koffi: false # native voice uses the shipped platform package; the install script is a source-build fallback
 minimumReleaseAgeExclude:
   - "@earendil-works/pi-voice@0.1.0"
-  - "@earendil-works/chord@1.0.4"
-  - "@earendil-works/pi-agent-core@1.0.4"
-  - "@earendil-works/pi-ai@1.0.4"
-  - "@earendil-works/pi-coding-agent@1.0.4"
-  - "@earendil-works/pi-codemode@1.0.4"
-  - "@earendil-works/pi-mcp@1.0.4"
-  - "@earendil-works/pi-telemetry@1.0.4"
-  - "@earendil-works/pi-tui@1.0.4"
-  - "@gotgenes/pi-permission-system@40.0.2"
+  - "@earendil-works/chord@1.1.0"
+  - "@earendil-works/pi-agent-core@1.1.0"
+  - "@earendil-works/pi-ai@1.1.0"
+  - "@earendil-works/pi-coding-agent@1.1.0"
+  - "@earendil-works/pi-codemode@1.1.0"
+  - "@earendil-works/pi-mcp@1.1.0"
+  - "@earendil-works/pi-telemetry@1.1.0"
+  - "@earendil-works/pi-tui@1.1.0"
+  - "@gotgenes/pi-permission-system@40.1.2"
   - "@juicesharp/rpiv-todo@2.12.0"
   - "@juicesharp/rpiv-config@2.12.0"
 overrides:
@@ -32,7 +32,7 @@ patchedDependencies:
   "@floating-ui/core@1.8.0": patches/@floating-ui__core@1.8.0.patch
   "@floating-ui/dom@1.8.0": patches/@floating-ui__dom@1.8.0.patch
   # Match absolute Bash rules against relative arguments inside execution modifiers.
-  "@gotgenes/pi-permission-system@40.0.2": patches/@gotgenes__pi-permission-system@40.0.2.patch
+  "@gotgenes/pi-permission-system@40.1.2": patches/@gotgenes__pi-permission-system@40.1.2.patch
   # Expose the NSIS copy hook for staged installation and updates.
   app-builder-lib@26.17.0: patches/app-builder-lib@26.17.0.patch
   # Keep diagram rendering stable and yield Markdown batches without per-node layout reads.

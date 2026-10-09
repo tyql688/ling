@@ -649,6 +649,18 @@ it("applies session tool filters across registration, reload, disk reopen and fa
 		).toBe(true);
 		await handle.controlSession({ type: "toolFilter", filter: { tools: [], excludeTools: [], disableMcp: false } });
 		expect(current!.session.getAllTools()).toEqual([]);
+		const adjustments = { tools: ["+codemode", "-write"], excludeTools: [], disableMcp: false };
+		await handle.controlSession({ type: "toolFilter", filter: adjustments });
+		for (const reload of [false, true]) {
+			if (reload) await handle.reloadResources();
+			expect(current!.session.getActiveToolNames()).toContain("codemode");
+			expect(current!.session.getActiveToolNames()).toContain("read");
+			expect(current!.session.getActiveToolNames()).not.toContain("write");
+		}
+		await handle.dispose();
+		handle = await open(SessionManager.open(path));
+		expect((await handle.inspectSession(0)).toolFilter).toEqual(adjustments);
+		expect(current!.session.getActiveToolNames()).not.toContain("write");
 		await handle.controlSession({ type: "toolFilter", filter: defaultSessionToolFilter() });
 		expect(current!.session.getActiveToolNames()).toContain("read");
 		expect(current!.session.getAllTools().map((tool) => tool.name)).toContain("fixture_drop");

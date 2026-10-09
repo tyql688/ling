@@ -10,7 +10,11 @@ import { TOOL_PROGRESS_MAX_CHARS } from "@ling/contracts/session-tool-progress";
 import { absolutePathSchema as createAbsolutePathSchema, nativeSessionRefSchema } from "../paths";
 import { z } from "zod";
 import { piToolOriginSchema } from "@ling/contracts/pi-tool-origin";
-import { generationDurationMsSchema, nestedToolCallsSchema } from "@ling/contracts/session-messages";
+import {
+	generationDurationMsSchema,
+	nestedToolCallsSchema,
+	toolDurationMsSchema,
+} from "@ling/contracts/session-messages";
 
 const TRANSPORT_TEXT_MAX_CHARS = 64 * 1024 * 1024;
 const FIELD_MAX_CHARS = 1_048_576;
@@ -126,6 +130,7 @@ export const sessionMessageSchema = z.discriminatedUnion("role", [
 		content: z.array(toolResultContentSchema).max(COLLECTION_MAX_ITEMS),
 		toolCallId: idSchema,
 		toolName: idSchema,
+		durationMs: toolDurationMsSchema.optional(),
 		toolOrigin: piToolOriginSchema.optional(),
 		nestedCalls: nestedToolCallsSchema.optional(),
 		isError: z.boolean(),
@@ -314,7 +319,10 @@ const sessionSummarySchema = z.strictObject({
 
 const runOutcomeSchema = z.discriminatedUnion("status", [
 	z.strictObject({ status: z.literal("success") }),
-	z.strictObject({ status: z.literal("cancelled") }),
+	z.strictObject({
+		status: z.literal("cancelled"),
+		restoredMessages: z.array(queuedMessageSchema).max(COLLECTION_MAX_ITEMS).optional(),
+	}),
 	z.strictObject({
 		status: z.literal("failed"),
 		message: textSchema,

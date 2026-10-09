@@ -3,6 +3,7 @@ import { record } from "@ling/contracts/records";
 import { piToolOriginSchema } from "@ling/contracts/pi-tool-origin";
 import {
 	generationDurationMsSchema,
+	toolDurationMsSchema,
 	nestedToolCallsSchema,
 	SESSION_NESTED_CALL_MAX_ITEMS,
 	type NestedToolCalls,
@@ -494,6 +495,7 @@ function normalizePiMessageValue(value: unknown, options: NormalizePiMessageOpti
 			content,
 			toolCallId: boundedString(source.toolCallId, MAX_ID_LENGTH),
 			toolName: boundedString(source.toolName, 256),
+			...(source.durationMs === undefined ? {} : { durationMs: toolDurationMsSchema.parse(source.durationMs) }),
 			...(source.toolOrigin === undefined ? {} : { toolOrigin: piToolOriginSchema.parse(source.toolOrigin) }),
 			...(nestedCalls === undefined ? {} : { nestedCalls }),
 			isError: source.isError,

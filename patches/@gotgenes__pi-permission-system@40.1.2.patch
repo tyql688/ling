@@ -1,7 +1,7 @@
 diff --git a/src/access-intent/bash/command-enumeration.ts b/src/access-intent/bash/command-enumeration.ts
 --- a/src/access-intent/bash/command-enumeration.ts
 +++ b/src/access-intent/bash/command-enumeration.ts
-@@ -47,6 +47,8 @@
+@@ -52,6 +52,8 @@
     * by its own walk rather than read off this string (#803).
     */
    readonly executedUnit?: string;
@@ -10,7 +10,7 @@ diff --git a/src/access-intent/bash/command-enumeration.ts b/src/access-intent/b
    /**
     * Set when this wrapper unit's floor has no reason left to hold, naming the
     * reason (#803). Only ever present alongside `wrapperKind: "indirection"`
-@@ -452,6 +454,8 @@
+@@ -497,6 +499,8 @@
  interface UnitFacts {
    readonly wrapperKind?: WrapperKind;
    readonly executedUnit?: string;
@@ -19,7 +19,7 @@ diff --git a/src/access-intent/bash/command-enumeration.ts b/src/access-intent/b
    readonly floorExemption?: FloorExemption;
    readonly spellings?: readonly string[];
  }
-@@ -461,15 +465,25 @@
+@@ -506,15 +510,25 @@
    scope: UnitScope,
    facts: UnitFacts = {},
  ): BashCommand {
@@ -47,10 +47,10 @@ diff --git a/src/access-intent/bash/command-enumeration.ts b/src/access-intent/b
    const marked: BashCommand = scope.parseUnresolved
      ? { ...exempted, parseUnresolved: true }
      : exempted;
-@@ -489,7 +503,10 @@
-  * surely as one on the enclosing statement.
-  */
- function makeCommandUnit(node: TSNode, scope: UnitScope): BashCommand {
+@@ -538,7 +552,10 @@
+   scope: UnitScope,
+   floorExemption?: FloorExemption,
+ ): BashCommand {
 -  const { text, words, argumentSpelling } = readCommandUnit(node, scope);
 +  const { text, words, argumentSpelling, spelledWords } = readCommandUnit(
 +    node,
@@ -59,7 +59,7 @@ diff --git a/src/access-intent/bash/command-enumeration.ts b/src/access-intent/b
    return makeUnit(text, scope, {
      spellings: distinctSpellings(text, [
        scope.words.spellHomeAtStart(text),
-@@ -497,6 +514,10 @@
+@@ -546,6 +563,10 @@
      ]),
      wrapperKind: classifyWrapperWords(words),
      executedUnit: executedUnitOf(text, words) ?? undefined,
@@ -67,10 +67,10 @@ diff --git a/src/access-intent/bash/command-enumeration.ts b/src/access-intent/b
 +      argumentSpelling && spelledWords
 +        ? (executedUnitOf(argumentSpelling, spelledWords) ?? undefined)
 +        : undefined,
-     floorExemption: floorExemptionOf(words, redirectedScope(node, scope)),
+     floorExemption:
+       floorExemption ?? floorExemptionOf(words, redirectedScope(node, scope)),
    });
- }
-@@ -554,12 +575,14 @@
+@@ -604,12 +625,14 @@
    text: string;
    words: CommandWord[];
    argumentSpelling?: string;
@@ -78,15 +78,14 @@ diff --git a/src/access-intent/bash/command-enumeration.ts b/src/access-intent/b
  } {
    const nodes = commandWordNodes(node);
    if (nodes.length === 0) return { text: node.text, words: [] };
--
-+
+
    const redirects = hostedRedirects(node);
    const words: CommandWord[] = [];
 +  const spelledWords: CommandWord[] = [];
    let text = "";
    let spelled = "";
    let respelled = false;
-@@ -577,12 +600,17 @@
+@@ -627,11 +650,16 @@
        ? undefined
        : scope.speller?.absoluteSpellingOf(word);
      respelled ||= spelling !== undefined;
@@ -103,9 +102,7 @@ diff --git a/src/access-intent/bash/command-enumeration.ts b/src/access-intent/b
 +    ? { text, words, argumentSpelling: spelled, spelledWords }
      : { text, words };
  }
--
-+
- /**
+
 diff --git a/src/handlers/gates/bash-command.ts b/src/handlers/gates/bash-command.ts
 --- a/src/handlers/gates/bash-command.ts
 +++ b/src/handlers/gates/bash-command.ts

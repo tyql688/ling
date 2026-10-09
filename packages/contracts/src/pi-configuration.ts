@@ -122,7 +122,6 @@ export const PI_TERMINAL_CONFIGURATION_KEYS = [
 	"externalEditor",
 	"doubleEscapeAction",
 	"editorPaddingX",
-	"outputPad",
 	"autocompleteMaxVisible",
 	"showHardwareCursor",
 	"tuiMode",

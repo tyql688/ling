@@ -28,14 +28,11 @@ export function SessionToolFilterForm({
 	const [excluded, setExcluded] = useState(filter.excludeTools.join("\n"));
 	const [disableMcp, setDisableMcp] = useState(filter.disableMcp);
 	const [invalid, setInvalid] = useState(false);
-	const split = (value: string) => [
-		...new Set(
-			value
-				.split(/[,\n]/)
-				.map((pattern) => pattern.trim())
-				.filter(Boolean),
-		),
-	];
+	const split = (value: string) =>
+		value
+			.split(/[,\n]/)
+			.map((pattern) => pattern.trim())
+			.filter(Boolean);
 	return (
 		<details
 			open={expanded}
@@ -81,10 +78,13 @@ export function SessionToolFilterForm({
 							value={allowed}
 							onChange={(event) => setAllowed(event.target.value)}
 							disabled={busy || pending}
-							placeholder="read, codemode, mcp__docs__*"
+							placeholder="+codemode, -write"
 							rows={2}
 						/>
 					</label>
+				)}
+				{mode === "custom" && (
+					<p className="text-xs text-text-muted">{t("sessionInspector.toolFilter.modifierHint")}</p>
 				)}
 				<label className="flex flex-col gap-1 text-sm">
 					{t("sessionInspector.toolFilter.exclude")}

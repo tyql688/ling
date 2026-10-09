@@ -1,9 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { normalizePiMessage } from "./message-normalizer";
+import { sessionMessageSchema } from "../../pi-protocol/runtime-payload-schemas";
 
 const options = { messageId: "live-1", entryId: "entry-1", occurredAt: 100 };
 
 describe("Pi message normalization", () => {
+	it("keeps recorded tool duration through normalization and transport, including zero", () => {
+		const source = { role: "toolResult", toolCallId: "call", toolName: "bash", isError: false, content: [] };
+		for (const durationMs of [0, 1250]) {
+			const message = normalizePiMessage({ ...source, durationMs }, options);
+			expect(sessionMessageSchema.parse(message)).toMatchObject({ role: "toolResult", durationMs });
+		}
+		expect(normalizePiMessage(source, options)).not.toHaveProperty("durationMs");
+		for (const durationMs of [-1, Infinity, "1250"]) {
+			expect(normalizePiMessage({ ...source, durationMs }, options)).toMatchObject({ role: "unknown" });
+		}
+	});
 	it("retains parent output and valid nested calls when another nested record is malformed", () => {
 		const message = normalizePiMessage(
 			{

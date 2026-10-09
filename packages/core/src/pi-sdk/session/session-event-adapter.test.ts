@@ -1,11 +1,32 @@
-import { SessionManager } from "@earendil-works/pi-coding-agent";
-import type { LingSessionEvent } from "@ling/contracts/session";
+import { SessionManager, SettingsManager } from "@earendil-works/pi-coding-agent";
+import type { LingSessionEvent, SessionQueuedMessage } from "@ling/contracts/session";
 import { afterEach, expect, it, vi } from "vitest";
 import type { PiAgentSession } from "../types";
 import { createPiSessionEventAdapter } from "./session-event-adapter";
 import { projectPiBranchMessages, summarizePiBranchMessages } from "./session-message-projector";
 
 afterEach(() => vi.useRealTimers());
+
+it("reports settled cancellation and restores parked input even when the last assistant message completed", () => {
+	const h = streamingAdapter();
+	const parked = { text: "queued", draftText: "queued", images: [], fileReferences: [] };
+	try {
+		h.adapter.adapt({ type: "agent_start" });
+		h.adapter.adapt({ type: "agent_end", messages: [], willRetry: false });
+		h.takeParked.mockReturnValueOnce([parked]);
+		expect(h.adapter.adapt({ type: "agent_settled", aborted: true })).toMatchObject({
+			type: "runFinished",
+			outcome: { status: "cancelled", restoredMessages: [parked] },
+		});
+		h.adapter.adapt({ type: "agent_start" });
+		expect(h.adapter.adapt({ type: "agent_settled", aborted: false })).toMatchObject({
+			type: "runFinished",
+			outcome: { status: "success" },
+		});
+	} finally {
+		h.adapter.dispose();
+	}
+});
 
 it("retains a nested execution's parent through progress updates", () => {
 	const h = streamingAdapter();
@@ -39,6 +60,7 @@ it("retains a nested execution's parent through progress updates", () => {
 
 function streamingAdapter() {
 	const events: LingSessionEvent[] = [];
+	const takeParked = vi.fn<() => SessionQueuedMessage[]>(() => []);
 	const transform = vi.fn((text: string) => text);
 	const failure = vi.fn();
 	const deliver = vi.fn((event: LingSessionEvent) => {
@@ -47,6 +69,7 @@ function streamingAdapter() {
 	const sessionManager = SessionManager.inMemory("/project");
 	const session = {
 		sessionManager,
+		settingsManager: SettingsManager.inMemory(),
 		extensionRunner: { getMarkdownTransformers: () => [transform] },
 	} as unknown as PiAgentSession;
 	const adapter = createPiSessionEventAdapter({
@@ -54,7 +77,7 @@ function streamingAdapter() {
 		onDeferredEvent: deliver,
 		onDeferredError: failure,
 		getMarkdownWidth: () => 88,
-		queueMirror: () => ({ unpark: () => Promise.resolve() }) as never,
+		queueMirror: () => ({ unpark: () => Promise.resolve(), takeParked }) as never,
 	});
 	type Message = Extract<Parameters<typeof adapter.adapt>[0], { type: "message_update" }>["message"];
 	const message: Message = {
@@ -83,7 +106,7 @@ function streamingAdapter() {
 			assistantMessageEvent: { type: "text_delta", contentIndex: 0, delta: text, partial: message },
 		});
 	};
-	return { adapter, events, transform, failure, deliver, message, start, update };
+	return { adapter, events, takeParked, transform, failure, deliver, message, start, update };
 }
 
 it("coalesces token bursts before extension projection and flushes the last text before a tool boundary", () => {

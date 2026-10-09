@@ -461,12 +461,12 @@ function adaptAgentEvent(
 
 		case "agent_settled": {
 			const timestamp = Date.now();
-			let outcome = owner.finalOutcome;
+			let outcome: RunOutcome = event.aborted ? { status: "cancelled" } : owner.finalOutcome;
 			owner.finalOutcome = { status: "success" };
 			const restoredMessages = owner.queueMirror().takeParked();
 			if (restoredMessages.length > 0) {
 				outcome =
-					outcome.status === "failed"
+					outcome.status !== "success"
 						? { ...outcome, restoredMessages }
 						: { status: "failed", message: "Queued messages were not sent", restoredMessages };
 			}

@@ -37,6 +37,10 @@ it("bounds compiled patterns and distinguishes inherited defaults from disabling
 	});
 	expect(sessionControlSchema.parse(action(null))).toEqual(action(null));
 	expect(sessionControlSchema.parse(action([]))).toEqual(action([]));
+	expect(sessionControlSchema.parse(action(["+codemode", "-write"]))).toEqual(action(["+codemode", "-write"]));
+	for (const tools of [["read", "+codemode"], ["+mcp__*"], ["+"], ["-"]]) {
+		expect(sessionControlSchema.safeParse(action(tools)).success).toBe(false);
+	}
 	expect(sessionControlSchema.parse(action(["read", "mcp__*"], ["*delete*"]))).toEqual(
 		action(["read", "mcp__*"], ["*delete*"]),
 	);

@@ -166,11 +166,11 @@ export function createSessionProjectionRuntime(store: Store, session: LingApi["s
 		store.set(sessionViewFamily(key), (current) => reduceSessionView(current, { type: "event", envelope }));
 		if (
 			envelope.event.type === "runFinished" &&
-			envelope.event.outcome.status === "failed" &&
+			envelope.event.outcome.status !== "success" &&
 			envelope.event.outcome.restoredMessages !== undefined &&
 			envelope.event.outcome.restoredMessages.length > 0
 		) {
-			// Queued messages the failed run never sent come back to the composer, like an abort.
+			// Return messages held during retry to the composer when the run fails or is cancelled.
 			const drafts = store.get(draftsAtom);
 			const restored = appendUnsentMessages(drafts[key] ?? EMPTY_DRAFT, envelope.event.outcome.restoredMessages);
 			store.set(draftsAtom, { ...drafts, [key]: restored.draft });

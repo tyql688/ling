@@ -1,5 +1,5 @@
 /** Wire compatibility version for worker roles and session operations. */
-export const PI_WORKER_PROTOCOL_VERSION = 7 as const;
+export const PI_WORKER_PROTOCOL_VERSION = 8 as const;
 
 export const PI_WORKER_REQUEST_MAX_BYTES = 64 * 1024 * 1024;
 

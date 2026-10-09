@@ -1,5 +1,5 @@
 import { record } from "@ling/contracts/records";
-import type { RenderedTextSnapshot } from "@ling/contracts/session-messages";
+import { toolDurationMsSchema, type RenderedTextSnapshot } from "@ling/contracts/session-messages";
 import { toCommandError } from "../../command-resolver";
 import type { PiAgentSession, PiBranchProjectionSource } from "../types";
 import { EXTENSION_UI_RENDER_WIDTH } from "./extension-ui-overlay-layout";
@@ -17,6 +17,7 @@ interface TrackedToolCall {
 	name: string;
 	args: Record<string, unknown>;
 	cwd: string;
+	outputPad: number;
 }
 
 /** A normal turn has only a handful of calls; malformed/missing results must not retain every args object. */
@@ -39,6 +40,7 @@ function renderContext(
 	state: Record<string, unknown>,
 	isError: boolean,
 	isPartial = false,
+	durationMs?: number,
 ): PiRenderContext {
 	return {
 		args: call.args,
@@ -53,6 +55,8 @@ function renderContext(
 		expanded,
 		showImages: false,
 		isError,
+		durationMs,
+		outputPad: call.outputPad,
 	};
 }
 
@@ -77,9 +81,10 @@ function renderCallVariant(
 	expanded: boolean,
 	state: Record<string, unknown>,
 	width: number,
+	durationMs?: number,
 ): string[] {
 	return renderLines(
-		renderer(call.args, lingWidgetTheme, renderContext(call, toolCallId, expanded, state, false)),
+		renderer(call.args, lingWidgetTheme, renderContext(call, toolCallId, expanded, state, false, false, durationMs)),
 		call.name,
 		width,
 	);
@@ -96,7 +101,11 @@ function renderResultVariant(
 	isPartial = false,
 ): string[] {
 	const state: Record<string, unknown> = {};
-	if (definition.renderCall) renderCallVariant(definition.renderCall, call, toolCallId, expanded, state, width);
+	const recordedDuration = record(result)?.durationMs;
+	const durationMs =
+		isPartial || recordedDuration === undefined ? undefined : toolDurationMsSchema.parse(recordedDuration);
+	if (definition.renderCall)
+		renderCallVariant(definition.renderCall, call, toolCallId, expanded, state, width, durationMs);
 	const renderer = definition.renderResult;
 	if (!renderer) return [];
 	return renderLines(
@@ -104,7 +113,7 @@ function renderResultVariant(
 			result,
 			{ expanded, isPartial },
 			lingWidgetTheme,
-			renderContext(call, toolCallId, expanded, state, isError, isPartial),
+			renderContext(call, toolCallId, expanded, state, isError, isPartial, durationMs),
 		),
 		call.name,
 		width,
@@ -195,13 +204,20 @@ export function createPiToolRendererProjection(
 		project(value: unknown, final = false, deferResult = false, entryId: string | null = null): unknown {
 			const source = record(value);
 			if (source?.role === "assistant" && Array.isArray(source.content)) {
+				if (!owner.extensions) return value;
+				const outputPad = owner.extensions.settingsManager.getOutputPad();
 				let changed = false;
 				const content = source.content.map((candidate) => {
 					const part = record(candidate);
 					if (part?.type !== "toolCall" || typeof part.id !== "string" || typeof part.name !== "string") {
 						return candidate;
 					}
-					const call = { name: part.name, args: record(part.arguments) ?? {}, cwd: owner.sessionManager.getCwd() };
+					const call = {
+						name: part.name,
+						args: record(part.arguments) ?? {},
+						cwd: owner.sessionManager.getCwd(),
+						outputPad,
+					};
 					rememberCall(part.id, call);
 					const rendered = renderCallSnapshot(owner, call, part.id, getWidth());
 					if (!rendered) return candidate;

@@ -24,6 +24,7 @@ export const nestedToolCallsSchema = z.object({
 export type NestedToolCalls = z.infer<typeof nestedToolCallsSchema>;
 
 export const generationDurationMsSchema = z.number().positive();
+export const toolDurationMsSchema = z.number().nonnegative();
 
 export type ImageAttachment = NonNullable<SendMessageRequest["images"]>[number];
 
@@ -109,6 +110,8 @@ export interface ToolResultSessionMessage extends SessionMessageIdentity {
 	content: ToolResultContentPart[];
 	toolCallId: string;
 	toolName: string;
+	/** Recorded execution time; absent when the tool did not run or the history predates timing. */
+	durationMs?: number;
 	/** Persisted execution provenance. Absence means the original extension cannot be established. */
 	toolOrigin?: PiToolOrigin;
 	isError: boolean;

@@ -49,7 +49,7 @@ export const sessionImageMimeTypeSchema = z
 
 export type RunOutcome =
 	| { status: "success" }
-	| { status: "cancelled" }
+	| { status: "cancelled"; restoredMessages?: readonly SessionQueuedMessage[] }
 	| {
 			status: "failed";
 			message: string;

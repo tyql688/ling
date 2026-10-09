@@ -176,6 +176,36 @@ describe("bundled Pi adapters", () => {
 				}
 				expect(prompts.length, prefix).toBe(before + 1);
 			}
+			for (const command of [
+				"time (printf NEEDS_APPROVAL)",
+				"sudo -ne true",
+				"sudo --edit true",
+				"sudo -ns true",
+				"sudo --chdir=/tmp true",
+				"sudo -i true",
+			]) {
+				const before = prompts.length;
+				expect(
+					await session.extensionRunner.emitToolCall({
+						type: "tool_call",
+						toolName: "bash",
+						toolCallId: command,
+						input: { command },
+					}),
+					command,
+				).toMatchObject({ block: true });
+				expect(prompts.length, command).toBe(before + 1);
+			}
+			const beforeNoop = prompts.length;
+			expect(
+				await session.extensionRunner.emitToolCall({
+					type: "tool_call",
+					toolName: "bash",
+					toolCallId: "noop",
+					input: { command: "sudo -n true" },
+				}),
+			).not.toMatchObject({ block: true });
+			expect(prompts.length).toBe(beforeNoop);
 			const granted = "sh -c 'printf GRANTED'";
 			decision = "Yes, allow bash";
 			const beforeGrant = prompts.length;
@@ -206,6 +236,7 @@ describe("bundled Pi adapters", () => {
 	});
 	it("projects unregistered tool renderers and isolates resolver failures from transcript content", async () => {
 		const f = await fixture();
+		const contexts: { durationMs: number | undefined; outputPad: number }[] = [];
 		const resourceLoader = new DefaultResourceLoader({
 			cwd: f.cwd,
 			agentDir: f.agentDir,
@@ -219,12 +250,15 @@ describe("bundled Pi adapters", () => {
 							if (name !== "offline") return next();
 							return {
 								renderCall: () => ({ render: (width) => [`Offline call ${width}`], invalidate() {} }),
-								renderResult: (_result, options) => ({
-									render: (width) => [
-										`${options.isPartial ? "Partial" : options.expanded ? "Expanded result" : "Collapsed result"} ${width}`,
-									],
-									invalidate() {},
-								}),
+								renderResult: (_result, options, _theme, context) => {
+									contexts.push({ durationMs: context.durationMs, outputPad: context.outputPad });
+									return {
+										render: (width) => [
+											`${options.isPartial ? "Partial" : options.expanded ? "Expanded result" : "Collapsed result"} ${width}`,
+										],
+										invalidate() {},
+									};
+								},
 							};
 						});
 					},
@@ -240,6 +274,7 @@ describe("bundled Pi adapters", () => {
 		});
 		try {
 			await session.bindExtensions({});
+			session.settingsManager.setOutputPad(0);
 			let width = 120;
 			const projection = createPiToolRendererProjection(piBranchProjectionSource(session), () => width);
 			expect(hasPiToolRenderers(session)).toBe(true);
@@ -263,6 +298,7 @@ describe("bundled Pi adapters", () => {
 				columns: 60,
 				collapsedLines: ["Partial 60"],
 			});
+			expect(contexts.at(-1)).toEqual({ durationMs: undefined, outputPad: 0 });
 			expect(
 				projection.project(
 					{
@@ -270,6 +306,7 @@ describe("bundled Pi adapters", () => {
 						toolCallId: "offline-call",
 						toolName: "offline",
 						isError: false,
+						durationMs: 1250,
 						content: [{ type: "text", text: "Retained result" }],
 					},
 					true,
@@ -278,6 +315,7 @@ describe("bundled Pi adapters", () => {
 				content: [{ text: "Retained result" }],
 				rendered: { columns: 60, collapsedLines: ["Collapsed result 60"], expandedLines: ["Expanded result 60"] },
 			});
+			expect(contexts.at(-1)).toEqual({ durationMs: 1250, outputPad: 0 });
 			expect(projection.projectPartial("offline-call", { content: [] })).toBeUndefined();
 			session.sessionManager.appendMessage({
 				role: "assistant",
@@ -301,6 +339,7 @@ describe("bundled Pi adapters", () => {
 				toolCallId: "offline-call",
 				toolName: "offline",
 				isError: false,
+				durationMs: 0,
 				content: [{ type: "text", text: "Retained result" }],
 				timestamp: 2,
 			});
@@ -310,6 +349,7 @@ describe("bundled Pi adapters", () => {
 			for (const columns of [72, 130, 72]) {
 				expect(projectPiToolResult(session, resultId, columns)).toMatchObject({
 					entryId: resultId,
+					durationMs: 0,
 					content: [{ text: "Retained result" }],
 					renderedCall: { columns, expandedLines: [`Offline call ${columns}`] },
 					rendered: { columns, expandedLines: [`Expanded result ${columns}`] },

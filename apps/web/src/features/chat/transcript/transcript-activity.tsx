@@ -158,6 +158,9 @@ const ToolStepView = memo(
 						) : (
 							detail && !expanded && <span className="min-w-0 truncate">{detail}</span>
 						)}
+						{step.result?.durationMs !== undefined && (
+							<span className="ml-auto shrink-0 tabular-nums text-text-muted">{step.result.durationMs} ms</span>
+						)}
 						{hasDetails && (
 							<ChevronDown
 								className={cn(
